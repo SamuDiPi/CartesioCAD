@@ -1,5 +1,5 @@
 // Gestione tabelle stili di stampa (STYLESMANAGER, Opzioni > Stampa e pubblicazione): le .ctb della cartella degli
-// stili e quelle predefinite; nuova, modifica, copia, rinomina, elimina, importa (anche dai programmi installati), apri cartella.
+// stili e quelle predefinite; nuova, modifica, copia, rinomina, elimina, importa da un file scelto, apri cartella.
 #include "app/PlotDialog.h"
 
 #include "app/FormDialog.h"
@@ -19,33 +19,6 @@
 #include <QUrl>
 
 namespace cartesio {
-
-// Cartelle "Plot Styles" con tabelle .ctb nei dati applicazioni dell'utente, dove i programmi CAD installati
-// tengono le loro (<produttore>\<prodotto>\<versione>\<lingua>\Plotters\Plot Styles). Ricerca in ampiezza poco
-// profonda e con un limite, per non scorrere tutto il profilo.
-QStringList installedPlotStyleFolders()
-{
-    QStringList out;
-    const QString roaming = qEnvironmentVariable("APPDATA");
-    if (roaming.isEmpty() || !QFileInfo(roaming).isDir())
-        return out;
-    std::vector<std::pair<QString, int>> queue{{roaming, 0}};
-    for (std::size_t i = 0; i < queue.size() && i < 20000; ++i) {
-        const auto [dir, depth] = queue[i];
-        for (const QFileInfo& sub : QDir(dir).entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks)) {
-            if (sub.fileName().compare(QStringLiteral("Plot Styles"), Qt::CaseInsensitive) == 0) {
-                const QString path = QDir::cleanPath(sub.absoluteFilePath());
-                if (!out.contains(path, Qt::CaseInsensitive)
-                    && !QDir(path).entryList({QStringLiteral("*.ctb")}, QDir::Files).isEmpty())
-                    out << path;
-                continue;
-            }
-            if (depth < 5)
-                queue.emplace_back(sub.absoluteFilePath(), depth + 1);
-        }
-    }
-    return out;
-}
 
 
 namespace {
@@ -197,11 +170,12 @@ void showPlotStyleManager(QWidget* parent)
              refill(QString());
          }},
     });
-    const QStringList installed = installedPlotStyleFolders();
+    // L'importazione parte dalla cartella Documenti: i file da importare li sceglie l'utente.
+    const QString startFolder = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     dialog.buttonsRow({
         {QObject::tr("Importa .ctb..."), [&] {
              const QStringList files = QFileDialog::getOpenFileNames(&dialog, QObject::tr("Importa tabelle stili"),
-                                                                     installed.isEmpty() ? QString() : installed.front(),
+                                                                     startFolder,
                                                                      QObject::tr("Tabelle stili di stampa (*.ctb)"));
              QString last, errors;
              for (const QString& f : files) {
@@ -217,24 +191,6 @@ void showPlotStyleManager(QWidget* parent)
                  QMessageBox::warning(&dialog, dialog.windowTitle(), errors);
              refill(last);
          }},
-        {QObject::tr("Importa tutte dai programmi installati"), [&] {
-             if (installed.isEmpty()) {
-                 QMessageBox::information(&dialog, dialog.windowTitle(),
-                                          QObject::tr("Nessuna cartella Plot Styles trovata in questo profilo utente."));
-                 return;
-             }
-             int copied = 0;
-             for (const QString& dir : installed)
-                 for (const QString& f : QDir(dir).entryList({QStringLiteral("*.ctb")}, QDir::Files)) {
-                     QString error;
-                     const auto table = readCtbFile(dir + QLatin1Char('/') + f, &error);
-                     if (table && !QFileInfo::exists(fileOf(f)) && savePlotStyleTable(*table, fileOf(f), &error))
-                         ++copied;
-                 }
-             QMessageBox::information(&dialog, dialog.windowTitle(),
-                                      QObject::tr("Tabelle importate: %1 (quelle già presenti non si sovrascrivono).").arg(copied));
-             refill(selectedName());
-         }},
         {QObject::tr("Apri cartella"), [&] {
              QDir().mkpath(folder);
              QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
@@ -242,11 +198,7 @@ void showPlotStyleManager(QWidget* parent)
     });
     dialog.group(QObject::tr("Dettagli"));
     detailsField = dialog.note(QString());
-    dialog.note(QObject::tr("Cartella delle tabelle: %1<br>%2")
-                    .arg(QDir::toNativeSeparators(folder).toHtmlEscaped(),
-                         installed.isEmpty() ? QObject::tr("Nessuna cartella Plot Styles trovata in questo profilo.")
-                                           : QObject::tr("Plot Styles: %1")
-                                                 .arg(QDir::toNativeSeparators(installed.join(QStringLiteral("; "))).toHtmlEscaped())));
+    dialog.note(QObject::tr("Cartella delle tabelle: %1").arg(QDir::toNativeSeparators(folder).toHtmlEscaped()));
     refill(QString());
     dialog.setSize(620, 600);
     if (!grabPath().isEmpty()) {

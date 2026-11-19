@@ -4,13 +4,11 @@
 
 **Dove:** barra di stato, accanto a MODELLO (la scala, per esempio 1:50); Annota > Scale di annotazione.
 
-Testi, testi multilinea, quote e direttrici creati con uno stile **annotativo** (casella *Annotativo* negli stili di testo, di quota e delle direttrici, o proprietà *Annotativo*) hanno le misure **sulla carta**: un testo alto 2,5 a 1:50 è alto 125 nel modello. Cambiando la scala di annotazione gli oggetti che la supportano si ridimensionano da soli; nei layout ogni finestra li mostra alla sua scala, anche in stampa.
+Testi, testi multilinea, quote e direttrici creati con uno stile **annotativo** (casella *Annotativo* negli stili di testo, di quota e delle direttrici, o proprietà *Annotativo*) hanno le misure **sulla carta**: un testo alto 2,5 a 1:50 è alto 125 nel modello. Cambiando la scala di annotazione gli oggetti che la supportano si ridimensionano da soli, gli altri restano come sono; nei layout ogni finestra mostra alla sua scala quelli che la supportano, anche in stampa. Nessun oggetto si nasconde per la scala.
 
-## Mostra tutti gli annotativi (`ANNOALLVISIBLE`)
+## Variabile `ANNOALLVISIBLE`
 
-**Dove:** pulsante **A** nella barra di stato.
-
-Con 1 si vedono tutti gli oggetti annotativi (alla loro scala); con 0 si nascondono quelli che non supportano la scala corrente.
+Solo memorizzata: si legge e si salva con il disegno, per i file che la contengono. In CartesioCAD gli oggetti annotativi si vedono sempre: quelli che non supportano la scala corrente restano alla loro.
 
 ## Scale degli oggetti (`OBJECTSCALE`, `SCALAOGGETTO`, `-OBJECTSCALE`)
 

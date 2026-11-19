@@ -105,14 +105,14 @@ public:
     std::string prompt() const override
     {
         switch (step_) {
-        case Step::Sides: return "Immettere numero dei lati <" + std::to_string(gPolygonSides) + ">:";
-        case Step::Center: return "Specificare centro del poligono o [Lato]:";
+        case Step::Sides: return "Numero dei lati <" + std::to_string(gPolygonSides) + ">:";
+        case Step::Center: return "Centro del poligono o [Lato]:";
         case Step::Mode:
-            return std::string("Immettere un'opzione [Inscritto nel cerchio/Circoscritto attorno al cerchio] <")
+            return std::string("Opzione [Inscritto nel cerchio/Circoscritto attorno al cerchio] <")
                 + (gPolygonInscribed ? "I" : "C") + ">:";
-        case Step::Radius: return "Specificare raggio del cerchio:";
-        case Step::Edge1: return "Specificare primo punto finale del lato:";
-        case Step::Edge2: return "Specificare secondo punto finale del lato:";
+        case Step::Radius: return "Raggio del cerchio:";
+        case Step::Edge1: return "Primo punto finale del lato:";
+        case Step::Edge2: return "Secondo punto finale del lato:";
         }
         return {};
     }
@@ -258,13 +258,13 @@ public:
     std::string prompt() const override
     {
         if (askingArc_)
-            return "Specificare lunghezza dell'arco <" + (gRevcloudArc > 0 ? fmtNumber(gRevcloudArc) : std::string("auto"))
+            return "Lunghezza dell'arco <" + (gRevcloudArc > 0 ? fmtNumber(gRevcloudArc) : std::string("auto"))
                 + ">:";
         if (object_)
-            return "Selezionare oggetto chiuso (polilinea, cerchio, ellisse):";
+            return "Oggetto chiuso (polilinea, cerchio, ellisse):";
         if (first_)
-            return "Specificare angolo opposto:";
-        return "Specificare primo angolo o [Lunghezza arco/Oggetto]:";
+            return "Angolo opposto:";
+        return "Primo angolo o [Lunghezza arco/Oggetto]:";
     }
     bool wantsSelection() const override { return object_; }
 
@@ -364,10 +364,10 @@ public:
     std::string prompt() const override
     {
         if (askingAngle_)
-            return "Specificare angolo della linea di costruzione:";
+            return "Angolo della linea di costruzione:";
         if (!base_)
-            return ray_ ? "Specificare punto iniziale:" : "Specificare un punto o [Orizz/Vert/Ang]:";
-        return "Specificare punto di passaggio:";
+            return ray_ ? "Punto iniziale:" : "Punto o [Orizz/Vert/Ang]:";
+        return "Punto di passaggio:";
     }
 
     CommandStatus onKeyword(CommandContext& ctx, const std::string& w) override
@@ -441,8 +441,8 @@ public:
     std::string prompt() const override
     {
         if (!target_)
-            return measure_ ? "Selezionare oggetto da misurare:" : "Selezionare oggetto da dividere:";
-        return measure_ ? "Specificare lunghezza del segmento:" : "Immettere il numero di segmenti:";
+            return measure_ ? "Oggetto da misurare:" : "Oggetto da dividere:";
+        return measure_ ? "Lunghezza del segmento:" : "Numero di segmenti:";
     }
     bool wantsSelection() const override { return !target_; }
 
@@ -452,7 +452,7 @@ public:
             return Command::onPoint(ctx, p);
         const Entity* e = ctx.document.pick(p, ctx.pickTolerance);
         if (!e || measurablePrims(*e).empty()) {
-            ctx.message("Selezionare linee, archi, cerchi, polilinee, ellissi o spline.");
+            ctx.message("Scegli linee, archi, cerchi, polilinee, ellissi o spline.");
             return CommandStatus::Continue;
         }
         target_ = e->id();
@@ -518,11 +518,11 @@ public:
     std::string prompt() const override
     {
         switch (mode_) {
-        case Mode::AskDelta: return "Immettere lunghezza incremento <" + fmtNumber(delta_) + ">:";
-        case Mode::AskPercent: return "Immettere percentuale di lunghezza <" + fmtNumber(percent_) + ">:";
-        case Mode::AskTotal: return "Specificare lunghezza totale <" + fmtNumber(total_) + ">:";
-        case Mode::None: return "Selezionare un oggetto da misurare o [DElta/Percentuale/Totale]:";
-        default: return "Selezionare un oggetto da modificare (Invio per finire):";
+        case Mode::AskDelta: return "Allungamento <" + fmtNumber(delta_) + ">:";
+        case Mode::AskPercent: return "Percentuale della lunghezza <" + fmtNumber(percent_) + ">:";
+        case Mode::AskTotal: return "Lunghezza finale <" + fmtNumber(total_) + ">:";
+        case Mode::None: return "Oggetto da misurare o [DElta/Percentuale/Totale]:";
+        default: return "Oggetto da modificare (Invio per finire):";
         }
     }
     bool wantsSelection() const override
@@ -578,7 +578,7 @@ public:
     {
         const Entity* e = ctx.document.pick(p, ctx.pickTolerance);
         if (!e || (e->type() != EntityType::Line && e->type() != EntityType::Arc)) {
-            ctx.message("Selezionare una linea o un arco.");
+            ctx.message("Scegli una linea o un arco.");
             return CommandStatus::Continue;
         }
         const double current = totalLength(e->prims());
@@ -648,11 +648,11 @@ protected:
     std::string actionPrompt() const override
     {
         switch (points_.size()) {
-        case 0: return "Specificare primo punto di origine:";
-        case 1: return "Specificare primo punto di destinazione:";
-        case 2: return "Specificare secondo punto di origine (Invio per solo spostamento):";
-        case 3: return "Specificare secondo punto di destinazione:";
-        default: return "Scalare gli oggetti in base ai punti di allineamento? [Sì/No] <N>:";
+        case 0: return "Primo punto di partenza:";
+        case 1: return "Primo punto di arrivo:";
+        case 2: return "Secondo punto di partenza (Invio: solo spostamento):";
+        case 3: return "Secondo punto di arrivo:";
+        default: return "Adatto anche la scala ai punti di arrivo? [Sì/No] <N>:";
         }
     }
 
@@ -953,12 +953,12 @@ public:
     std::string prompt() const override
     {
         if (asking_ == 1)
-            return "Immettere modalità [ON/OFF/Visualizza ma non stampare] <ON>:";
+            return "Modalità [ON/OFF/Visualizza ma non stampare] <ON>:";
         if (asking_ == 2)
-            return "Selezionare una polilinea chiusa:";
+            return "Polilinea chiusa:";
         if (points_.empty())
-            return "Specificare primo punto o [Cornici/Polilinea] <Polilinea>:";
-        return points_.size() < 3 ? "Specificare punto successivo:" : "Specificare punto successivo o [Chiudi]:";
+            return "Primo punto o [Cornici/Polilinea] <Polilinea>:";
+        return points_.size() < 3 ? "Punto successivo:" : "Punto successivo o [Chiudi]:";
     }
     bool wantsSelection() const override { return asking_ == 2; }
 
@@ -1064,14 +1064,14 @@ public:
     std::string prompt() const override
     {
         if (asking_ == 1)
-            return "Immettere tipo di giustificazione [Superiore/Zero/Inferiore] <" + justName() + ">:";
+            return "Allineamento [Superiore/Zero/Inferiore] <" + justName() + ">:";
         if (asking_ == 2)
-            return "Immettere scala multilinea <" + fmtNumber(gMlineScale) + ">:";
+            return "Scala della multilinea <" + fmtNumber(gMlineScale) + ">:";
         if (points_.empty())
             return "Impostazioni correnti: giustificazione = " + justName() + ", scala = " + fmtNumber(gMlineScale)
                 + ", stile = STANDARD. Specificare punto iniziale o [Giustificazione/Scala]:";
-        return points_.size() < 3 ? "Specificare punto successivo o [Annulla]:"
-                                  : "Specificare punto successivo o [Chiudi/Annulla]:";
+        return points_.size() < 3 ? "Punto successivo o [Annulla]:"
+                                  : "Punto successivo o [Chiudi/Annulla]:";
     }
 
     CommandStatus onKeyword(CommandContext& ctx, const std::string& w) override
@@ -1194,7 +1194,7 @@ public:
         case 0: return "Numero di colonne <" + std::to_string(gTableColumns) + ">:";
         case 1: return "Numero di righe <" + std::to_string(gTableRows) + ">:";
         case 2: return "Larghezza delle colonne <" + fmtNumber(gTableColumnWidth) + ">:";
-        default: return "Specificare punto di inserimento (angolo in alto a sinistra):";
+        default: return "Punto d'inserimento (in alto a sinistra):";
         }
     }
 
@@ -1264,7 +1264,7 @@ public:
     std::string prompt() const override
     {
         if (!table_)
-            return "Selezionare una cella della tabella:";
+            return "Cella della tabella:";
         return "Testo della cella (riga " + std::to_string(row_ + 1) + ", colonna " + std::to_string(col_ + 1) + ") <"
             + current_ + ">:";
     }
@@ -1333,10 +1333,10 @@ public:
     std::string prompt() const override
     {
         if (points_.empty())
-            return "Specificare primo punto:";
+            return "Primo punto:";
         if (points_.size() < 3)
-            return "Specificare punto successivo o [Annulla]:";
-        return "Specificare punto successivo o [Chiudi/Annulla] <fine>:";
+            return "Punto successivo o [Annulla]:";
+        return "Punto successivo o [Chiudi/Annulla] <fine>:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -1407,7 +1407,7 @@ private:
 // AUDIT: controlla il disegno e, se richiesto, corregge gli errori.
 class AuditCommand final : public Command {
 public:
-    std::string prompt() const override { return "Correggere gli errori rilevati? [Sì/No] <N>:"; }
+    std::string prompt() const override { return "Correggo gli errori trovati? [Sì/No] <N>:"; }
 
     CommandStatus onKeyword(CommandContext& ctx, const std::string& w) override
     {

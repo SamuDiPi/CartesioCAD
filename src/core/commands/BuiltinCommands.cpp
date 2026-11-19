@@ -17,10 +17,10 @@ public:
     std::string prompt() const override
     {
         if (!current_)
-            return "Specificare primo punto:";
+            return "Primo punto:";
         if (segments_ >= 2)
-            return "Specificare punto successivo o [Chiudi]:";
-        return "Specificare punto successivo:";
+            return "Punto successivo o [Chiudi]:";
+        return "Punto successivo:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -44,13 +44,13 @@ public:
     CommandStatus onValue(CommandContext& ctx, double v) override
     {
         if (!current_) {
-            ctx.message("Specificare un punto.");
+            ctx.message("Indica un punto.");
             return CommandStatus::Continue;
         }
         const Vec2 dir = ctx.cursor - *current_;
         const double len = dir.length();
         if (len < 1e-12) {
-            ctx.message("Spostare il cursore per indicare la direzione.");
+            ctx.message("Muovi il cursore verso la direzione voluta.");
             return CommandStatus::Continue;
         }
         return onPoint(ctx, *current_ + dir * (v / len));
@@ -87,7 +87,7 @@ class CircleCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return center_ ? "Specificare raggio del cerchio:" : "Specificare centro del cerchio:";
+        return center_ ? "Raggio del cerchio:" : "Centro del cerchio:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -103,7 +103,7 @@ public:
     CommandStatus onValue(CommandContext& ctx, double v) override
     {
         if (!center_) {
-            ctx.message("Specificare un punto.");
+            ctx.message("Indica un punto.");
             return CommandStatus::Continue;
         }
         return create(ctx, v);
@@ -145,9 +145,9 @@ public:
     std::string prompt() const override
     {
         switch (points_.size()) {
-        case 0: return "Specificare punto iniziale dell'arco:";
-        case 1: return "Specificare secondo punto dell'arco:";
-        default: return "Specificare punto finale dell'arco:";
+        case 0: return "Punto iniziale dell'arco:";
+        case 1: return "Secondo punto dell'arco:";
+        default: return "Punto finale dell'arco:";
         }
     }
 
@@ -221,22 +221,22 @@ public:
         if (widthStep_ != 0) {
             const bool start = widthStep_ == 1;
             const double shown = start ? gPlineStartWidth : (startTyped_ ? newStart_ : gPlineEndWidth);
-            return std::string("Specificare ") + (half_ ? "mezza larghezza" : "larghezza") + (start ? " iniziale" : " finale")
+            return std::string(half_ ? "Mezza larghezza" : "Larghezza") + (start ? " iniziale" : " finale")
                    + " <" + numberText(half_ ? shown / 2.0 : shown) + ">:";
         }
         if (vertices_.empty())
-            return "Specificare punto iniziale:";
+            return "Punto iniziale:";
         const std::string options = vertices_.size() >= 3 ? "/Chiudi/Mezza larghezza/LArghezza/Annulla]:"
                                                            : "/Mezza larghezza/LArghezza/Annulla]:";
         if (arcMode_)
-            return "Specificare punto finale dell'arco o [Linea" + options;
-        return "Specificare punto successivo o [Arco" + options;
+            return "Punto finale dell'arco o [Linea" + options;
+        return "Punto successivo o [Arco" + options;
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
         if (widthStep_ != 0) {
-            ctx.message("Specificare un valore.");
+            ctx.message("Scrivi un valore.");
             return CommandStatus::Continue;
         }
         if (!vertices_.empty() && p == vertices_.back().point) {
@@ -263,13 +263,13 @@ public:
             return CommandStatus::Continue;
         }
         if (vertices_.empty() || arcMode_) {
-            ctx.message("Specificare un punto.");
+            ctx.message("Indica un punto.");
             return CommandStatus::Continue;
         }
         const Vec2 last = vertices_.back().point;
         const Vec2 dir = ctx.cursor - last;
         if (dir.length() < 1e-12) {
-            ctx.message("Spostare il cursore per indicare la direzione.");
+            ctx.message("Muovi il cursore verso la direzione voluta.");
             return CommandStatus::Continue;
         }
         return onPoint(ctx, last + dir * (v / dir.length()));
@@ -397,7 +397,7 @@ class RectangleCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return first_ ? "Specificare altro angolo:" : "Specificare primo angolo:";
+        return first_ ? "Altro angolo:" : "Primo angolo:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -442,16 +442,16 @@ public:
     {
         if (centerMode_) {
             if (!center_)
-                return "Specificare centro dell'ellisse:";
+                return "Centro dell'ellisse:";
             if (!axisEnd_)
-                return "Specificare punto finale dell'asse:";
-            return "Specificare distanza dall'altro asse:";
+                return "Punto finale dell'asse:";
+            return "Distanza dall'altro asse:";
         }
         if (!p1_)
-            return "Specificare punto finale dell'asse dell'ellisse o [Centro]:";
+            return "Punto finale dell'asse dell'ellisse o [Centro]:";
         if (!axisEnd_)
-            return "Specificare altro punto finale dell'asse:";
-        return "Specificare distanza dall'altro asse:";
+            return "Altro punto finale dell'asse:";
+        return "Distanza dall'altro asse:";
     }
 
     CommandStatus onKeyword(CommandContext& ctx, const std::string& w) override
@@ -552,7 +552,7 @@ private:
 
 class PointCommand final : public Command {
 public:
-    std::string prompt() const override { return "Specificare un punto (Invio per terminare):"; }
+    std::string prompt() const override { return "Punto (Invio per finire):"; }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -593,8 +593,8 @@ public:
     std::string prompt() const override
     {
         if (corner_)
-            return "Specificare angolo opposto:";
-        return "Specificare angolo della finestra o [Estensioni/Finestra/Precedente] <Estensioni>:";
+            return "Angolo opposto:";
+        return "Primo angolo della finestra o [Estensioni/Finestra/Precedente] <Estensioni>:";
     }
     bool wantsSelection() const override { return true; }   // cursore a quadratino
     std::optional<Vec2> selectionCorner() const override { return corner_; }

@@ -987,7 +987,7 @@ void PlantPanel::addItem()
         } else if (tab_ == 1) {
             if (selectedPathObjects().empty()) {
                 QMessageBox::information(this, tr("Impianto"),
-                                         tr("Selezionare nel disegno le linee o polilinee del percorso della tratta, poi ripetere."));
+                                         tr("Scegli nel disegno le linee o polilinee del percorso della tratta, poi riprova."));
                 return;
             }
             plant::Run r;

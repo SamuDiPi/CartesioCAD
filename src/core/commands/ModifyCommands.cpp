@@ -53,8 +53,8 @@ protected:
     std::string actionPrompt() const override
     {
         if (!base_)
-            return "Specificare punto base:";
-        return copy_ ? "Specificare secondo punto (Invio per terminare):" : "Specificare secondo punto:";
+            return "Punto base:";
+        return copy_ ? "Secondo punto (Invio per finire):" : "Secondo punto:";
     }
 
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
@@ -72,13 +72,13 @@ protected:
     CommandStatus actionValue(CommandContext& ctx, double v) override
     {
         if (!base_) {
-            ctx.message("Specificare un punto.");
+            ctx.message("Indica un punto.");
             return CommandStatus::Continue;
         }
         const Vec2 dir = ctx.cursor - *base_;
         const double len = dir.length();
         if (len < 1e-12) {
-            ctx.message("Spostare il cursore per indicare la direzione.");
+            ctx.message("Muovi il cursore verso la direzione voluta.");
             return CommandStatus::Continue;
         }
         return displace(ctx, *base_ + dir * (v / len));
@@ -156,13 +156,13 @@ public:
         switch (stage_) {
         case Stage::Distance:
             if (firstPoint_)
-                return "Specificare secondo punto:";
-            return "Specificare distanza di offset"
+                return "Secondo punto:";
+            return "Distanza della copia parallela"
                 + (gLastOffset ? " <" + formatNumber(*gLastOffset) + ">" : std::string{}) + ":";
         case Stage::Object:
-            return "Selezionare oggetto di cui eseguire l'offset (Invio per terminare):";
+            return "Oggetto da copiare in parallelo (Invio per finire):";
         case Stage::Side:
-            return "Specificare punto sul lato in cui eseguire l'offset:";
+            return "Lato verso cui fare la copia parallela:";
         }
         return {};
     }
@@ -280,7 +280,7 @@ class TrimCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return "Selezionare oggetto da tagliare (Invio per terminare):";
+        return "Oggetto da tagliare (Invio per finire):";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -328,8 +328,8 @@ protected:
     std::string actionPrompt() const override
     {
         if (reference_)
-            return "Selezionare l'oggetto di riferimento:";
-        return "Immettere opzione di ordinamento oggetti [Sopra oggetti/sOtto oggetti/Primo piano/Dietro] <Dietro>:";
+            return "Oggetto di riferimento:";
+        return "Ordine di visualizzazione [Sopra oggetti/sOtto oggetti/Primo piano/Dietro] <Dietro>:";
     }
 
     CommandStatus actionKeyword(CommandContext& ctx, const std::string& word) override

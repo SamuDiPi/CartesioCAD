@@ -315,8 +315,8 @@ public:
     std::string prompt() const override
     {
         if (name_.empty())
-            return "Immettere nome della variabile:";
-        return "Immettere nuovo valore per " + name_ + " <" + current_ + ">:";
+            return "Nome della variabile:";
+        return "Nuovo valore di " + name_ + " <" + current_ + ">:";
     }
 
     CommandStatus start(CommandContext& ctx) override
@@ -373,12 +373,12 @@ public:
     {
         switch (stage_) {
         case Stage::Option:
-            return "Immettere un'opzione [?/Crea/Imposta/Nuovo/ON/OFF/Colore/TIpolinea/SPessore/Congela/Scongela/Blocca/"
+            return "Opzione [?/Crea/Imposta/Nuovo/ON/OFF/Colore/TIpolinea/SPessore/Congela/Scongela/Blocca/"
                    "Sblocca]:";
-        case Stage::Color: return "Immettere colore (numero o nome):";
-        case Stage::Linetype: return "Immettere tipo di linea (es. DASHED, CENTER):";
-        case Stage::Lineweight: return "Immettere spessore di linea in mm (es. 0.35) o Default:";
-        default: return "Immettere nome del layer:";
+        case Stage::Color: return "Colore (numero o nome):";
+        case Stage::Linetype: return "Tipo di linea (es. DASHED, CENTER):";
+        case Stage::Lineweight: return "Spessore di linea in mm (es. 0.35) o Default:";
+        default: return "Nome del layer:";
         }
     }
 
@@ -589,7 +589,7 @@ private:
 
 class ColorCommand final : public Command {
 public:
-    std::string prompt() const override { return "Immettere colore corrente (numero, nome o DALAYER):"; }
+    std::string prompt() const override { return "Colore corrente (numero, nome o DALAYER):"; }
     bool wantsText() const override { return true; }
     bool textIsLine() const override { return false; }
     CommandStatus onText(CommandContext& ctx, const std::string& text) override
@@ -613,7 +613,7 @@ public:
         switch (stage_) {
         case Stage::Load: return "Tipi di linea da caricare (separati da virgola, * = tutti):";
         case Stage::Set: return "Tipo di linea corrente (nome, DaLayer o DaBlocco):";
-        default: return "Immettere un'opzione [?/Carica/Imposta]:";
+        default: return "Opzione [?/Carica/Imposta]:";
         }
     }
 
@@ -755,7 +755,7 @@ private:
 // LAYULK: un clic su un oggetto di un layer bloccato lo sblocca (gli oggetti bloccati non si selezionano).
 class LayerUnlockCommand final : public Command {
 public:
-    std::string prompt() const override { return "Selezionare un oggetto sul layer da sbloccare:"; }
+    std::string prompt() const override { return "Oggetto sul layer da sbloccare:"; }
     bool wantsSelection() const override { return true; }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -823,7 +823,7 @@ protected:
         ids_ = ctx.selection;
         return CommandStatus::Continue;
     }
-    std::string actionPrompt() const override { return "Selezionare l'oggetto sul layer di destinazione:"; }
+    std::string actionPrompt() const override { return "Oggetto sul layer di destinazione:"; }
 
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -879,7 +879,7 @@ protected:
         switch (stage_) {
         case Stage::Add: return "Scala da aggiungere (es. 1:50):";
         case Stage::Remove: return "Scala da eliminare:";
-        default: return "Immettere un'opzione [Aggiungi/Elimina] <Fine>:";
+        default: return "Opzione [Aggiungi/Elimina] <Fine>:";
         }
     }
 
@@ -952,7 +952,7 @@ public:
         switch (stage_) {
         case Stage::Add: return "Scala da aggiungere (carta:disegno, es. 1:75):";
         case Stage::Remove: return "Scala da eliminare:";
-        default: return "Immettere un'opzione [?/Aggiungi/Elimina/Reimposta] <Fine>:";
+        default: return "Opzione [?/Aggiungi/Elimina/Reimposta] <Fine>:";
         }
     }
     bool wantsText() const override { return true; }

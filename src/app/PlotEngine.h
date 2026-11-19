@@ -58,8 +58,6 @@ QString plotStylesFolder();
 QStringList plotStyleTableNames();
 std::shared_ptr<const PlotStyleTable> loadPlotStyleTable(const QString& name, QString* error = nullptr);
 bool savePlotStyleTable(const PlotStyleTable& table, const QString& path, QString* error = nullptr);
-// Cartelle "Plot Styles" con tabelle .ctb dei programmi CAD installati (dati applicazioni dell'utente).
-QStringList installedPlotStyleFolders();
 
 // Legge un file .ctb (anche).
 std::optional<PlotStyleTable> readCtbFile(const QString& path, QString* error = nullptr);

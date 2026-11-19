@@ -98,8 +98,8 @@ std::string SelectingCommand::prompt() const
 {
     if (!selecting_)
         return actionPrompt();
-    return removing_ ? "Rimuovere oggetti o [AGgiungi/Tutto/Ultimo/Precedente] (Invio per terminare):"
-                     : "Selezionare oggetti o [Tutto/Ultimo/Precedente/Rimuovi] (Invio per terminare):";
+    return removing_ ? "Oggetti da togliere o [AGgiungi/Tutto/Ultimo/Precedente] (Invio per finire):"
+                     : "Oggetti da selezionare o [Tutto/Ultimo/Precedente/Rimuovi] (Invio per finire):";
 }
 
 CommandStatus SelectingCommand::start(CommandContext& ctx)

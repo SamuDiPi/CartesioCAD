@@ -47,7 +47,7 @@ void MainWindow::showFind(const QString& initial)
         selected = matches.empty() ? -1 : std::clamp(select, 0, static_cast<int>(matches.size()) - 1);
         dialog.setItems(listField, rows, selected);
         dialog.setFieldText(statusField, query.isEmpty()
-                                             ? tr("Scrivere il testo da cercare e premere Trova.")
+                                             ? tr("Scrivi il testo da cercare e premi Trova.")
                                              : tr("Trovati: <b>%1</b>.").arg(matches.size()));
     };
     const auto zoomTo = [&](int index) {

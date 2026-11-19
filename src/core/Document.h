@@ -203,11 +203,10 @@ public:
     // Cambia la scala corrente: gli oggetti annotativi del modello che la supportano si ridimensionano (un passo
     // annullabile). False se la scala non è nella lista.
     bool setAnnotationScale(const std::string& name);
-    // ANNOALLVISIBLE: anche gli oggetti annotativi che non supportano la scala si vedono (alla loro).
+    // ANNOALLVISIBLE: solo memorizzata (si legge e si salva con il file). Gli oggetti annotativi si vedono sempre:
+    // quelli che non supportano la scala restano alla loro.
     bool annoAllVisible() const { return annoAllVisible_; }
     void setAnnoAllVisible(bool on);
-    // L'oggetto si vede a questa scala (fattore)? Sempre, se non è annotativo o con ANNOALLVISIBLE.
-    bool annotationVisible(const Entity& e, double factor) const;
     // L'oggetto annotativo supporta la scala con questo fattore?
     bool supportsFactor(const Entity& e, double factor) const;
     // Oggetto nuovo di un comando: se il suo stile è annotativo diventa annotativo alla scala corrente (le misure

@@ -66,7 +66,7 @@ class Command {
 public:
     virtual ~Command() = default;
 
-    // Testo mostrato nella riga di comando, es. "Specificare primo punto:".
+    // Testo mostrato nella riga di comando, es. "Primo punto:".
     virtual std::string prompt() const = 0;
 
     virtual CommandStatus start(CommandContext&) { return CommandStatus::Continue; }
@@ -180,7 +180,7 @@ private:
     SelectionPicker picker_;
 };
 
-// Opzioni comuni delle richieste "Selezionare oggetti" (Tutto, Ultimo, Precedente): aggiunge (o toglie, con
+// Opzioni comuni delle richieste "Oggetti da selezionare" (Tutto, Ultimo, Precedente): aggiunge (o toglie, con
 // `remove`) gli oggetti indicati. Restituisce quanti ne ha trovati, -1 se la parola non è un'opzione.
 int selectionKeyword(CommandContext& ctx, const std::string& word, bool remove);
 

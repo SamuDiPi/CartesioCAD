@@ -230,11 +230,11 @@ void CircuitsPanel::assignSelected()
     const QString code = selectedCode();
     QTimer::singleShot(0, this, [this, code] {
         if (code.isEmpty()) {
-            QMessageBox::information(this, tr("Circuiti"), tr("Scegliere un circuito nell'elenco."));
+            QMessageBox::information(this, tr("Circuiti"), tr("Scegli un circuito nell'elenco."));
             return;
         }
         if (assignToSelection(code) == 0)
-            QMessageBox::information(this, tr("Circuiti"), tr("Selezionare nel disegno i punti a cui assegnare %1.").arg(code));
+            QMessageBox::information(this, tr("Circuiti"), tr("Scegli nel disegno i punti a cui assegnare %1.").arg(code));
     });
 }
 

@@ -1900,11 +1900,6 @@ bool Document::supportsFactor(const Entity& e, double factor) const
     return false;
 }
 
-bool Document::annotationVisible(const Entity& e, double factor) const
-{
-    return !e.annotative() || annoAllVisible_ || supportsFactor(e, factor);
-}
-
 void Document::setAnnoAllVisible(bool on)
 {
     if (annoAllVisible_ == on)

@@ -255,7 +255,6 @@ class StatusBar : public QQuickWidget {
     Q_PROPERTY(QString lockTip READ lockTip NOTIFY changed)
     Q_PROPERTY(bool annoVisible READ annoVisible NOTIFY changed)
     Q_PROPERTY(QString annoScale READ annoScale NOTIFY changed)
-    Q_PROPERTY(bool annoAllVisible READ annoAllVisible NOTIFY changed)
     Q_PROPERTY(QVariantList toggles READ toggles CONSTANT)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(QString loadingText READ loadingText NOTIFY loadingChanged)
@@ -280,21 +279,18 @@ public:
     bool viewportScaleEnabled() const { return viewportScaleEnabled_; }
     QString lockIcon() const { return lockIcon_; }
     QString lockTip() const { return lockTip_; }
-    // Scala di annotazione (CANNOSCALE) e ANNOALLVISIBLE: si vedono nello spazio modello.
-    void setAnnotation(bool visible, const QString& scale = {}, bool allVisible = true)
+    // Scala di annotazione (CANNOSCALE): si vede nello spazio modello.
+    void setAnnotation(bool visible, const QString& scale = {})
     {
-        if (annoVisible_ == visible && annoScale_ == scale && annoAllVisible_ == allVisible)
+        if (annoVisible_ == visible && annoScale_ == scale)
             return;
         annoVisible_ = visible;
         annoScale_ = scale;
-        annoAllVisible_ = allVisible;
         emit changed();
     }
     bool annoVisible() const { return annoVisible_; }
     QString annoScale() const { return annoScale_; }
-    bool annoAllVisible() const { return annoAllVisible_; }
     Q_INVOKABLE void clickAnnoScale(int globalX, int globalY) { emit annoScaleClicked(QPoint(globalX, globalY)); }
-    Q_INVOKABLE void clickAnnoAll() { emit annoAllClicked(); }
     Q_INVOKABLE void clickLayoutList(int globalX, int globalY) { emit layoutListClicked(QPoint(globalX, globalY)); }
     QVariantList toggles() const { return toggles_; }
     // Apertura di un disegno in corso: fase e nome del file (vuoto = nessuna).
@@ -314,7 +310,6 @@ signals:
     void viewportScaleClicked(QPoint globalPos);
     void lockClicked();
     void annoScaleClicked(QPoint globalPos);
-    void annoAllClicked();
     void layoutListClicked(QPoint globalPos);
     void loadingChanged();
     void loadingCancelled();
@@ -333,7 +328,6 @@ private:
     QString lockTip_;
     bool annoVisible_ = false;
     QString annoScale_;
-    bool annoAllVisible_ = true;
     QVariantList toggles_;
     QString loadingText_;
 };
