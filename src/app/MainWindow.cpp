@@ -1175,12 +1175,6 @@ void MainWindow::buildStatusBar()
         menu->addAction(tr("Scale degli oggetti selezionati..."), this, [this] { runCommand(QStringLiteral("OBJECTSCALE")); });
         menu->popup(pos - QPoint(0, menu->sizeHint().height()));
     });
-    connect(status_, &StatusBar::annoAllClicked, this, [this] {
-        if (DrawingWidget* d = current()) {
-            d->document().setAnnoAllVisible(!d->document().annoAllVisible());
-            d->notifyChanged();
-        }
-    });
     connect(status_, &StatusBar::lockClicked, this, [this] {
         DrawingWidget* d = current();
         const EntityId id = statusViewport();
@@ -2151,7 +2145,7 @@ bool MainWindow::handleUiCommand(const QString& word)
         if (text)
             editTextInPlace(*d, text->id());
         else
-            print(tr("Selezionare un testo (oppure doppio clic sul testo)."));
+            print(tr("Scegli un testo (oppure doppio clic sul testo)."));
     } else if (is({"SELECTALL"}))
         selectAll();
     else if (is({"LAYON"}))
@@ -2675,7 +2669,7 @@ void MainWindow::updateUiState()
         redoAct_->setEnabled(d->document().canRedo());
         commandLine_->setPrompt(d->commands().isActive() ? d->prompt() : QString());
         commandLine_->setCompletionEnabled(!d->commands().isActive());
-        commandLine_->input()->setPlaceholderText(d->commands().isActive() ? QString() : tr("Digitare un comando"));
+        commandLine_->input()->setPlaceholderText(d->commands().isActive() ? QString() : tr("Scrivi un comando"));
         const QString name = d->displayName() + (d->isModified() ? QStringLiteral("*") : QString());
         ribbon_->setTitle(QStringLiteral("CartesioCAD   %1").arg(name));
         setWindowTitle(QStringLiteral("CartesioCAD - %1").arg(name));
@@ -2870,7 +2864,7 @@ void MainWindow::layerFromObject()
     if (!d)
         return;
     if (d->selection().empty()) {
-        print(tr("Selezionare prima un oggetto, poi usare \"Rendi corrente\"."));
+        print(tr("Scegli prima un oggetto, poi usa \"Rendi corrente\"."));
         return;
     }
     const Entity* e = d->document().find(d->selection().front());

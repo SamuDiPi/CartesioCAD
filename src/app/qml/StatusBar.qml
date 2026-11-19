@@ -224,7 +224,7 @@ Rectangle {
             Image { anchors.centerIn: parent; source: sbar.lockIcon; sourceSize: Qt.size(18, 18) }
             Tip { id: lockArea; anchors.fill: parent; tip: sbar.lockTip; onClicked: sbar.clickLock() }
         }
-        // Scala di annotazione (CANNOSCALE) e ANNOALLVISIBLE, nello spazio modello.
+        // Scala di annotazione (CANNOSCALE), nello spazio modello.
         Rectangle {
             visible: sbar.annoVisible
             width: annoLabel.implicitWidth + 16
@@ -240,20 +240,6 @@ Rectangle {
                     const p = parent.mapToGlobal(0, 0)
                     sbar.clickAnnoScale(p.x, p.y - 4)
                 }
-            }
-        }
-        Rectangle {
-            visible: sbar.annoVisible
-            width: 28; height: 24
-            radius: 2
-            color: sbar.annoAllVisible ? Theme.checked : (annoAllArea.containsMouse ? "#3d4553" : "transparent")
-            border.color: sbar.annoAllVisible ? Theme.accent : "transparent"
-            Text { anchors.centerIn: parent; text: "A"; font.bold: true; color: Theme.text; font.pixelSize: 13 }
-            Tip {
-                id: annoAllArea
-                anchors.fill: parent
-                tip: qsTr("Mostra anche gli oggetti annotativi che non supportano la scala corrente (ANNOALLVISIBLE)")
-                onClicked: sbar.clickAnnoAll()
             }
         }
         Item { width: 6; height: 1 }

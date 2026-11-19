@@ -1134,8 +1134,7 @@ bool MainWindow::runScript(const QString& path)
             if (word == QLatin1String("-CARTELLE")) {
                 for (const QString& f : FontLibrary::instance().searchFolders())
                     print(tr("  font: %1").arg(QDir::toNativeSeparators(f)));
-                for (const QString& f : installedPlotStyleFolders())
-                    print(tr("  tabelle stili: %1").arg(QDir::toNativeSeparators(f)));
+                print(tr("  tabelle stili: %1").arg(QDir::toNativeSeparators(plotStylesFolder())));
                 continue;
             }
             // Diagnosi: -ESC = tasto Esc (annulla il comando o deseleziona).
@@ -2038,7 +2037,7 @@ void MainWindow::updateViewportStatus()
     if (status_) {
         // Scala di annotazione: nello spazio modello (nei layout conta la scala di ogni finestra).
         if (d && d->shownSpace() == 0)
-            status_->setAnnotation(true, QString::fromStdString(d->document().annotationScale()), d->document().annoAllVisible());
+            status_->setAnnotation(true, QString::fromStdString(d->document().annotationScale()));
         else
             status_->setAnnotation(false);
     }

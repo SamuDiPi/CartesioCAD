@@ -158,7 +158,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
         if (!d)
             return;
         if (d->selection().empty()) {
-            print(tr("Selezionare prima gli oggetti annotativi."));
+            print(tr("Scegli prima gli oggetti annotativi."));
             return;
         }
         const int n = d->document().addObjectScale(d->selection(), d->document().annotationScale());

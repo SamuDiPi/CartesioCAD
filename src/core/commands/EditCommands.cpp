@@ -81,7 +81,7 @@ class RotateCommand final : public TransformCommand {
 protected:
     std::string actionPrompt() const override
     {
-        return base_ ? "Specificare angolo di rotazione:" : "Specificare punto base:";
+        return base_ ? "Angolo di rotazione:" : "Punto base:";
     }
 
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
@@ -120,7 +120,7 @@ class ScaleCommand final : public TransformCommand {
 protected:
     std::string actionPrompt() const override
     {
-        return base_ ? "Specificare fattore di scala:" : "Specificare punto base:";
+        return base_ ? "Fattore di scala:" : "Punto base:";
     }
 
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
@@ -164,10 +164,10 @@ protected:
     std::string actionPrompt() const override
     {
         if (!first_)
-            return "Specificare primo punto della linea di specchiatura:";
+            return "Primo punto dell'asse di simmetria:";
         if (!second_)
-            return "Specificare secondo punto della linea di specchiatura:";
-        return "Cancellare gli oggetti di origine? [Sì/No] <No>:";
+            return "Secondo punto dell'asse di simmetria:";
+        return "Elimino gli oggetti originali? [Sì/No] <No>:";
     }
 
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
@@ -225,7 +225,7 @@ protected:
         case Stage::Columns: return "Numero di colonne <" + std::to_string(columns_) + ">:";
         case Stage::RowGap: return "Distanza tra le righe (anche negativa):";
         case Stage::ColumnGap: return "Distanza tra le colonne (anche negativa):";
-        case Stage::Center: return "Specificare centro della serie:";
+        case Stage::Center: return "Centro della serie:";
         case Stage::Count: return "Numero di elementi <" + std::to_string(count_) + ">:";
         case Stage::Angle: return "Angolo da riempire (+ antiorario, - orario) <360>:";
         }
@@ -361,7 +361,7 @@ private:
 
 class ExtendCommand final : public Command {
 public:
-    std::string prompt() const override { return "Selezionare oggetto da estendere (Invio per terminare):"; }
+    std::string prompt() const override { return "Oggetto da estendere (Invio per finire):"; }
     bool wantsSelection() const override { return true; }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -399,10 +399,10 @@ public:
     std::string prompt() const override
     {
         if (askingRadius_)
-            return "Specificare raggio di raccordo <" + fmt(gFilletRadius) + ">:";
+            return "Raggio del raccordo <" + fmt(gFilletRadius) + ">:";
         if (!first_)
-            return "Selezionare prima linea o [Raggio] (raggio = " + fmt(gFilletRadius) + "):";
-        return "Selezionare seconda linea:";
+            return "Prima linea o [Raggio] (raggio = " + fmt(gFilletRadius) + "):";
+        return "Seconda linea:";
     }
     bool wantsSelection() const override { return !askingRadius_; }
 
@@ -441,7 +441,7 @@ public:
     {
         const Entity* e = ctx.document.pick(p, ctx.pickTolerance);
         if (!e || e->type() != EntityType::Line) {
-            ctx.message("Selezionare una linea.");
+            ctx.message("Scegli una linea.");
             return CommandStatus::Continue;
         }
         if (!first_) {
@@ -451,7 +451,7 @@ public:
             return CommandStatus::Continue;
         }
         if (e->id() == *first_) {
-            ctx.message("Selezionare un'altra linea.");
+            ctx.message("Scegli un'altra linea.");
             return CommandStatus::Continue;
         }
         const auto* a = static_cast<const LineEntity*>(ctx.document.find(*first_));
@@ -485,7 +485,7 @@ class MatchPropCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return source_ ? "Selezionare oggetti di destinazione (Invio per terminare):" : "Selezionare oggetto di origine:";
+        return source_ ? "Oggetti di destinazione (Invio per finire):" : "Oggetto di origine:";
     }
     bool wantsSelection() const override { return true; }
     std::optional<Vec2> selectionCorner() const override { return source_ ? picker_.corner() : std::nullopt; }
@@ -550,7 +550,7 @@ private:
 
 class DistCommand final : public Command {
 public:
-    std::string prompt() const override { return first_ ? "Specificare secondo punto:" : "Specificare primo punto:"; }
+    std::string prompt() const override { return first_ ? "Secondo punto:" : "Primo punto:"; }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -582,7 +582,7 @@ private:
 
 class IdCommand final : public Command {
 public:
-    std::string prompt() const override { return "Specificare punto:"; }
+    std::string prompt() const override { return "Punto:"; }
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
         ctx.message(pointText(p));
@@ -596,9 +596,9 @@ public:
     std::string prompt() const override
     {
         if (objectMode_)
-            return "Selezionare oggetto:";
-        return points_.empty() ? "Specificare primo punto d'angolo o [Oggetto]:"
-                               : "Specificare punto successivo o Invio per il totale:";
+            return "Oggetto:";
+        return points_.empty() ? "Primo vertice o [Oggetto]:"
+                               : "Punto successivo o Invio per il totale:";
     }
     bool wantsSelection() const override { return objectMode_; }
 
@@ -884,7 +884,7 @@ public:
 // PASTEBLOCK (Ctrl+Maiusc+V): gli appunti diventano un blocco (nome A$C...), inserito nel punto indicato.
 class PasteBlockCommand final : public Command {
 public:
-    std::string prompt() const override { return "Specificare punto di inserimento:"; }
+    std::string prompt() const override { return "Punto di inserimento:"; }
     CommandStatus start(CommandContext& ctx) override
     {
         return clipboardEmpty(ctx) ? CommandStatus::Finished : CommandStatus::Continue;
@@ -936,7 +936,7 @@ public:
 // COPYBASE: come COPYCLIP ma con il punto base scelto (incollando, il punto base va sul cursore).
 class CopyBaseCommand final : public SelectingCommand {
 protected:
-    std::string actionPrompt() const override { return "Specificare punto base:"; }
+    std::string actionPrompt() const override { return "Punto base:"; }
     CommandStatus onSelected(CommandContext&) override { return CommandStatus::Continue; }
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -948,7 +948,7 @@ protected:
 
 class PasteClipCommand final : public Command {
 public:
-    std::string prompt() const override { return "Specificare punto di inserimento:"; }
+    std::string prompt() const override { return "Punto di inserimento:"; }
 
     CommandStatus start(CommandContext& ctx) override
     {
@@ -1044,13 +1044,13 @@ public:
     std::string prompt() const override
     {
         if (asking_ == 1)
-            return "Specificare prima distanza di cimatura <" + fmt(gChamferDist1) + ">:";
+            return "Prima distanza dello smusso <" + fmt(gChamferDist1) + ">:";
         if (asking_ == 2)
-            return "Specificare seconda distanza di cimatura <" + fmt(gChamferDist2) + ">:";
+            return "Seconda distanza dello smusso <" + fmt(gChamferDist2) + ">:";
         if (!first_)
-            return "Selezionare prima linea o [Distanza] (distanze = " + fmt(gChamferDist1) + ", " + fmt(gChamferDist2)
+            return "Prima linea o [Distanza] (distanze = " + fmt(gChamferDist1) + ", " + fmt(gChamferDist2)
                 + "):";
-        return "Selezionare seconda linea:";
+        return "Seconda linea:";
     }
     bool wantsSelection() const override { return asking_ == 0; }
 
@@ -1095,7 +1095,7 @@ public:
     {
         const Entity* e = ctx.document.pick(p, ctx.pickTolerance);
         if (!e || e->type() != EntityType::Line) {
-            ctx.message("Selezionare una linea.");
+            ctx.message("Scegli una linea.");
             return CommandStatus::Continue;
         }
         if (!first_) {
@@ -1105,7 +1105,7 @@ public:
             return CommandStatus::Continue;
         }
         if (e->id() == *first_) {
-            ctx.message("Selezionare un'altra linea.");
+            ctx.message("Scegli un'altra linea.");
             return CommandStatus::Continue;
         }
         const auto* a = static_cast<const LineEntity*>(ctx.document.find(*first_));
@@ -1144,12 +1144,12 @@ public:
     std::string prompt() const override
     {
         if (!target_)
-            return "Selezionare oggetto:";
+            return "Oggetto:";
         if (atPoint_)
-            return "Specificare punto di interruzione:";
+            return "Punto di rottura:";
         if (choosingFirst_)
-            return "Specificare primo punto di interruzione:";
-        return "Specificare secondo punto di interruzione o [Primo punto]:";
+            return "Primo punto di rottura:";
+        return "Secondo punto di rottura o [Primo punto]:";
     }
     bool wantsSelection() const override { return !target_; }
     std::optional<Vec2> basePoint() const override { return target_ && !atPoint_ ? std::optional<Vec2>(first_) : std::nullopt; }
@@ -1256,14 +1256,14 @@ public:
     std::string prompt() const override
     {
         if (!target_)
-            return "Selezionare polilinea:";
+            return "Polilinea:";
         if (joining_)
-            return "Selezionare oggetti da unire (Invio per terminare):";
+            return "Oggetti da unire (Invio per finire):";
         const auto* pl = polyline();
         if (askingWidth_)
-            return "Specificare la nuova larghezza per tutti i segmenti <" + widthText(pl ? pl->maxWidth() : 0.0) + ">:";
+            return "Nuova larghezza per tutti i segmenti <" + widthText(pl ? pl->maxWidth() : 0.0) + ">:";
         const std::string close = pl && pl->closed ? "Apri" : "Chiudi";
-        return "Immettere un'opzione [" + close + "/Unisci/Larghezza/Inverti/Spline/Rettifica/Annulla] <Fine>:";
+        return "Opzione [" + close + "/Unisci/Larghezza/Inverti/Spline/Rettifica/Annulla] <Fine>:";
     }
 
     bool wantsSelection() const override { return !target_ || joining_; }
@@ -1523,12 +1523,12 @@ public:
     std::string prompt() const override
     {
         if (!corner1_)
-            return "Selezionare oggetti da stirare con una finestra di intersezione: primo angolo:";
+            return "Finestra intersecante sugli oggetti da allungare, primo angolo:";
         if (!window_)
-            return "Specificare angolo opposto:";
+            return "Angolo opposto:";
         if (!base_)
-            return "Specificare punto base:";
-        return "Specificare secondo punto:";
+            return "Punto base:";
+        return "Secondo punto:";
     }
     bool wantsSelection() const override { return !window_; }
     std::optional<Vec2> selectionCorner() const override { return window_ ? std::nullopt : corner1_; }
@@ -1686,11 +1686,11 @@ public:
         if (inner_)
             return inner_->prompt();
         switch (mode_) {
-        case Mode::Radius: return "Selezionare arco o cerchio (Invio per tornare alla misura rapida):";
+        case Mode::Radius: return "Arco o cerchio (Invio per tornare alla misura rapida):";
         case Mode::Angle:
-            return firstLine_ ? "Selezionare seconda linea:"
-                              : "Selezionare arco o linea (Invio per tornare alla misura rapida):";
-        default: return "Spostare il cursore o [Distanza/Raggio/ANgolo/Area/Rapido/eSci] <eSci>:";
+            return firstLine_ ? "Seconda linea:"
+                              : "Arco o linea (Invio per tornare alla misura rapida):";
+        default: return "Cursore sugli oggetti da misurare o [Distanza/Raggio/ANgolo/Area/Rapido/eSci] <eSci>:";
         }
     }
 
@@ -1747,7 +1747,7 @@ public:
             else if (e->type() == EntityType::Arc)
                 r = static_cast<const ArcEntity&>(*e).radius;
             if (r <= 0.0) {
-                ctx.message("Selezionare un arco o un cerchio.");
+                ctx.message("Scegli un arco o un cerchio.");
                 return CommandStatus::Continue;
             }
             ctx.message("Raggio = " + fmt(r) + ",  Diametro = " + fmt(2.0 * r));
@@ -1760,7 +1760,7 @@ public:
             return CommandStatus::Continue;
         }
         if (e->type() != EntityType::Line) {
-            ctx.message("Selezionare un arco o una linea.");
+            ctx.message("Scegli un arco o una linea.");
             return CommandStatus::Continue;
         }
         const auto& l = static_cast<const LineEntity&>(*e);
@@ -1873,7 +1873,7 @@ public:
 // proprietà correnti di prima.
 class AddSelectedCommand final : public Command {
 public:
-    std::string prompt() const override { return "Selezionare oggetto:"; }
+    std::string prompt() const override { return "Oggetto:"; }
     bool wantsSelection() const override { return true; }
 
     CommandStatus start(CommandContext& ctx) override

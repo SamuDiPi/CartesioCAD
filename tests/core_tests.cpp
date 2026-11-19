@@ -3221,13 +3221,10 @@ void testAnnotationScales()
     plain->style = "Annotativo";
     const EntityId plainId = doc.add(std::move(plain));
 
-    // Scala non supportata: l'oggetto resta com'è; si vede solo con ANNOALLVISIBLE.
+    // Scala non supportata: l'oggetto resta com'è (e si vede sempre).
     CHECK(doc.setAnnotationScale("1:100"));
     CHECK(std::abs(static_cast<const TextEntity*>(doc.find(id))->height - 125.0) < 1e-9);
-    CHECK(doc.annotationVisible(*doc.find(id), 100.0));
-    doc.setAnnoAllVisible(false);
-    CHECK(!doc.annotationVisible(*doc.find(id), 100.0) && doc.annotationVisible(*doc.find(plainId), 100.0));
-    doc.setAnnoAllVisible(true);
+    CHECK(!doc.supportsFactor(*doc.find(id), 100.0) && doc.find(plainId));
     // OBJECTSCALE: con la scala 1:100 l'oggetto passa subito a quella (altezza 2,5 * 100).
     CHECK(doc.addObjectScale({id}, "1:100") == 1);
     CHECK(std::abs(static_cast<const TextEntity*>(doc.find(id))->height - 250.0) < 1e-9);

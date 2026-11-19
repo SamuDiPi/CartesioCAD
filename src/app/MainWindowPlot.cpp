@@ -173,7 +173,7 @@ void MainWindow::plotDialog(std::optional<PlotDialogState> state)
         return;
     PlotDialogState result = dialog.state();
     if (dialog.outcome() == PlotDialog::Outcome::PickWindow) {
-        print(tr("Specificare la finestra di stampa (Invio o Esc per tornare al dialogo)."));
+        print(tr("Indica la finestra di stampa (Invio o Esc per tornare al dialogo)."));
         QPointer<DrawingWidget> guard(d);
         d->startCommand(makeWindowPickCommand([this, result, guard](std::optional<BBox> box) mutable {
                             if (box) {

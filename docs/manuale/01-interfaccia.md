@@ -69,7 +69,7 @@ Con il tasto destro nell'area di disegno si apre un menu che cambia con la situa
 
 ## La barra di stato
 
-Da sinistra: coordinate del cursore; **MODELLO/CARTA** (in un layout, passa fra spazio carta e modello attraverso la finestra); **scala di annotazione** (vedi *Scale annotative*); il pulsante **A** (mostra tutti gli oggetti annotativi, `ANNOALLVISIBLE`); griglia, snap, orto, polare (con il menu degli incrementi d'angolo), snap ad oggetto (con il menu dei tipi di snap), puntamento snap a oggetto, input dinamico, spessori di linea; il pulsante della riga di comando.
+Da sinistra: coordinate del cursore; **MODELLO/CARTA** (in un layout, passa fra spazio carta e modello attraverso la finestra); **scala di annotazione** (vedi *Scale annotative*); griglia, snap, orto, polare (con il menu degli incrementi d'angolo), snap ad oggetto (con il menu dei tipi di snap), puntamento snap a oggetto, input dinamico, spessori di linea; il pulsante della riga di comando.
 
 ## I pulsanti di navigazione
 

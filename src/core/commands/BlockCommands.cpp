@@ -27,10 +27,10 @@ public:
     std::string prompt() const override
     {
         if (name_.empty())
-            return "Immettere nome del blocco:";
+            return "Nome del blocco:";
         if (!base_)
-            return "Specificare punto base:";
-        return "Selezionare oggetti (Invio per terminare):";
+            return "Punto base:";
+        return "Oggetti da selezionare (Invio per finire):";
     }
 
     bool wantsText() const override { return name_.empty(); }
@@ -112,13 +112,13 @@ public:
     std::string prompt() const override
     {
         if (!block_)
-            return "Immettere nome del blocco o [?]:";
+            return "Nome del blocco o [?]:";
         if (!position_)
-            return "Specificare punto di inserimento:";
+            return "Punto di inserimento:";
         if (!scale_)
-            return "Specificare fattore di scala <1>:";
+            return "Fattore di scala <1>:";
         if (!rotation_)
-            return "Specificare angolo di rotazione <0>:";
+            return "Angolo di rotazione <0>:";
         // Valori degli attributi, uno alla volta.
         const AttDefEntity& def = *pending_[values_.size()];
         const std::string question = def.prompt.empty() ? def.tag : def.prompt;
@@ -276,11 +276,11 @@ public:
     std::string prompt() const override
     {
         switch (stage_) {
-        case Stage::Tag: return "Immettere etichetta dell'attributo:";
-        case Stage::Prompt: return "Immettere richiesta dell'attributo <" + tag_ + ">:";
-        case Stage::Default: return "Immettere valore predefinito dell'attributo:";
-        case Stage::Position: return "Specificare punto iniziale del testo:";
-        case Stage::Height: return "Specificare altezza <2.5>:";
+        case Stage::Tag: return "Nome dell'attributo (etichetta):";
+        case Stage::Prompt: return "Domanda dell'attributo <" + tag_ + ">:";
+        case Stage::Default: return "Valore iniziale dell'attributo:";
+        case Stage::Position: return "Punto iniziale del testo:";
+        case Stage::Height: return "Altezza <2.5>:";
         }
         return {};
     }
@@ -515,7 +515,7 @@ class AttSyncCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return selecting_ ? "Selezionare un blocco:" : "Immettere nome del blocco o [Seleziona] <Seleziona>:";
+        return selecting_ ? "Blocco:" : "Nome del blocco o [Seleziona] <Seleziona>:";
     }
     bool wantsText() const override { return !selecting_; }
     bool textIsLine() const override { return false; }
@@ -564,7 +564,7 @@ private:
 // EATTEDIT: si sceglie un blocco con attributi, la modifica la apre l'interfaccia.
 class EAttEditCommand final : public Command {
 public:
-    std::string prompt() const override { return "Selezionare un blocco:"; }
+    std::string prompt() const override { return "Blocco:"; }
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
         const InsertEntity* insert = pickInsert(ctx, p);
@@ -589,12 +589,12 @@ protected:
     {
         switch (stage_) {
         case Stage::Select: return {};
-        case Stage::Option: return "Immettere opzione di ritaglio [ON/OFF/Elimina/Nuovo contorno] <Nuovo>:";
-        case Stage::Kind: return "Specificare tipo di contorno [Poligonale/Rettangolare] <Rettangolare>:";
-        case Stage::Corner1: return "Specificare primo angolo:";
-        case Stage::Corner2: return "Specificare angolo opposto:";
+        case Stage::Option: return "Ritaglio [ON/OFF/Elimina/Nuovo contorno] <Nuovo>:";
+        case Stage::Kind: return "Contorno [Poligonale/Rettangolare] <Rettangolare>:";
+        case Stage::Corner1: return "Primo angolo:";
+        case Stage::Corner2: return "Angolo opposto:";
         case Stage::Polygon:
-            return points_.empty() ? "Specificare primo punto:" : "Specificare punto successivo (Invio per chiudere):";
+            return points_.empty() ? "Primo punto:" : "Punto successivo (Invio per chiudere):";
         }
         return {};
     }

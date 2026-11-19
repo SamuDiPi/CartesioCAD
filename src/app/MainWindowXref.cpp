@@ -37,8 +37,8 @@ public:
     std::string prompt() const override
     {
         if (!corner_)
-            return "Specificare punto di inserimento:";
-        return "Specificare larghezza dell'immagine <" + std::to_string(pixels_.width()) + ">:";
+            return "Punto di inserimento:";
+        return "Larghezza dell'immagine <" + std::to_string(pixels_.width()) + ">:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override

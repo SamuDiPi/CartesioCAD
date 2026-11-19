@@ -55,16 +55,16 @@ public:
     {
         switch (mode_) {
         case Mode::Polygon:
-            return points_.empty() ? "Specificare punto iniziale:"
-                                   : points_.size() < 3 ? "Specificare punto successivo:"
-                                                        : "Specificare punto successivo o [Chiudi]:";
+            return points_.empty() ? "Punto iniziale:"
+                                   : points_.size() < 3 ? "Punto successivo:"
+                                                        : "Punto successivo o [Chiudi]:";
         case Mode::Object:
-            return "Selezionare l'oggetto per il ritaglio della finestra (polilinea chiusa, cerchio, ellisse):";
+            return "Oggetto per il ritaglio della finestra (polilinea chiusa, cerchio, ellisse):";
         case Mode::Rect:
             break;
         }
-        return first_ ? "Specificare angolo opposto:"
-                      : "Specificare angolo della finestra o [Adatta/Poligonale/Oggetto]:";
+        return first_ ? "Angolo opposto:"
+                      : "Primo angolo della finestra o [Adatta/Poligonale/Oggetto]:";
     }
 
     CommandStatus start(CommandContext& ctx) override
@@ -207,12 +207,12 @@ public:
     std::string prompt() const override
     {
         if (!viewport_)
-            return "Selezionare la finestra da ritagliare:";
+            return "Finestra da ritagliare:";
         if (polygon_)
-            return points_.empty() ? "Specificare punto iniziale:"
-                                   : points_.size() < 3 ? "Specificare punto successivo:"
-                                                        : "Specificare punto successivo o [Chiudi]:";
-        return "Selezionare oggetto di ritaglio o [Poligonale/Elimina] <Poligonale>:";
+            return points_.empty() ? "Punto iniziale:"
+                                   : points_.size() < 3 ? "Punto successivo:"
+                                                        : "Punto successivo o [Chiudi]:";
+        return "Oggetto di ritaglio o [Poligonale/Elimina] <Poligonale>:";
     }
 
     CommandStatus start(CommandContext& ctx) override
@@ -333,7 +333,7 @@ public:
         case Step::Option: return "Opzione [Congela/Scongela]:";
         case Step::Names: return "Nomi dei layer (separati da virgola, * = tutti):";
         case Step::Scope: return "Applica a [Tutte/Seleziona/Corrente] <Corrente>:";
-        case Step::Select: return "Selezionare le finestre (Invio per terminare):";
+        case Step::Select: return "Finestre (Invio per finire):";
         }
         return {};
     }
@@ -671,7 +671,7 @@ public:
 
     std::string prompt() const override
     {
-        return first_ ? "Specificare l'angolo opposto:" : "Specificare il primo angolo:";
+        return first_ ? "Angolo opposto:" : "Primo angolo:";
     }
     CommandStatus onPoint(CommandContext&, Vec2 p) override
     {

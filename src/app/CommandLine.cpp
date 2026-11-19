@@ -50,7 +50,7 @@ CommandLine::CommandLine(QWidget* parent) : QQuickWidget(parent), input_(new Com
         if (QQuickItem* root = rootObject())
             connect(root, &QQuickItem::implicitHeightChanged, this, &CommandLine::heightChanged);
     }
-    input_->setPlaceholderText(tr("Digitare un comando"));
+    input_->setPlaceholderText(tr("Scrivi un comando"));
     connect(input_, &CommandInput::textChanged, this, &CommandLine::updateMatches);
     connect(input_, &CommandInput::focusRequested, this, [this] {
         if (qmlRootUi()) {   // la riga di comando è nella scena unica

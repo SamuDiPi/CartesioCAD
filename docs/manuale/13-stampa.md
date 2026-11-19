@@ -11,7 +11,7 @@ La finestra di stampa ha:
 - **Area**: Layout, Estensioni, Limiti, Schermo, Finestra (scelta nel disegno con due angoli);
 - **Offset** e centratura;
 - **Scala**: adattata al foglio, standard (1:100, 1:50...) o personalizzata, anche in pollici; scala degli spessori;
-- **Tabella stili** (`.ctb`: monochrome, grayscale, acad, retinature, anche quelle già presenti sul computer) con il pulsante per modificarla;
+- **Tabella stili** (`.ctb`: Colori, Nero, Grigi, Retino 25–100%, più quelle create o importate) con il pulsante per modificarla;
 - **Opzioni**: qualità (DPI), spessori di linea, trasparenza, stili di stampa, spazio carta per ultimo, oggetti dello spazio carta nascosti, timbro di stampa;
 - **Orientamento** e stampa capovolta;
 - **Anteprima** parziale (nella finestra) e completa.
@@ -40,7 +40,7 @@ Mette tutti i layout del disegno in un solo PDF, un foglio per layout.
 
 **Dove:** Opzioni > Stampa e pubblicazione (anche da Output > Stampa > Gestione plotter); elenco delle tabelle nel dialogo Stampa.
 
-Gestione delle tabelle `.ctb` (come stampare ogni colore: colore di stampa, spessore, retino): nuova, modifica, copia, rinomina, elimina, importa (anche quelle già presenti sul computer), apri cartella.
+Gestione delle tabelle `.ctb` (come stampare ogni colore: colore di stampa, spessore, retino): nuova, modifica, copia, rinomina, elimina, importa da un file scelto, apri cartella.
 
 ## Stampa da script (`-PLOT`, `-STAMPA`)
 

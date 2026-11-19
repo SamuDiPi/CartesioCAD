@@ -215,9 +215,8 @@ void OptionsDialog::plotTab()
     group(tr("Tabelle stili di stampa (.ctb)"));
     path(tr("Cartella:"), options_.plotStylesFolder, Folder, QDir::toNativeSeparators(plotStylesFolder()));
     buttonsRow({{tr("Gestione tabelle stili di stampa..."), [this] { showPlotStyleManager(this); }}});
-    note(tr("Le tabelle sono file .ctb nel formato: si creano e si modificano qui o dal dialogo Stampa, "
-            "e si possono importare dalla cartella Plot Styles. Si può anche indicare quella cartella "
-            "per usare direttamente le stesse tabelle."));
+    note(tr("Le tabelle sono file .ctb: si creano e si modificano qui o dal dialogo Stampa, e si possono "
+            "importare da un file scelto da te."));
 }
 
 void OptionsDialog::userTab()

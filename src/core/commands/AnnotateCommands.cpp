@@ -44,10 +44,10 @@ public:
     std::string prompt() const override
     {
         switch (stage_) {
-        case Stage::Position: return "Specificare punto iniziale del testo:";
-        case Stage::Height: return "Specificare altezza <" + formatNumber(gTextHeight) + ">:";
-        case Stage::Rotation: return "Specificare angolo di rotazione del testo <" + formatNumber(gTextRotation) + ">:";
-        case Stage::Content: return "Immettere testo (Invio a vuoto per terminare):";
+        case Stage::Position: return "Punto iniziale del testo:";
+        case Stage::Height: return "Altezza <" + formatNumber(gTextHeight) + ">:";
+        case Stage::Rotation: return "Angolo di rotazione del testo <" + formatNumber(gTextRotation) + ">:";
+        case Stage::Content: return "Testo (Invio a vuoto per finire):";
         }
         return {};
     }
@@ -163,10 +163,10 @@ public:
     std::string prompt() const override
     {
         if (!first_)
-            return "Specificare primo angolo:";
+            return "Primo angolo:";
         if (!width_)
-            return "Specificare angolo opposto:";
-        return "Immettere testo (Invio a vuoto per terminare):";
+            return "Angolo opposto:";
+        return "Testo (Invio a vuoto per finire):";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -252,10 +252,10 @@ public:
     std::string prompt() const override
     {
         if (!p1_)
-            return "Specificare origine della prima linea di estensione:";
+            return "Primo punto da quotare:";
         if (!p2_)
-            return "Specificare origine della seconda linea di estensione:";
-        return "Specificare posizione della linea di quota:";
+            return "Secondo punto da quotare:";
+        return "Posizione della quota:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -336,17 +336,17 @@ public:
     {
         if (points_) {
             if (!vertex_)
-                return "Specificare vertice dell'angolo:";
+                return "Vertice dell'angolo:";
             if (!p1_)
-                return "Specificare primo punto finale dell'angolo:";
+                return "Primo punto finale dell'angolo:";
             if (!p2_)
-                return "Specificare secondo punto finale dell'angolo:";
+                return "Secondo punto finale dell'angolo:";
         } else if (!p1_) {
-            return "Selezionare arco, cerchio o linea o <specificare vertice>:";
+            return "Arco, cerchio o linea <vertice>:";
         } else if (!p2_) {
-            return "Selezionare seconda linea:";
+            return "Seconda linea:";
         }
-        return "Specificare posizione dell'arco di quota:";
+        return "Posizione dell'arco della quota:";
     }
 
     bool wantsSelection() const override { return !points_ && !p2_; }
@@ -389,7 +389,7 @@ public:
             return CommandStatus::Continue;
         }
         if (e->type() != EntityType::Line) {
-            ctx.message("Selezionare una linea o un arco (Invio per i tre punti).");
+            ctx.message("Scegli una linea o un arco (Invio per i tre punti).");
             return CommandStatus::Continue;
         }
         const auto& l = static_cast<const LineEntity&>(*e);
@@ -468,7 +468,7 @@ public:
     }
     std::string prompt() const override
     {
-        return point_ ? "Specificare punto finale della direttrice o [Xdato/Ydato]:" : "Specificare posizione del punto:";
+        return point_ ? "Punto finale della direttrice o [Xdato/Ydato]:" : "Posizione del punto:";
     }
     CommandStatus onKeyword(CommandContext& ctx, const std::string& word) override
     {
@@ -560,8 +560,8 @@ public:
     std::string prompt() const override
     {
         if (selecting_)
-            return baseline_ ? "Selezionare quota di base:" : "Selezionare quota continua:";
-        return "Specificare origine della seconda linea di estensione o [Seleziona] <Fine>:";
+            return baseline_ ? "Quota di base:" : "Quota continua:";
+        return "Punto successivo da quotare o [Seleziona] <Fine>:";
     }
     bool wantsSelection() const override { return selecting_; }
 
@@ -587,7 +587,7 @@ public:
             if (!e || e->type() != EntityType::Dimension
                 || (static_cast<const DimensionEntity*>(e)->kind != DimensionEntity::Linear
                     && static_cast<const DimensionEntity*>(e)->kind != DimensionEntity::Aligned)) {
-                ctx.message("Selezionare una quota lineare o allineata.");
+                ctx.message("Scegli una quota lineare o allineata.");
                 return CommandStatus::Continue;
             }
             prev_ = std::make_unique<DimensionEntity>(*static_cast<const DimensionEntity*>(e));
@@ -703,7 +703,7 @@ protected:
 
     std::string actionPrompt() const override
     {
-        return std::string("Specificare posizione della linea di quota o [Continua/Linea di base] <") +
+        return std::string("Posizione della quota o [Continua/Linea di base] <") +
                (baseline_ ? "Linea di base" : "Continua") + ">:";
     }
 
@@ -810,7 +810,7 @@ public:
 
     std::string prompt() const override
     {
-        return center_ ? "Specificare posizione della linea di quota:" : "Selezionare arco o cerchio:";
+        return center_ ? "Posizione della quota:" : "Arco o cerchio:";
     }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
@@ -826,7 +826,7 @@ public:
                 center_ = a.center;
                 radius_ = a.radius;
             } else {
-                ctx.message("Selezionare un cerchio o un arco.");
+                ctx.message("Scegli un cerchio o un arco.");
             }
             return CommandStatus::Continue;
         }
@@ -879,10 +879,10 @@ public:
         if (writing_)
             return lines_.empty() ? "Testo della direttrice:" : "Riga successiva (Invio per finire):";
         if (points_.empty())
-            return "Specificare posizione della punta della freccia:";
+            return "Punta della freccia:";
         if (points_.size() == 1)
-            return "Specificare posizione dell'approdo:";
-        return "Specificare punto successivo (Invio per il testo):";
+            return "Fine della direttrice, dove si attacca il testo:";
+        return "Punto successivo (Invio per il testo):";
     }
 
     bool wantsText() const override { return writing_; }
@@ -1014,10 +1014,10 @@ public:
     std::string prompt() const override
     {
         if (!dim_)
-            return "Selezionare quota:";
+            return "Quota:";
         if (angle_)
-            return "Specificare angolo del testo della quota:";
-        return "Specificare nuova posizione del testo o [Sinistra/Destra/Centro/Origine/ANgolo]:";
+            return "Angolo del testo della quota:";
+        return "Nuova posizione del testo o [Sinistra/Destra/Centro/Origine/ANgolo]:";
     }
     bool wantsSelection() const override { return !dim_; }
 
@@ -1034,7 +1034,7 @@ public:
         if (!dim_) {
             const Entity* e = ctx.document.pick(p, ctx.pickTolerance);
             if (!e || e->type() != EntityType::Dimension) {
-                ctx.message("Selezionare una quota.");
+                ctx.message("Scegli una quota.");
                 return CommandStatus::Continue;
             }
             dim_ = e->id();
@@ -1117,14 +1117,14 @@ public:
     std::string prompt() const override
     {
         switch (stage_) {
-        case Stage::Option: return "Immettere tipo di modifica della quota [Origine/Nuovo/Ruota/Obliqua] <Origine>:";
-        case Stage::Text: return "Immettere il nuovo testo della quota (<> = misura):";
+        case Stage::Option: return "Modifica della quota [Origine/Nuovo/Ruota/Obliqua] <Origine>:";
+        case Stage::Text: return "Nuovo testo della quota (<> = misura):";
         case Stage::Angle:
-            return option_ == Option::Rotate ? "Specificare angolo del testo della quota:"
-                                             : "Specificare angolo obliquo (Invio per nessuno):";
+            return option_ == Option::Rotate ? "Angolo del testo della quota:"
+                                             : "Inclinazione (Invio: nessuna):";
         case Stage::Select: break;
         }
-        return "Selezionare quote (Invio per terminare):";
+        return "Quote (Invio per finire):";
     }
     bool wantsText() const override { return stage_ == Stage::Text; }
     bool wantsSelection() const override { return stage_ == Stage::Select; }
@@ -1287,13 +1287,13 @@ public:
     std::string prompt() const override
     {
         switch (mode_) {
-        case Mode::Objects: return "Selezionare oggetti chiusi (Invio per terminare):";
-        case Mode::Pattern: return "Specificare motivo [Solido/ANSI31/ANSI32/ANSI37/ANSI38/NET/LINE/DOTS/BRICK/SQUARE/EARTH...] <" + gHatchPattern + ">:";
-        case Mode::Scale: return "Specificare scala del motivo <" + number(gHatchScale) + ">:";
-        case Mode::Angle: return "Specificare angolo del motivo <" + number(gHatchAngle) + ">:";
+        case Mode::Objects: return "Oggetti chiusi (Invio per finire):";
+        case Mode::Pattern: return "Motivo [Solido/ANSI31/ANSI32/ANSI37/ANSI38/NET/LINE/DOTS/BRICK/SQUARE/EARTH...] <" + gHatchPattern + ">:";
+        case Mode::Scale: return "Scala del motivo <" + number(gHatchScale) + ">:";
+        case Mode::Angle: return "Angolo del motivo <" + number(gHatchAngle) + ">:";
         case Mode::Points: break;
         }
-        return std::string(loops_.empty() ? "Selezionare un punto interno" : "Selezionare un altro punto interno")
+        return std::string(loops_.empty() ? "Punto interno" : "Altro punto interno")
             + " o [Oggetti/Motivo/Scala/ANgolo/Annulla] <" + gHatchPattern + ">:";
     }
 
@@ -1505,7 +1505,7 @@ private:
 // con la stessa ricerca del tratteggio per punto interno.
 class BoundaryCommand final : public Command {
 public:
-    std::string prompt() const override { return "Selezionare un punto interno:"; }
+    std::string prompt() const override { return "Punto interno:"; }
 
     CommandStatus onPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -1549,16 +1549,16 @@ public:
     std::string prompt() const override
     {
         if (!target_)
-            return "Selezionare oggetto tratteggio:";
+            return "Oggetto tratteggio:";
         const HatchEntity* h = hatch();
         switch (mode_) {
         case Mode::Pattern:
-            return "Specificare motivo [Solido/" + joinedNames() + "] <" + (h ? h->pattern : std::string()) + ">:";
-        case Mode::Scale: return "Specificare scala del motivo <" + number(h ? h->patternScale : 1.0) + ">:";
-        case Mode::Angle: return "Specificare angolo del motivo <" + number(h ? radToDeg(h->patternAngle) : 0.0) + ">:";
+            return "Motivo [Solido/" + joinedNames() + "] <" + (h ? h->pattern : std::string()) + ">:";
+        case Mode::Scale: return "Scala del motivo <" + number(h ? h->patternScale : 1.0) + ">:";
+        case Mode::Angle: return "Angolo del motivo <" + number(h ? radToDeg(h->patternAngle) : 0.0) + ">:";
         case Mode::Options: break;
         }
-        return "Immettere un'opzione [Motivo/Scala/ANgolo] <Fine>:";
+        return "Opzione [Motivo/Scala/ANgolo] <Fine>:";
     }
 
     bool wantsSelection() const override { return !target_; }
@@ -1739,7 +1739,7 @@ class LeaderAddCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return leader_ ? "Specificare la punta della freccia (Invio per finire):" : "Selezionare una direttrice:";
+        return leader_ ? "Punta della freccia (Invio per finire):" : "Direttrice:";
     }
     bool wantsSelection() const override { return !leader_; }
 
@@ -1793,7 +1793,7 @@ class LeaderRemoveCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return leader_ ? "Selezionare la freccia da rimuovere (Invio per finire):" : "Selezionare una direttrice:";
+        return leader_ ? "Freccia da rimuovere (Invio per finire):" : "Direttrice:";
     }
     bool wantsSelection() const override { return true; }
 
@@ -1884,14 +1884,14 @@ protected:
                 ids_.push_back(id);
         ctx.selection.clear();
         if (ids_.size() < 2) {
-            ctx.message("Selezionare almeno due direttrici.");
+            ctx.message("Scegli almeno due direttrici.");
             return CommandStatus::Finished;
         }
         return CommandStatus::Continue;
     }
     std::string actionPrompt() const override
     {
-        return reference_ ? "Direzione [Verticale/Orizzontale] <Verticale>:" : "Selezionare la direttrice a cui allinearsi:";
+        return reference_ ? "Direzione [Verticale/Orizzontale] <Verticale>:" : "Direttrice a cui allinearsi:";
     }
     CommandStatus actionPoint(CommandContext& ctx, Vec2 p) override
     {
@@ -1959,7 +1959,7 @@ protected:
                 leaders.push_back(static_cast<const LeaderEntity*>(e));
         ctx.selection.clear();
         if (leaders.size() < 2) {
-            ctx.message("Selezionare almeno due direttrici.");
+            ctx.message("Scegli almeno due direttrici.");
             return CommandStatus::Finished;
         }
         auto main = std::make_unique<LeaderEntity>(*leaders.front());
@@ -2021,7 +2021,7 @@ protected:
         }
         ctx.selection.clear();
         if (added.empty()) {
-            ctx.message("Selezionare cerchi o archi.");
+            ctx.message("Scegli cerchi o archi.");
             return CommandStatus::Finished;
         }
         const std::size_t n = added.size() / 2;
@@ -2036,7 +2036,7 @@ class CenterLineCommand final : public Command {
 public:
     std::string prompt() const override
     {
-        return first_ ? "Selezionare la seconda linea:" : "Selezionare la prima linea:";
+        return first_ ? "Seconda linea:" : "Prima linea:";
     }
     bool wantsSelection() const override { return true; }
 
@@ -2096,7 +2096,7 @@ public:
         case Stage::Save: return "Nome della vista da salvare:";
         case Stage::Restore: return "Nome della vista da ripristinare:";
         case Stage::Remove: return "Nome della vista da eliminare:";
-        default: return "Immettere un'opzione [?/Salva/Ripristina/Elimina] <Fine>:";
+        default: return "Opzione [?/Salva/Ripristina/Elimina] <Fine>:";
         }
     }
     bool wantsText() const override { return true; }

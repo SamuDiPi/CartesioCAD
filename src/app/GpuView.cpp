@@ -196,13 +196,11 @@ public:
     // Un oggetto con il suo colore (o evidenziato, o attenuato sui layer bloccati mentre si lavora).
     void draw(const Entity& e, bool interactive, bool highlight)
     {
-        // Oggetti annotativi del modello: nascosti se non supportano la scala (senza ANNOALLVISIBLE); nelle finestre
-        // dei layout disegnati alla scala della finestra, se la supportano.
-        if (e.annotative() && e.space() == 0) {
-            const double f = annoFactor_ > 0.0 ? annoFactor_ : doc_.annotationFactor();
-            if (!doc_.annotationVisible(e, f))
-                return;
-            if (annoFactor_ > 0.0 && !sameFactor(e.annoFactor(), f) && doc_.supportsFactor(e, f)) {
+        // Oggetti annotativi del modello nelle finestre dei layout: alla scala della finestra, se la supportano;
+        // altrimenti come sono.
+        if (e.annotative() && e.space() == 0 && annoFactor_ > 0.0) {
+            const double f = annoFactor_;
+            if (!sameFactor(e.annoFactor(), f) && doc_.supportsFactor(e, f)) {
                 const auto scaled = annotationAt(e, f);
                 drawStyled(*scaled, interactive, highlight);
                 return;

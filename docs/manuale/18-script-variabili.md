@@ -55,7 +55,7 @@ Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`
 | `PICKSTYLE` | Selezione per gruppo |
 | `WIPEOUTFRAME` | Cornici delle coperture |
 | `CANNOSCALE` | Scala di annotazione |
-| `ANNOALLVISIBLE` | Mostra tutti gli annotativi |
+| `ANNOALLVISIBLE` | Solo memorizzata (gli annotativi si vedono sempre) |
 | `DIMSTYLE`, `DIMSCALE`, `DIMTXT`, `DIMASZ`, `DIMDEC` | Stile di quota corrente e sue misure |
 
 ## Cronologia (`TEXTSCR`)

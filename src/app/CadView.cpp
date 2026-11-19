@@ -1038,13 +1038,11 @@ void CadView::renderEntities(QPainter& p, int space, const BBox& view, bool inte
             style.penStyle = Qt::DashLine;
             style.width = 1.5;
         }
-        // Annotativi del modello: alla scala della finestra (se la supportano), nascosti se non la supportano e
-        // ANNOALLVISIBLE è spenta.
-        if (e->annotative() && e->space() == 0) {
-            const double f = annoFactor > 0.0 ? annoFactor : doc_.annotationFactor();
-            if (!doc_.annotationVisible(*e, f))
-                continue;
-            if (annoFactor > 0.0 && !sameFactor(e->annoFactor(), f) && doc_.supportsFactor(*e, f)) {
+        // Annotativi del modello nelle finestre dei layout: alla scala della finestra, se la supportano; altrimenti
+        // come sono.
+        if (e->annotative() && e->space() == 0 && annoFactor > 0.0) {
+            const double f = annoFactor;
+            if (!sameFactor(e->annoFactor(), f) && doc_.supportsFactor(*e, f)) {
                 paintEntity(p, *annotationAt(*e, f), style);
                 continue;
             }

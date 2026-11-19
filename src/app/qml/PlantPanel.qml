@@ -217,7 +217,7 @@ Rectangle {
             visible: plant.hasProject
             Button {
                 text: plant.currentTab === 1 ? qsTr("Nuova tratta dalla selezione...") : qsTr("Aggiungi...")
-                tip: plant.currentTab === 1 ? qsTr("Selezionare nel disegno le linee o polilinee del percorso, poi indicare tubo, canale o passerella e i circuiti")
+                tip: plant.currentTab === 1 ? qsTr("Scegli nel disegno le linee o polilinee del percorso, poi indica tubo, canale o passerella e i circuiti")
                                             : ""
                 onClicked: plant.addItem()
             }
