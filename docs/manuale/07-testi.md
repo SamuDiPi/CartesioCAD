@@ -50,7 +50,7 @@ Usa il correttore di Windows (italiano se è installata la lingua). Le parole sc
 
 Gestione degli stili: nuovo, modifica (font SHX o TrueType, altezza, fattore di larghezza, obliquità, grassetto, corsivo, *Annotativo*), rinomina, elimina, imposta corrente. Le modifiche aggiornano i testi che usano lo stile e si annullano con Ctrl+Z. `TEXTSTYLE` imposta lo stile corrente dalla riga di comando; `TEXTSIZE` l'altezza proposta per i testi nuovi.
 
-**Font:** i font SHX (romans, simplex, isocp...) si cercano nelle cartelle indicate nelle Opzioni (Apri e salva) e nella cartella `fonts` accanto al programma, e si disegnano a tratti; un SHX mancante diventa simplex, o Arial se non c'è. CartesioCAD non distribuisce font SHX. Quelli installati da altri programmi si usano solo spuntando *Usa anche i font SHX degli altri programmi installati* nelle Opzioni: appartengono a chi li ha prodotti, e va controllato che la loro licenza lo permetta. I TrueType si cercano per famiglia o per file.
+**Font:** i font SHX (romans, simplex, isocp...) si cercano nelle cartelle indicate nelle Opzioni (Apri e salva) e nella cartella `fonts` accanto al programma, e si disegnano a tratti; un SHX mancante diventa simplex o, se non c'è, il font a tratti incorporato in CartesioCAD (caratteri Hershey): larghezze e forma delle lettere possono differire un poco dall'originale. CartesioCAD non distribuisce font SHX. Quelli installati da altri programmi si usano solo spuntando *Usa anche i font SHX degli altri programmi installati* nelle Opzioni: appartengono a chi li ha prodotti, e va controllato che la loro licenza lo permetta. I TrueType si cercano per famiglia o per file.
 
 ## Trova e sostituisci (`FIND`, `TROVA`)
 

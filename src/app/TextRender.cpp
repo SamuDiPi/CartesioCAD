@@ -378,6 +378,122 @@ const ShxGlyph* ShxFont::glyph(char32_t code) const
     return out;
 }
 
+// ================================================================ font a tratti incorporato
+
+namespace {
+#include "app/BuiltinStrokeFont.inc"
+
+// Maiuscole da y = -12 a y = 9 nei dati (Y verso il basso): linea di base a 9, altezza 21, discesa 7.
+constexpr double kStrokeBase = 9.0;
+
+ShxGlyph strokeGlyph(const char* def)
+{
+    ShxGlyph g;
+    const int left = def[0] - 'R';
+    g.advance = (def[1] - 'R') - left;
+    std::vector<QPointF> current;
+    const auto flush = [&g, &current] {
+        if (current.size() > 1)
+            g.strokes.push_back(current);
+        current.clear();
+    };
+    for (const char* p = def + 2; p[0] && p[1]; p += 2) {
+        if (p[0] == ' ' && p[1] == 'R') {
+            flush();
+            continue;
+        }
+        current.emplace_back(p[0] - 'R' - left, kStrokeBase - (p[1] - 'R'));
+    }
+    flush();
+    return g;
+}
+} // namespace
+
+std::shared_ptr<ShxFont> ShxFont::builtin()
+{
+    static const std::shared_ptr<ShxFont> font = [] {
+        auto f = std::shared_ptr<ShxFont>(new ShxFont);
+        f->name_ = QStringLiteral("CartesioCAD (a tratti)");
+        f->above_ = 21.0;
+        f->below_ = 7.0;
+        f->unifont_ = true;
+        const auto put = [&f](char32_t code, ShxGlyph g) { f->cache_[code] = std::make_unique<ShxGlyph>(std::move(g)); };
+        const auto get = [&f](char32_t code) { return *f->cache_.at(code); };
+        for (int i = 0; i < 95; ++i)
+            put(static_cast<char32_t>(32 + i), strokeGlyph(kStrokeGlyphs[i]));
+
+        // Lettere accentate: la lettera più un tratto sopra (grave, acuto) o due punti (dieresi).
+        const auto accented = [&](char32_t code, char32_t base, int kind) {
+            ShxGlyph g = get(base);
+            const bool upper = base < U'a';
+            if (base == U'i' && !g.strokes.empty())
+                g.strokes.erase(g.strokes.begin());   // senza il puntino
+            const double cx = g.advance / 2.0, y = upper ? 23.0 : 16.5;
+            if (kind == 0)
+                g.strokes.push_back({{cx - 3.0, y + 4.0}, {cx + 1.0, y}});
+            else if (kind == 1)
+                g.strokes.push_back({{cx - 1.0, y}, {cx + 3.0, y + 4.0}});
+            else {
+                g.strokes.push_back({{cx - 3.0, y + 2.0}, {cx - 3.0, y + 3.0}});
+                g.strokes.push_back({{cx + 3.0, y + 2.0}, {cx + 3.0, y + 3.0}});
+            }
+            put(code, std::move(g));
+        };
+        const char32_t grave[][2] = {{0xE0, U'a'}, {0xE8, U'e'}, {0xEC, U'i'}, {0xF2, U'o'}, {0xF9, U'u'},
+                                     {0xC0, U'A'}, {0xC8, U'E'}, {0xCC, U'I'}, {0xD2, U'O'}, {0xD9, U'U'}};
+        const char32_t acute[][2] = {{0xE1, U'a'}, {0xE9, U'e'}, {0xED, U'i'}, {0xF3, U'o'}, {0xFA, U'u'},
+                                     {0xC1, U'A'}, {0xC9, U'E'}, {0xCD, U'I'}, {0xD3, U'O'}, {0xDA, U'U'}};
+        const char32_t dots[][2] = {{0xE4, U'a'}, {0xF6, U'o'}, {0xFC, U'u'}, {0xC4, U'A'}, {0xD6, U'O'}, {0xDC, U'U'}};
+        for (const auto& a : grave)
+            accented(a[0], a[1], 0);
+        for (const auto& a : acute)
+            accented(a[0], a[1], 1);
+        for (const auto& a : dots)
+            accented(a[0], a[1], 2);
+
+        // Gradi: cerchietto in alto.
+        {
+            ShxGlyph g;
+            g.advance = 10.0;
+            std::vector<QPointF> ring;
+            for (int k = 0; k <= 10; ++k) {
+                const double a = 2.0 * 3.14159265358979323846 * k / 10.0;
+                ring.emplace_back(5.0 + 3.0 * std::cos(a), 18.0 + 3.0 * std::sin(a));
+            }
+            g.strokes.push_back(std::move(ring));
+            put(0x00B0, std::move(g));
+        }
+        // Più o meno: il più con una linea sotto.
+        {
+            ShxGlyph g = get(U'+');
+            g.strokes.push_back({{4.0, 1.0}, {g.advance - 4.0, 1.0}});
+            put(0x00B1, std::move(g));
+        }
+        // Diametro: la O (maiuscola o minuscola) con una barra.
+        {
+            ShxGlyph g = get(U'O');
+            g.strokes.push_back({{3.0, -2.0}, {g.advance - 3.0, 23.0}});
+            put(0x00D8, g);
+            put(0x2300, std::move(g));
+            ShxGlyph s = get(U'o');
+            s.strokes.push_back({{3.0, -2.0}, {s.advance - 3.0, 16.0}});
+            put(0x00F8, std::move(s));
+        }
+        // Quadrato e cubo: la cifra piccola in alto. Per: la x.
+        for (const auto& [code, base] : {std::pair<char32_t, char32_t>{0x00B2, U'2'}, {0x00B3, U'3'}}) {
+            ShxGlyph g = get(base);
+            for (auto& stroke : g.strokes)
+                for (QPointF& p : stroke)
+                    p = QPointF(p.x() * 0.55, 10.0 + p.y() * 0.55);
+            g.advance *= 0.55;
+            put(code, std::move(g));
+        }
+        put(0x00D7, get(U'x'));
+        return f;
+    }();
+    return font;
+}
+
 // ================================================================ ricerca dei font
 
 FontLibrary& FontLibrary::instance()
@@ -453,7 +569,7 @@ ResolvedFont FontLibrary::resolve(const TextStyle& style)
         QString file = QString::fromStdString(style.font);
         if (!file.contains(QLatin1Char('.')))
             file += QStringLiteral(".shx");
-        // Font mancante (FONTALT): si usa simplex.shx, poi romans.shx.
+        // Font mancante (FONTALT): si usa simplex.shx, poi romans.shx, poi quello incorporato.
         for (const QString& candidate : {file, QStringLiteral("simplex.shx"), QStringLiteral("romans.shx")}) {
             const QString lower = candidate.toLower();
             if (const auto it = shx_.find(lower); it != shx_.end() && it->second) {
@@ -468,8 +584,10 @@ ResolvedFont FontLibrary::resolve(const TextStyle& style)
             if (out.shx)
                 break;
         }
+        // Nessun file trovato: il font a tratti di CartesioCAD (non un TrueType: migliaia di testi TrueType
+        // sono molto più pesanti da disegnare dei tratti).
         if (!out.shx)
-            family = QStringLiteral("Arial");
+            out.shx = ShxFont::builtin();
     } else if (family.isEmpty() && !style.font.empty()) {
         // TrueType indicato solo dal file: la famiglia si legge dal file.
         const QString file = QString::fromStdString(style.font).toLower();

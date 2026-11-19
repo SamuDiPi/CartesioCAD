@@ -158,7 +158,7 @@ void OptionsDialog::openSaveTab()
     path(tr("Cartelle:"), options_.fontFolders, AddFolder, tr("cartelle aggiuntive, separate da ;"));
     check(tr("Usa anche i font SHX degli altri programmi installati"), options_.fontsOfInstalledPrograms);
     note(tr("I font SHX (romans.shx, simplex.shx...) si cercano qui, nella cartella \"fonts\" accanto al programma e "
-            "in Windows; un font mancante si sostituisce con simplex.shx, o con Arial se non c'è. CartesioCAD non "
+            "in Windows; un font mancante si sostituisce con simplex.shx o, se non c'è, con il font a tratti di CartesioCAD. CartesioCAD non "
             "distribuisce font SHX. I font installati da altri programmi appartengono a chi li ha prodotti: prima "
             "di usarli qui controllare che la loro licenza lo permetta. Immagini raster e riferimenti esterni "
             "non trovati al percorso salvato si cercano nella cartella del disegno, nelle sue sottocartelle e qui."));

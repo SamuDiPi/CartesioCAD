@@ -34,6 +34,9 @@ struct ShxGlyph {
 class ShxFont {
 public:
     static std::shared_ptr<ShxFont> load(const QString& path, QString* error = nullptr);
+    // Font a tratti di CartesioCAD (caratteri Hershey), usato quando il font SHX di uno stile non si trova:
+    // i testi restano tratti, leggeri da disegnare, e non dipendono da file di altri.
+    static std::shared_ptr<ShxFont> builtin();
     // Altezza delle maiuscole e discesa, in unità del font.
     double above() const { return above_; }
     double below() const { return below_; }
