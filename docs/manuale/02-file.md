@@ -18,7 +18,7 @@ Crea un disegno vuoto in una nuova scheda (dal modello predefinito, se indicato 
 
 Apre uno o più DWG o DXF. Durante la lettura compare l'avanzamento. All'apertura:
 - i riferimenti esterni e le immagini vengono cercati anche nella cartella del disegno, nelle sue sottocartelle e nelle cartelle delle Opzioni; quelli non trovati si segnalano nella riga di comando;
-- i font SHX mancanti diventano simplex, o Arial se non c'è nemmeno quello;
+- i font SHX mancanti diventano simplex o, se non c'è, il font a tratti di CartesioCAD;
 - i tratteggi senza contorno si segnalano.
 
 ## Salva (`QSAVE`, `SAVE`, `SALVA`) e Salva con nome (`SAVEAS`, `SALVACOME`)

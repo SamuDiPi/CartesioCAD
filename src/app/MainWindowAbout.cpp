@@ -71,6 +71,7 @@ QString MainWindow::aboutText(bool html)
     const QString canalo = canaloVersion();
     if (!canalo.isEmpty())
         components << tr("%1, plugin (GPL-3.0-or-later)").arg(canalo.section(QStringLiteral(" - "), 0, 0));
+    components << tr("Caratteri Hershey per il font a tratti incorporato (uso libero con attribuzione)");
     components << tr("e le librerie elencate in LICENZE-TERZE-PARTI.txt (OpenSSL, FreeType, HarfBuzz, ICU, ...)");
 
     if (!html) {

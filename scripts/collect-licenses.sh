@@ -116,6 +116,15 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         fi
     done
 
+    echo
+    echo "Font Hershey (caratteri del font a tratti incorporato in CartesioCAD.exe)"
+    echo "  Licenza:   uso libero per qualsiasi scopo, con queste attribuzioni:"
+    echo "             The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the"
+    echo "             U. S. National Bureau of Standards. The format of the Font data in this distribution was"
+    echo "             originally created by James Hurt, Cognition, Inc., 900 Technology Park Drive, Billerica,"
+    echo "             MA 01821 (mit-eddie!ci-dandelion!hurt)."
+    echo "             I dati non si possono convertire nel formato distribuito dal NTIS."
+    echo "  Sorgenti:  src/app/BuiltinStrokeFont.inc"
     if [ -d "$DEST/libredwg" ]; then
         echo
         echo "LibreDWG 0.14 (GNU)"
