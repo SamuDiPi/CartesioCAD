@@ -1,0 +1,3 @@
+CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
+Commit: e8915b3 CanaloCAD 1.0
+Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.

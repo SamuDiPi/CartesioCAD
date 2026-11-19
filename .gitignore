@@ -1,0 +1,25 @@
+# Cartelle di compilazione
+build/
+build-*/
+out/
+cmake-build-*/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+CMakeUserPresets.json
+
+# File generati
+*.obj
+*.o
+*.exe
+*.pdb
+*.ilk
+
+# Cartella di distribuzione (cmake --install)
+dist/
+
+# LibreDWG scaricata da scripts/fetch-libredwg.sh
+third_party/
