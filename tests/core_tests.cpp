@@ -3727,20 +3727,24 @@ void testPlant()
         const std::vector<std::string> layerNames = {"0", "CANALO-CANALINA", "CAVI", "BANDIERINE", "TESTI-CAVI"};
         canalo::SectionLayers layers{1, 2, 3, 4};
         const Vec2 origin{5000, 300};
-        const auto ents = canalo::drawSection(t, origin, 1.0, layers);
-        canalo::Drawn drawn;
-        for (const auto& e : ents) {
-            const std::string& lay = layerNames[static_cast<std::size_t>(e->layer())];
-            if (const auto* l = dynamic_cast<const LineEntity*>(e.get()))
-                drawn.segments.push_back({l->start, l->end, lay});
-            else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e.get()))
-                for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
-                    drawn.segments.push_back({pl->vertices[i].point, pl->vertices[i + 1].point, lay});
-            else if (const auto* c = dynamic_cast<const CircleEntity*>(e.get()))
-                drawn.circles.push_back({c->center, c->radius, lay});
-            else if (const auto* tx = dynamic_cast<const TextEntity*>(e.get()))
-                drawn.texts.push_back({tx->displayText(), tx->position, lay});
-        }
+        // Gli oggetti disegnati come li passa l'applicazione a readSection.
+        auto toDrawn = [&](const std::vector<std::unique_ptr<Entity>>& ents) {
+            canalo::Drawn out;
+            for (const auto& e : ents) {
+                const std::string& lay = layerNames[static_cast<std::size_t>(e->layer())];
+                if (const auto* l = dynamic_cast<const LineEntity*>(e.get()))
+                    out.segments.push_back({l->start, l->end, lay});
+                else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e.get()))
+                    for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
+                        out.segments.push_back({pl->vertices[i].point, pl->vertices[i + 1].point, lay});
+                else if (const auto* c = dynamic_cast<const CircleEntity*>(e.get()))
+                    out.circles.push_back({c->center, c->radius, lay});
+                else if (const auto* tx = dynamic_cast<const TextEntity*>(e.get()))
+                    out.texts.push_back({tx->displayText(), tx->position, lay});
+            }
+            return out;
+        };
+        const canalo::Drawn drawn = toDrawn(canalo::drawSection(t, origin, 1.0, layers));
         CHECK(drawn.circles.size() == t.cables.size());
         Vec2 at;
         canalo::Tray back = canalo::readSection(drawn, &at);
@@ -3764,19 +3768,7 @@ void testPlant()
         for (int i = 1; i <= 4; ++i)
             uni.cables.push_back(canalo::cableFrom(*canalo::catalogItem("FG16_1X95"), "QE1 C-9/" + std::to_string(i)));
         canalo::recalculate(uni);
-        canalo::Drawn d2;
-        for (const auto& e : canalo::drawSection(uni, {0, 0}, 1.0, layers)) {
-            const std::string& lay = layerNames[static_cast<std::size_t>(e->layer())];
-            if (const auto* l = dynamic_cast<const LineEntity*>(e.get()))
-                d2.segments.push_back({l->start, l->end, lay});
-            else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e.get()))
-                for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
-                    d2.segments.push_back({pl->vertices[i].point, pl->vertices[i + 1].point, lay});
-            else if (const auto* c = dynamic_cast<const CircleEntity*>(e.get()))
-                d2.circles.push_back({c->center, c->radius, lay});
-            else if (const auto* tx = dynamic_cast<const TextEntity*>(e.get()))
-                d2.texts.push_back({tx->displayText(), tx->position, lay});
-        }
+        const canalo::Drawn d2 = toDrawn(canalo::drawSection(uni, {0, 0}, 1.0, layers));
         canalo::Tray uniBack = canalo::readSection(d2);
         CHECK(canalo::matchCatalog(uniBack, d2) == 4);
         std::vector<std::string> codes;
@@ -3784,6 +3776,31 @@ void testPlant()
             codes.push_back(c.code);
         std::sort(codes.begin(), codes.end());
         CHECK(codes == std::vector<std::string>({"QE1 C-9/1", "QE1 C-9/2", "QE1 C-9/3", "QE1 C-9/4"}));
+
+        // Cavo proprio (non nel catalogo): riconosciuto solo se passato tra i cavi propri, con i suoi dati.
+        canalo::CableType own;
+        own.id = "USR_BUS-ALLARME";
+        own.cat = "custom";
+        own.code = "BUS-ALLARME";
+        own.type = "Bus allarme";
+        own.form = "2x2x0,5";
+        own.d = 9.4;   // nel catalogo a 9,4 non c'è nessun cavo con questa etichetta
+        own.w = 0.09;
+        own.sys = "SPECIAL_ELV";
+        canalo::Tray mix;
+        mix.width = 100.0;
+        mix.cables.push_back(canalo::cableFrom(*canalo::catalogItem("FG16_3G2.5"), "QE1 C-1"));
+        mix.cables.push_back(canalo::cableFrom(own, "AL-1"));
+        canalo::recalculate(mix);
+        CHECK(canalo::sectionLabel(mix.cables[1]) == "AL-1 (Bus allarme 2x2x0,5)");
+        const canalo::Drawn d3 = toDrawn(canalo::drawSection(mix, {0, 0}, 1.0, layers));
+        canalo::Tray noExtra = canalo::readSection(d3);
+        CHECK(canalo::matchCatalog(noExtra, d3) == 1);
+        canalo::Tray withExtra = canalo::readSection(d3);
+        CHECK(canalo::matchCatalog(withExtra, d3, {own}) == 2);
+        const auto bus = std::find_if(withExtra.cables.begin(), withExtra.cables.end(), [](const canalo::Cable& c) { return c.code == "AL-1"; });
+        CHECK(bus != withExtra.cables.end() && bus->sys == "SPECIAL_ELV" && bus->type == "Bus allarme" && bus->w == 0.09);
+        CHECK(!canalo::recalculate(withExtra).segConform);   // il bus con l'energia senza setto
     }
 
     // DXF: il file di progetto collegato e il codice della tratta sulle linee restano.

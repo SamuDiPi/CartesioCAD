@@ -57,6 +57,9 @@ public:
     // Circuiti letti dalla tavolozza Circuiti: entrano nel progetto aperto.
     void mergeFromSchema(const std::vector<cartesio::Circuit>& schema, const QString& path);
     const plant::Project& project() const { return project_; }
+    // Finestra di un cavo proprio (codice, tipo, formazione, diametro, peso, sezione, portata, sistema): usata anche
+    // dalla libreria personale della Sezione da catalogo. Imposta id "CST_" e "Cavo del progetto".
+    static bool editCableType(canalo::CableType& t, bool isNew, QWidget* parent);
     int verifyCount() const { return verifyCount_; }
 
     QString statusText() const { return status_; }

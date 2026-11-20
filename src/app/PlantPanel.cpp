@@ -829,10 +829,15 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
 
 bool PlantPanel::editCable(canalo::CableType& t, bool isNew)
 {
+    return editCableType(t, isNew, this);
+}
+
+bool PlantPanel::editCableType(canalo::CableType& t, bool isNew, QWidget* parent)
+{
     QString code = q(t.code), type = q(t.type), form = q(t.form), desc = q(t.desc);
     QString sys = q(t.sys.empty() ? std::string("BT_POWER") : t.sys);
     double d = t.d, w = t.w, sec = t.sec, iz0 = t.iz0;
-    FormDialog dlg(isNew ? tr("Nuovo cavo") : tr("Cavo %1").arg(code), FormDialog::Ok | FormDialog::Cancel, this);
+    FormDialog dlg(isNew ? tr("Nuovo cavo") : tr("Cavo %1").arg(code), FormDialog::Ok | FormDialog::Cancel, parent);
     dlg.text(tr("Codice"), code, tr("es. FG18OM16-3G2,5"));
     dlg.text(tr("Tipo"), type, tr("FG18OM16"));
     dlg.text(tr("Formazione"), form, tr("1(3G2,5)"));

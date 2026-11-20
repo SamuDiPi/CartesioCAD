@@ -9,6 +9,7 @@
 #include "app/CanaloPlugin.h"
 #include "app/DrawingWidget.h"
 #include "app/FormDialog.h"
+#include "app/PlantFile.h"
 #include "app/PlantPanel.h"
 #include "app/Icons.h"
 #include "app/Ribbon.h"
@@ -23,7 +24,10 @@
 #include <QFileInfo>
 #include <QFileSystemWatcher>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QMessageBox>
+#include <QSettings>
 #include <QUrl>
 
 namespace cartesio {
@@ -297,6 +301,62 @@ struct ComposeRow {
     int qty = 1;
     QString code;
 };
+
+// Cavi composti: disposti per gravità, poi nell'ordine in cui readSection rilegge la sezione disegnata (dal basso,
+// da sinistra) e ricalcolati come disegnati. Il conteggio degli strati della pagina dipende dall'ordine dei cavi:
+// così la verifica della composizione e quella della sezione disegnata danno gli stessi numeri.
+canalo::Metrics settleComposed(canalo::Tray& tray)
+{
+    tray.packing = "gravity";
+    canalo::recalculate(tray);
+    for (canalo::Cable& c : tray.cables) {
+        c.x = c.origX = canalo::fixed(c.x, 1);
+        c.y = c.origY = canalo::fixed(c.y, 1);
+    }
+    std::stable_sort(tray.cables.begin(), tray.cables.end(), [](const canalo::Cable& a, const canalo::Cable& b) {
+        return a.y != b.y ? a.y < b.y : a.x < b.x;
+    });
+    tray.packing = "input";
+    return canalo::recalculate(tray);
+}
+
+// Libreria personale dei cavi: nelle impostazioni del programma, vale per tutti i disegni (id "USR_codice").
+const QString kPersonalCablesKey = QStringLiteral("Canalo/caviPersonali");
+
+QSettings settingsStore() { return QSettings(QStringLiteral("CartesioCAD"), QStringLiteral("CartesioCAD")); }
+
+std::vector<canalo::CableType> personalCables()
+{
+    std::vector<canalo::CableType> out;
+    const QJsonArray list = QJsonDocument::fromJson(settingsStore().value(kPersonalCablesKey).toByteArray()).array();
+    for (const QJsonValue& v : list) {
+        canalo::CableType t = cableTypeFromJson(v.toObject());
+        if (t.code.empty())
+            continue;
+        t.id = "USR_" + t.code;
+        t.standard = "Cavo personale";
+        out.push_back(t);
+    }
+    return out;
+}
+
+void savePersonalCables(const std::vector<canalo::CableType>& cables)
+{
+    QJsonArray list;
+    for (const canalo::CableType& t : cables)
+        list.append(cableTypeToJson(t));
+    settingsStore().setValue(kPersonalCablesKey, QJsonDocument(list).toJson(QJsonDocument::Compact));
+}
+
+// Cavi propri: la libreria personale e, se c'è un progetto dell'impianto aperto, i suoi cavi ("CST_codice").
+std::vector<canalo::CableType> ownCables(const PlantPanel* plant)
+{
+    std::vector<canalo::CableType> out = personalCables();
+    if (plant && plant->hasProject())
+        for (const canalo::CableType& t : plant->project().cables)
+            out.push_back(t);
+    return out;
+}
 } // namespace
 
 void MainWindow::canaloCheck(bool askData, bool sheet)
@@ -317,20 +377,29 @@ void MainWindow::canaloCheck(bool askData, bool sheet)
     }
     canalo::Tray tray = canalo::readSection(drawn);
     // Sezioni disegnate da CANALOSEZIONE: i cavi tornano quelli del catalogo (tipo e sistema, non dedotti dal diametro).
-    const int known = canalo::matchCatalog(tray, drawn);
+    const int known = canalo::matchCatalog(tray, drawn, ownCables(plant_));
     applyLastTray(tray);   // dati del tratto: gli ultimi usati (le misure vengono dal disegno)
+    // Tutti riconosciuti: la sezione è di CANALOSEZIONE, già disposta per gravità. Ridisporla partendo dall'ordine
+    // di lettura darebbe un'altra disposizione (e un altro Kr) per la stessa sezione.
+    const std::string usualPacking = tray.packing;
+    const bool asDrawn = known > 0 && known == static_cast<int>(tray.cables.size());
+    if (asDrawn)
+        tray.packing = "input";
     if (askData) {
         FormDialog dialog(tr("Verifica sezione CanaloCAD"), FormDialog::Ok | FormDialog::Cancel, this);
         QString read = tr("Letti dal disegno: %n cavi, canalina %1 × %2 mm.", nullptr, static_cast<int>(tray.cables.size()))
                            .arg(num(tray.width, 0), num(tray.height, 0));
         if (known > 0)
-            read += QLatin1Char(' ') + tr("%n riconosciuti dal catalogo dalla sigla; gli altri dedotti dal diametro.", nullptr, known);
+            read += QLatin1Char(' ') + (asDrawn ? tr("Tutti riconosciuti dal catalogo dalla sigla: posa come disegnati.")
+                                                : tr("%n riconosciuti dal catalogo dalla sigla; gli altri dedotti dal diametro.", nullptr, known));
         dialog.note(read);
         trayFields(dialog, tray, sheet, true);
         dialog.setSize(460, 680);
         if (dialog.exec() != QDialog::Accepted)
             return;
         rememberTray(tray);
+        if (asDrawn && tray.packing == "input")
+            lastTray().packing = usualPacking;   // la posa scelta per le sezioni disegnate a mano resta
     }
     const canalo::Metrics m = canalo::recalculate(tray);
     ++canaloChecks_;
@@ -355,14 +424,27 @@ void MainWindow::canaloCompose(const QString& scriptCables)
     // I cavi scelti restano per la volta dopo (si riapre la stessa composizione per cambiarla).
     static std::vector<ComposeRow> rows;
     static QString category = QStringLiteral("bt_multi");
+    // Cavi propri (libreria personale e progetto dell'impianto) accanto al catalogo.
+    std::vector<canalo::CableType> own = ownCables(plant_);
+    auto findType = [&](const std::string& id) -> const canalo::CableType* {
+        if (const canalo::CableType* t = canalo::catalogItem(id))
+            return t;
+        for (const canalo::CableType& t : own)
+            if (t.id == id)
+                return &t;
+        return nullptr;
+    };
     const bool fromScript = !scriptCables.isEmpty();
     if (fromScript) {
-        // Negli script: -CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4 (codici del catalogo, quantità dopo *).
+        // Negli script: -CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4 (codici del catalogo, quantità dopo *;
+        // i cavi personali come USR_codice).
         rows.clear();
         for (const QString& item : scriptCables.split(u',', Qt::SkipEmptyParts)) {
             const QStringList parts = item.trimmed().split(u'*');
-            const std::string id = parts.value(0).trimmed().toUpper().toStdString();
-            if (!canalo::catalogItem(id)) {
+            std::string id = parts.value(0).trimmed().toStdString();
+            if (!findType(id))
+                id = parts.value(0).trimmed().toUpper().toStdString();
+            if (!findType(id)) {
                 print(tr("-CANALOSEZIONE: %1 non è nel catalogo dei cavi.").arg(parts.value(0)));
                 return;
             }
@@ -376,23 +458,31 @@ void MainWindow::canaloCompose(const QString& scriptCables)
         {tr("Resistenti al fuoco e sicurezza"), QStringLiteral("fire")},
         {tr("Segnale, comando e bus"), QStringLiteral("signal")},
         {tr("Dati e fibra ottica"), QStringLiteral("data")},
+        {tr("Cavi propri (personali e del progetto)"), QStringLiteral("custom")},
         {tr("Tutti"), QString()},
     };
-    auto cablesOf = [](const QString& cat) {
+    auto cablesOf = [&](const QString& cat) {
         QList<QPair<QString, QVariant>> items;
+        auto add = [&](const canalo::CableType& t, const QString& origin) {
+            items.append({QStringLiteral("%1 %2 - Ø %3 mm, %4 kg/m%5")
+                              .arg(QString::fromStdString(t.type), QString::fromStdString(t.form), num(t.d), num(t.w, 2), origin),
+                          QString::fromStdString(t.id)});
+        };
         for (const canalo::CableType& t : canalo::catalog())
             if (cat.isEmpty() || QString::fromStdString(t.cat) == cat)
-                items.append({QStringLiteral("%1 %2 - Ø %3 mm, %4 kg/m")
-                                  .arg(QString::fromStdString(t.type), QString::fromStdString(t.form), num(t.d), num(t.w, 2)),
-                              QString::fromStdString(t.id)});
+                add(t, QString());
+        if (cat.isEmpty() || cat == QLatin1String("custom"))
+            for (const canalo::CableType& t : own)
+                add(t, t.id.rfind("USR_", 0) == 0 ? tr(" (personale: %1)").arg(QString::fromStdString(t.code))
+                                                  : tr(" (progetto: %1)").arg(QString::fromStdString(t.code)));
         return items;
     };
-    auto expand = [] {
+    auto expand = [&] {
         // Le righe diventano cavi: sigla data (con /1, /2... se più cavi) o numerata C-1, C-2...
         std::vector<canalo::Cable> cables;
         int counter = 0;
         for (const ComposeRow& r : rows) {
-            const canalo::CableType* t = canalo::catalogItem(r.id);
+            const canalo::CableType* t = findType(r.id);
             if (!t)
                 continue;
             for (int i = 1; i <= r.qty; ++i) {
@@ -424,11 +514,11 @@ void MainWindow::canaloCompose(const QString& scriptCables)
     int qty = 1;
     QString code;
     int selected = -1;
-    int cableField = -1, listField = -1, summaryField = -1, widthField = -1;
+    int categoryField = -1, cableField = -1, listField = -1, summaryField = -1, widthField = -1;
 
     FormDialog dialog(tr("Sezione da catalogo - CanaloCAD"), FormDialog::Ok | FormDialog::Cancel, this);
-    auto rowText = [](const ComposeRow& r) {
-        const canalo::CableType* t = canalo::catalogItem(r.id);
+    auto rowText = [&](const ComposeRow& r) {
+        const canalo::CableType* t = findType(r.id);
         QString s = QStringLiteral("%1 × %2 %3 (Ø %4)")
                         .arg(r.qty)
                         .arg(t ? QString::fromStdString(t->type) : QString::fromStdString(r.id), t ? QString::fromStdString(t->form) : QString(),
@@ -450,7 +540,7 @@ void MainWindow::canaloCompose(const QString& scriptCables)
             return;
         }
         canalo::Tray probe = tray;
-        const canalo::Metrics m = canalo::recalculate(probe);
+        const canalo::Metrics m = settleComposed(probe);
         const double w = canalo::suggestedWidth(tray);
         dialog.setFieldText(summaryField, tr("%n cavi, %1 kg/m. Canalina %2 × %3 mm: riempimento %4%. Consigliata (riempimento "
                                              "entro il 50%): %5 × %3 mm.", nullptr, static_cast<int>(tray.cables.size()))
@@ -460,13 +550,81 @@ void MainWindow::canaloCompose(const QString& scriptCables)
 
     dialog.page(tr("Cavi"));
     dialog.group(tr("Catalogo"));
-    dialog.choice(tr("Categoria"), categoryItems, category, [&](const QVariant& v) {
+    categoryField = dialog.choice(tr("Categoria"), categoryItems, category, [&](const QVariant& v) {
         category = v.toString();
         cableItems = cablesOf(category);
         cableId = cableItems.isEmpty() ? QString() : cableItems.front().second.toString();
         dialog.setChoices(cableField, cableItems, cableId);
     });
     cableField = dialog.choice(tr("Cavo"), cableItems, cableId, [&](const QVariant& v) { cableId = v.toString(); });
+
+    // Libreria personale: nuovo cavo (partendo dai dati di quello scelto), modifica ed eliminazione.
+    auto showOwn = [&](const std::string& id) {
+        own = ownCables(plant_);
+        category = QStringLiteral("custom");
+        dialog.setChoices(categoryField, categoryItems, category);
+        cableItems = cablesOf(category);
+        cableId = !id.empty() ? QString::fromStdString(id) : cableItems.isEmpty() ? QString() : cableItems.front().second.toString();
+        dialog.setChoices(cableField, cableItems, cableId);
+        refresh();
+    };
+    auto putPersonal = [&](canalo::CableType t, const std::string& replacedId) {
+        t.id = "USR_" + t.code;
+        t.standard = "Cavo personale";
+        std::vector<canalo::CableType> personal = personalCables();
+        std::erase_if(personal, [&](const canalo::CableType& p) { return p.id == t.id || p.id == replacedId; });
+        personal.push_back(t);
+        std::sort(personal.begin(), personal.end(), [](const auto& a, const auto& b) { return a.code < b.code; });
+        savePersonalCables(personal);
+        for (ComposeRow& r : rows)   // codice cambiato: le righe seguono il cavo
+            if (!replacedId.empty() && r.id == replacedId)
+                r.id = t.id;
+        showOwn(t.id);
+        print(tr("Cavo personale %1 salvato (vale per tutti i disegni).").arg(QString::fromStdString(t.code)));
+    };
+    dialog.buttonsRow({{tr("Nuovo cavo..."), [&] {
+                            canalo::CableType t;
+                            t.d = 10.0;
+                            t.sec = 2.5;
+                            t.iz0 = 20.0;
+                            if (const canalo::CableType* base = findType(cableId.toStdString())) {
+                                t = *base;   // stessi dati come punto di partenza: si cambia quello che serve
+                                t.code.clear();
+                                t.desc.clear();
+                            }
+                            if (PlantPanel::editCableType(t, true, &dialog))
+                                putPersonal(t, {});
+                        }},
+                       {tr("Modifica..."), [&] {
+                            const canalo::CableType* base = findType(cableId.toStdString());
+                            if (!base || base->id.rfind("USR_", 0) != 0) {
+                                QMessageBox::information(&dialog, tr("Cavi personali"),
+                                                         tr("Si modificano solo i cavi personali. Per uno del catalogo o del progetto "
+                                                            "usare Nuovo cavo...: parte dai suoi dati."));
+                                return;
+                            }
+                            canalo::CableType t = *base;
+                            const std::string oldId = t.id;
+                            if (PlantPanel::editCableType(t, false, &dialog))
+                                putPersonal(t, oldId);
+                        }},
+                       {tr("Elimina"), [&] {
+                            const canalo::CableType* base = findType(cableId.toStdString());
+                            if (!base || base->id.rfind("USR_", 0) != 0) {
+                                QMessageBox::information(&dialog, tr("Cavi personali"), tr("Si eliminano solo i cavi personali."));
+                                return;
+                            }
+                            const std::string id = base->id;
+                            if (QMessageBox::question(&dialog, tr("Cavi personali"),
+                                                      tr("Eliminare il cavo personale %1?").arg(QString::fromStdString(base->code)))
+                                != QMessageBox::Yes)
+                                return;
+                            std::vector<canalo::CableType> personal = personalCables();
+                            std::erase_if(personal, [&](const canalo::CableType& p) { return p.id == id; });
+                            savePersonalCables(personal);
+                            std::erase_if(rows, [&](const ComposeRow& r) { return r.id == id; });
+                            showOwn({});
+                        }}});
     dialog.integer(tr("Quantità"), 1, 200, qty);
     dialog.text(tr("Sigla"), code, tr("es. QE1 C-3 (vuota: C-1, C-2...)"));
     dialog.buttonsRow({{tr("Aggiungi"), [&] {
@@ -517,8 +675,8 @@ void MainWindow::canaloCompose(const QString& scriptCables)
     rememberTray(tray);
     lastTray().width = tray.width;
     lastTray().height = tray.height;
-    tray.packing = "gravity";
-    const canalo::Metrics m = canalo::recalculate(tray);
+    // Posizioni per gravità, nell'ordine in cui si rileggono dal disegno.
+    const canalo::Metrics m = settleComposed(tray);
     ++canaloChecks_;
     for (const QString& line : canaloReport(tray, m))
         print(line);

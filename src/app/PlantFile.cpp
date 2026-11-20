@@ -188,6 +188,10 @@ bool loadPlant(const QString& path, plant::Project& project, QString* error)
     return true;
 }
 
+QJsonObject cableTypeToJson(const canalo::CableType& type) { return toJson(type); }
+
+canalo::CableType cableTypeFromJson(const QJsonObject& object) { return cableFrom(object); }
+
 bool savePlant(const QString& path, const plant::Project& project, QString* error)
 {
     QJsonArray circuits, cables, runs;

@@ -25,9 +25,13 @@ Invece di disegnare i cerchi dei cavi, si scelgono dal catalogo di CanaloCAD: ca
 2. Scheda **Canalina e tratto**: gli stessi dati di *Verifica sezione* (i cavi si dispongono per gravità, come in CanaloCAD).
 3. Con OK i risultati vanno nella riga di comando e la sezione viene disegnata al vero a destra del disegno, già selezionata (si sposta con `MOVE`): bordo della canalina sul layer `CANALO-CANALINA`, cavi su `CAVI` (resistenti al fuoco in rosso, segnale e dati in blu), bandierine su `BANDIERINE` e sigle con tipo e formazione su `TESTI-CAVI`. Selezionandola, `CANALOVERIFICA` la riverifica con altri dati del tratto. Con **Disegna la tavola A3** si aggiunge accanto la tavola completa.
 
+**Cavi propri.** Un cavo che non c'è nel catalogo si crea con **Nuovo cavo...** (parte dai dati del cavo scelto: si cambia quello che serve): codice, tipo, formazione, descrizione, diametro esterno, peso (0 = stimato dal diametro), sezione, portata di riferimento e sistema (energia, sicurezza, segnale: conta per la segregazione). Va nella **libreria personale**, salvata nelle impostazioni del programma e valida per tutti i disegni; **Modifica...** ed **Elimina** valgono per i cavi personali. Nella categoria *Cavi propri* ci sono anche i cavi propri del progetto dell'impianto aperto (tavolozza Impianto). Riverificando una sezione disegnata, anche i cavi propri vengono riconosciuti dalla sigla.
+
+Riverificando una sezione disegnata da qui (tutti i cavi riconosciuti) la posa proposta è *Come disegnati*: la sezione è già disposta, e i numeri sono gli stessi della composizione.
+
 I cavi scelti e i dati del tratto restano per la volta dopo, finché il programma è aperto. Ctrl+Z toglie la sezione.
 
-Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4` (codici del catalogo, la quantità dopo `*`, senza spazi), con la larghezza consigliata e gli ultimi dati del tratto.
+Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4` (codici del catalogo, i cavi personali come `USR_codice`, la quantità dopo `*`, senza spazi), con la larghezza consigliata e gli ultimi dati del tratto.
 
 ## Apri CanaloCAD (`CANALOCAD`, `CANALO`)
 
