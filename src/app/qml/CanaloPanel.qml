@@ -204,7 +204,7 @@ Rectangle {
                     Button { text: qsTr("Usa selezione"); primary: true; tip: qsTr("Gli oggetti selezionati nel disegno: una sezione L×H (anche con i cavi) diventa una canalina con le sue misure, ridisegnata da CanaloCAD al suo posto; un percorso in pianta si collega alla canalina; un oggetto di una canalina la mostra"); onClicked: canalo.useSelection() }
                     Button { text: qsTr("Nuova"); tip: qsTr("Una canalina nuova, con la misura scelta dai cavi"); onClicked: canalo.newTray() }
                     Button { text: qsTr("Dati canalina..."); tip: qsTr("Misure, tipologia, materiale, coperchio, setti, tratto, staffaggio, tavola e cartiglio"); onClicked: canalo.editTray() }
-                    Button { text: qsTr("Importa DWG/DXF..."); tip: qsTr("Misure e cavi da un file, come Importa DWG/DXF di CanaloCAD"); onClicked: canalo.importFile("") }
+                    Button { text: qsTr("Importa DWG/DXF..."); tip: qsTr("Uno o più DWG/DXF di progetto, letti come Importa DWG/DXF di CanaloCAD (una sezione per file); per ognuno scegli a cosa si riferisce: una polilinea del disegno, una canalina, un particolare a sé stante"); onClicked: canalo.importFile("") }
                     Button { text: "?"; tip: qsTr("Come si usa"); onClicked: canalo.showGuide() }
                 }
             }
@@ -215,6 +215,26 @@ Rectangle {
                 color: Theme.muted2
                 font.pixelSize: 12
                 wrapMode: Text.WordWrap
+            }
+            // Importazione in attesa: si clicca nel disegno la polilinea della canalina.
+            Rectangle {
+                visible: canalo.pendingText.length > 0
+                width: parent.width
+                height: visible ? 36 : 0
+                radius: 3
+                color: "#5a4a1e"
+                border.color: "#e3b341"
+                Text {
+                    x: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - cancelPick.width - 30
+                    text: canalo.pendingText
+                    color: "#ffe9a8"
+                    font.pixelSize: 13
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
+                Button { id: cancelPick; anchors.right: parent.right; anchors.rightMargin: 4; anchors.verticalCenter: parent.verticalCenter; text: qsTr("Annulla"); onClicked: canalo.cancelPending() }
             }
             // Schede.
             Row {

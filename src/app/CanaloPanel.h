@@ -43,6 +43,8 @@ class CanaloPanel : public QQuickWidget {
     Q_PROPERTY(QVariantList cableRows READ cableRows NOTIFY changed)
     Q_PROPERTY(int cableSelected READ cableSelected NOTIFY changed)
     Q_PROPERTY(QVariantList summary READ summary NOTIFY changed)
+    // Importazione in attesa della polilinea da cliccare nel disegno: il testo della richiesta (vuoto se nessuna).
+    Q_PROPERTY(QString pendingText READ pendingText NOTIFY changed)
 
 public:
     explicit CanaloPanel(QWidget* parent = nullptr);
@@ -93,7 +95,15 @@ public:
     Q_INVOKABLE void setReserve(double percent);
     // Sezione dalla selezione (anche già collegata); da un file DWG o DXF (come Importa DWG/DXF di CanaloCAD).
     bool importSelection();
+    // DWG o DXF di progetto (anche più file: una sezione per file), letti come Importa DWG/DXF di CanaloCAD; per
+    // ognuno si chiede a cosa si riferisce: una polilinea del disegno (da cliccare), una canalina, un particolare a
+    // sé stante, o solo i calcoli.
     Q_INVOKABLE void importFile(const QString& path = {});
+    Q_INVOKABLE void cancelPending();
+    // Negli script: dove va ogni file importato, senza finestra ("pick" = la selezione attuale, "detail", "none", o il
+    // codice di una canalina).
+    void setScriptPlacement(const QString& placement) { scriptPlacement_ = placement; }
+    QString pendingText() const { return pendingText_; }
     Q_INVOKABLE void editTray();
     // Sezione di CanaloCAD al vero nel disegno: sulla sezione disegnata, o a destra del disegno.
     Q_INVOKABLE void drawSection();
@@ -134,6 +144,15 @@ private:
     void updateSummary();
     double drawingUnit() const;   // unità di disegno per millimetro
     int minimumWidth(const QJsonObject& state) const;   // per i cavi, con la riserva (0 se ci stanno)
+    // Importazioni da collocare, una alla volta.
+    struct Import {
+        QJsonObject state;
+        QString file;
+    };
+    void placeNextImport();
+    bool linkPending();   // la polilinea scelta per l'importazione in attesa (dalla selezione)
+    void applyImportTo(const QString& id, const QJsonObject& imported);
+    double routeLengthM(const std::vector<EntityId>& ids) const;   // lunghezza di linee e polilinee, in metri
 
     DrawingWidget* drawing_ = nullptr;
     PlantPanel* plant_ = nullptr;
@@ -147,6 +166,10 @@ private:
     std::vector<int> dbFiltered_;
     QJsonObject metrics_;   // risultati della canalina corrente
     QString metricsFor_;    // stato a cui si riferiscono
+    std::vector<Import> imports_;
+    Import pending_;
+    QString pendingText_;
+    QString scriptPlacement_;
 };
 
 } // namespace cartesio

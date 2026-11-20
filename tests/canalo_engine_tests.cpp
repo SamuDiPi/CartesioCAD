@@ -83,10 +83,11 @@ int main(int argc, char* argv[])
         const QByteArray expected = dxf.readAll();
         const QByteArray got = engine.dxfBytes(state, info.completeBaseName());
         ++cases;
-        // La stessa tavola riletta con l'importazione della pagina: stesse misure e stessi cavi della pagina.
+        // La stessa tavola riletta come file con l'importazione della pagina: stesse misure e stessi cavi della pagina.
         QFile importRef(dir.filePath(info.completeBaseName() + QStringLiteral(".import.txt")));
         if (importRef.open(QIODevice::ReadOnly)) {
-            const QJsonObject back = engine.importDxf(engine.defaultState(), QString::fromLatin1(expected),
+            // Come Importa DWG/DXF della pagina con il file della tavola (i suoi byte).
+            const QJsonObject back = engine.importFileBytes(engine.defaultState(), expected,
                                                       info.completeBaseName() + QStringLiteral(".dxf"));
             QStringList lines{QStringLiteral("%1x%2").arg(back.value(QStringLiteral("width")).toDouble())
                                   .arg(back.value(QStringLiteral("height")).toDouble())};

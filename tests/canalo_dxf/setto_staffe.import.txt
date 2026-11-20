@@ -11,5 +11,5 @@ FG16M16-1X95 - L3 (1(1x95) %%c19.8) | 19.8
 FG16M16-1X95 - N (1(1x95) %%c19.8) | 19.8
 FG16OM16-4G16 - L1 (1(4G16) %%c22.8) | 22.8
 FG16OM16-4G16 - L2 (1(4G16) %%c22.8) | 22.8
-Continuità CEI 64-8 Art.543 | 5.2
+Continuit CEI 64-8 Art.543 | 5.2
 Cavo Bus Domotica KNX TP1 | 4.8

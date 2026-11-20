@@ -218,6 +218,11 @@ QJsonObject CanaloEngine::setScales(const QJsonObject& state, const QString& sca
     return stateCall(QStringLiteral("setScales"), {compact(state), scale, textScale}, metrics);
 }
 
+QJsonObject CanaloEngine::importFileBytes(const QJsonObject& state, const QByteArray& bytes, const QString& fileName, QJsonObject* metrics)
+{
+    return stateCall(QStringLiteral("importFileBytes"), {compact(state), QString::fromLatin1(bytes), fileName}, metrics);
+}
+
 QString CanaloEngine::dxf(const QJsonObject& state, const QString& title)
 {
     return call(QStringLiteral("dxf"), {compact(state), title});
