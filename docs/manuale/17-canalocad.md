@@ -18,7 +18,15 @@ Il database contiene solo tipologie, senza costruttori: per i cavi le designazio
 
 Selezionando nel disegno un oggetto di una canalina (sezione, percorso, tavola) la finestra passa a quella canalina.
 
-**Dati canalina...**: titolo, misure, spessore, tipo di profilo, materiale e finitura, coperchio, setti, disposizione dei cavi (per gravità o come disegnati), conduttore PE, paraspigoli, fascette, distanza dal soffitto; tratto (lunghezza, curve, derivazioni, riduzioni, attraversamenti EI120); staffaggio e passo, antisismico; per la tavola scala, dimensione dei testi, impaginazione, vista 3D, curva di carico, distinta, cartiglio, descrizione delle utenze, bandierine, cartellino in pianta e i dati del cartiglio. Cambiando a mano larghezza o altezza la misura non segue più i cavi. **Importa DWG/DXF...** crea una canalina dalla sezione di un file, come Importa DWG/DXF di CanaloCAD.
+**Dati canalina...**: titolo, misure, spessore, tipo di profilo, materiale e finitura, coperchio, setti, disposizione dei cavi (per gravità o come disegnati), conduttore PE, paraspigoli, fascette, distanza dal soffitto; tratto (lunghezza, curve, derivazioni, riduzioni, attraversamenti EI120); staffaggio e passo, antisismico; per la tavola scala, dimensione dei testi, impaginazione, vista 3D, curva di carico, distinta, cartiglio, descrizione delle utenze, bandierine, cartellino in pianta e i dati del cartiglio. Cambiando a mano larghezza o altezza la misura non segue più i cavi.
+
+**Importa DWG/DXF...**: uno o più DWG o DXF di progetto, letti interi come fa Importa DWG/DXF di CanaloCAD (un DXF passa così com'è; un DWG si converte con LibreDWG, la stessa libreria di CanaloCAD), una sezione per file come le schede di CanaloCAD. Per ogni file si sceglie **a cosa si riferisce il tratto**:
+- **a una polilinea del disegno**: la finestra chiede di cliccarla (una striscia gialla, con **Annulla**); la canalina si collega a quella polilinea (o a quelle linee) e la lunghezza del tratto è la sua. Se la polilinea è già di una canalina, prende misure e cavi importati;
+- **a una canalina esistente** (CN1, CN2...): ne prende misure, cavi e lunghezza, e il resto (staffaggio, tavola, sezione nel disegno) resta;
+- **particolare a sé stante**: la canalina nuova con la sua sezione disegnata a destra del disegno;
+- **solo i calcoli**: la canalina nuova, senza niente nel disegno.
+
+Negli script: `-CANALOIMPORTA file POLILINEA|DETTAGLIO|NIENTE|CN1` (POLILINEA = la polilinea selezionata).
 
 Le canaline (dati e cavi) si salvano nel disegno (DWG/DXF) e ogni modifica si annulla con Ctrl+Z.
 

@@ -47,6 +47,8 @@ public:
     QJsonObject autoSize(const QJsonObject& state, double reservePct, QJsonObject* metrics = nullptr);
     // Importazione di una sezione disegnata (testo DXF) come "Importa DWG/DXF" della pagina.
     QJsonObject importDxf(const QJsonObject& state, const QString& dxfText, const QString& fileName, QJsonObject* metrics = nullptr);
+    // Un file DXF (i suoi byte) come "Importa DWG/DXF" della pagina: stessi passi (extractRawAscii, parseDXFTextContent).
+    QJsonObject importFileBytes(const QJsonObject& state, const QByteArray& bytes, const QString& fileName, QJsonObject* metrics = nullptr);
     // Scala della tavola ("1:5") e dei testi (1,2) come le scelte della pagina (la scala va anche nel cartiglio).
     QJsonObject setScales(const QJsonObject& state, const QString& scale, double textScale, QJsonObject* metrics = nullptr);
     // Tavola DXF della sezione, testo come quello scaricato dalla pagina (righe CRLF, caratteri fino a U+00FF).

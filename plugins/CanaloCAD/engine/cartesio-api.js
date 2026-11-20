@@ -55,6 +55,16 @@ var __cartesio = {
     parseDXFTextContent(text, fileName);
     return __cartesio.calc(JSON.stringify(state));
   },
+  // Un file DXF come "Importa DWG/DXF" della pagina (processSingleCADFile): i byte del file (un carattere per byte)
+  // passano da extractRawAscii e parseDXFTextContent. La sezione nuova prende il nome del file, come una scheda
+  // nuova della pagina.
+  importFileBytes: function (json, bytes, fileName) {
+    state = normalizeSection(JSON.parse(json));
+    var u = new Uint8Array(bytes.length);
+    for (var i = 0; i < bytes.length; i++) u[i] = bytes.charCodeAt(i) & 0xff;
+    parseDXFTextContent(extractRawAscii(u), fileName);
+    return __cartesio.calc(JSON.stringify(state));
+  },
   // Cavi propri (libreria personale di CartesioCAD, progetto dell'impianto) nel database della pagina.
   setOwnCables: function (json) {
     var own = JSON.parse(json);

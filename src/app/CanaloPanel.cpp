@@ -5,6 +5,7 @@
 #include "app/CanaloEngine.h"
 #include "app/CanaloPlugin.h"
 #include "app/DrawingWidget.h"
+#include "app/DwgConverter.h"
 #include "app/FormDialog.h"
 #include "app/PlantFile.h"
 #include "app/PlantPanel.h"
@@ -26,6 +27,7 @@
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
@@ -220,6 +222,9 @@ void CanaloPanel::refresh()
         emit changed();
         return;
     }
+    // Importazione in attesa: la polilinea appena selezionata nel disegno.
+    if (!pendingText_.isEmpty())
+        linkPending();
     if (db_.isEmpty())
         syncOwnCables();
     // La canalina degli oggetti selezionati; senza, resta l'ultima (se c'è ancora).
@@ -659,8 +664,13 @@ void CanaloPanel::useSelection()
     }
     if (trayId_.isEmpty())
         createTray({});
-    tag(drawing_->selection(), QString());
-    emit message(tr("Percorso collegato alla canalina %1: selezionandolo si vede il suo riepilogo.").arg(trayId_));
+    const std::vector<EntityId> route = drawing_->selection();
+    tag(route, QString());
+    // La lunghezza del tratto è quella del percorso disegnato.
+    QJsonObject st = state();
+    st.insert(QStringLiteral("lengthM"), std::max(1.0, std::round(routeLengthM(route) * 10.0) / 10.0));
+    store(st, tr("Percorso collegato alla canalina %1 (tratto di %2 m): selezionandolo si vede il suo riepilogo.")
+                  .arg(trayId_, num(dv(st, "lengthM"))));
     refresh();
 }
 
@@ -725,44 +735,212 @@ void CanaloPanel::importFile(const QString& given)
 {
     if (!drawing_)
         return;
-    QString path = given;
-    if (path.isEmpty())
-        path = QFileDialog::getOpenFileName(this, tr("Importa la sezione da un disegno"), QString(), tr("Disegni (*.dwg *.dxf)"));
-    if (path.isEmpty())
+    QStringList paths;
+    if (!given.isEmpty())
+        paths << given;
+    else
+        paths = QFileDialog::getOpenFileNames(this, tr("Importa DWG/DXF di progetto (una sezione per file)"), QString(), tr("Disegni (*.dwg *.dxf)"));
+    if (paths.isEmpty())
         return;
-    // Il disegno (anche DWG) letto da CartesioCAD e passato all'importazione di CanaloCAD come DXF.
-    Document source;
-    QString error;
-    if (!DrawingWidget::readFile(path, source, &error)) {
-        emit message(tr("CANALINA: %1").arg(error));
+    CanaloEngine& engine = CanaloEngine::instance();
+    int letter = static_cast<int>(drawing_->document().canaloTrays().size());
+    for (const QString& path : paths) {
+        // Il file com'è, come Importa DWG/DXF di CanaloCAD: un DXF passa intero; un DWG si converte con LibreDWG (la
+        // libreria che usa anche CanaloCAD) e il DXF ottenuto passa intero.
+        QByteArray bytes;
+        QString error;
+        if (path.endsWith(QLatin1String(".dwg"), Qt::CaseInsensitive)) {
+            const QString dxf = tempPath(QStringLiteral("CartesioCAD_import.dxf"));
+            if (!DwgConverter::dwgToDxf(path, dxf, &error)) {
+                emit message(tr("CANALINA: %1: %2").arg(QFileInfo(path).fileName(), error));
+                continue;
+            }
+            QFile file(dxf);
+            if (file.open(QIODevice::ReadOnly))
+                bytes = file.readAll();
+            file.close();
+            QFile::remove(dxf);
+        } else {
+            QFile file(path);
+            if (file.open(QIODevice::ReadOnly))
+                bytes = file.readAll();
+        }
+        if (bytes.isEmpty()) {
+            emit message(tr("CANALINA: %1 non si legge.").arg(QFileInfo(path).fileName()));
+            continue;
+        }
+        // Come una scheda nuova della pagina: titolo dal nome del file e sigla della sezione A-A, B-B...
+        QJsonObject base = engine.defaultState();
+        base.insert(QStringLiteral("title"), QFileInfo(path).completeBaseName());
+        const QChar l(static_cast<char16_t>(u'A' + std::min(25, letter++)));
+        base.insert(QStringLiteral("planTag"), QStringLiteral("SEZ. %1-%1 | H=+3.20m").arg(l));
+        QJsonObject st = engine.importFileBytes(base, bytes, QFileInfo(path).fileName());
+        if (st.isEmpty()) {
+            emit message(tr("CANALINA: %1: %2").arg(QFileInfo(path).fileName(), engine.error()));
+            continue;
+        }
+        st.insert(QStringLiteral("cartesioAutoSize"), false);   // le misure sono quelle del disegno importato
+        imports_.push_back({st, QFileInfo(path).fileName()});
+    }
+    placeNextImport();
+}
+
+void CanaloPanel::placeNextImport()
+{
+    if (!drawing_ || !pendingText_.isEmpty() || imports_.empty())
+        return;
+    const Import item = imports_.front();
+    imports_.erase(imports_.begin());
+    const QJsonObject& st = item.state;
+    const int cables = static_cast<int>(st.value(QStringLiteral("cables")).toArray().size());
+
+    // A cosa si riferisce il tratto importato.
+    QList<QPair<QString, QVariant>> choices;
+    choices.append({tr("A una polilinea del disegno: la clicco (la lunghezza del tratto è la sua)"), QStringLiteral("pick")});
+    for (const auto& [id, json] : drawing_->document().canaloTrays()) {
+        const QJsonObject other = QJsonDocument::fromJson(QByteArray::fromStdString(json)).object();
+        choices.append({tr("Alla canalina %1 — %2 (ne prende misure e cavi)").arg(QString::fromStdString(id), sv(other, "title")),
+                        QStringLiteral("tray:") + QString::fromStdString(id)});
+    }
+    choices.append({tr("Particolare a sé stante: la sezione nel disegno"), QStringLiteral("detail")});
+    choices.append({tr("Solo i calcoli, niente nel disegno"), QStringLiteral("none")});
+    QVariant choice = QStringLiteral("pick");
+    FormDialog dialog(tr("Importa %1").arg(item.file), FormDialog::Ok | FormDialog::Cancel, this);
+    dialog.note(tr("<b>%1</b>: canalina %2 × %3 mm, %n cavi letti con l'importazione di CanaloCAD.<br>A cosa si riferisce questo tratto?",
+                   nullptr, cables)
+                    .arg(item.file.toHtmlEscaped(), num(dv(st, "width"), 0), num(dv(st, "height"), 0)));
+    dialog.choice(tr("Si riferisce a"), choices, choice, [&](const QVariant& v) { choice = v; });
+    if (!imports_.empty())
+        dialog.note(tr("Poi restano %n file da collocare.", nullptr, static_cast<int>(imports_.size())));
+    dialog.setSize(560, 260);
+    if (!scriptPlacement_.isEmpty()) {
+        // Negli script: la scelta è già data; "pick" usa la polilinea già selezionata.
+        choice = scriptPlacement_.startsWith(QLatin1String("CN")) ? QStringLiteral("tray:") + scriptPlacement_ : scriptPlacement_;
+    } else if (dialog.exec() != QDialog::Accepted) {
+        emit message(tr("%1 non importato.").arg(item.file));
+        placeNextImport();
         return;
     }
-    std::vector<EntityId> all;
-    for (const auto& e : source.entities())
-        if (e->space() == 0)
-            all.push_back(e->id());
-    const QString dxfPath = tempPath(QStringLiteral("CartesioCAD_import.dxf"));
-    if (!exportForCanalo(source, all, dxfPath, &error)) {
-        emit message(tr("CANALINA: %1").arg(error));
+    const QString what = choice.toString();
+    if (what == QLatin1String("pick") && !scriptPlacement_.isEmpty()) {
+        pending_ = item;
+        pendingText_ = tr("Polilinea per %1").arg(item.file);
+        if (!linkPending()) {
+            emit message(tr("-CANALOIMPORTA: per POLILINEA selezionare prima la polilinea."));
+            pending_ = {};
+            pendingText_.clear();
+        }
         return;
     }
-    QFile file(dxfPath);
-    if (!file.open(QIODevice::ReadOnly))
-        return;
-    const QString text = QString::fromUtf8(file.readAll());
-    file.close();
-    QFile::remove(dxfPath);
-    QJsonObject st = CanaloEngine::instance().importDxf(CanaloEngine::instance().defaultState(), text, QFileInfo(path).fileName());
-    if (st.isEmpty()) {
-        emit message(tr("CANALINA: %1").arg(CanaloEngine::instance().error()));
+    if (what == QLatin1String("pick")) {
+        pending_ = item;
+        pendingText_ = tr("Clicca nel disegno la polilinea (o le linee) della canalina a cui si riferisce %1.").arg(item.file);
+        emit message(pendingText_);
+        emit changed();
+        drawing_->setSelection({});
+        drawing_->window()->activateWindow();   // si clicca nel disegno
         return;
     }
+    if (what.startsWith(QLatin1String("tray:"))) {
+        applyImportTo(what.mid(5), st);
+    } else if (what == QLatin1String("detail")) {
+        trayId_.clear();
+        createTray(st);
+        drawSection();
+    } else {
+        trayId_.clear();
+        createTray(st);
+    }
+    placeNextImport();
+}
+
+bool CanaloPanel::linkPending()
+{
+    if (pendingText_.isEmpty() || !drawing_)
+        return false;
+    // Le linee e polilinee selezionate (il percorso della canalina).
+    const Document& doc = drawing_->document();
+    std::vector<EntityId> route;
+    QString existing;
+    for (EntityId id : drawing_->selection())
+        if (const Entity* e = doc.find(id); e && (dynamic_cast<const LineEntity*>(e) || dynamic_cast<const PolylineEntity*>(e))) {
+            route.push_back(id);
+            if (existing.isEmpty() && !e->canaloTray().empty() && doc.canaloTray(trayOf(e->canaloTray()).toStdString()))
+                existing = trayOf(e->canaloTray());
+        }
+    if (route.empty())
+        return false;
+    const Import item = pending_;
+    pending_ = {};
+    pendingText_.clear();
+    QJsonObject st = item.state;
+    st.insert(QStringLiteral("lengthM"), std::max(1.0, std::round(routeLengthM(route) * 10.0) / 10.0));
+    if (!existing.isEmpty()) {
+        // La polilinea è già di una canalina: il tratto importato è quello.
+        applyImportTo(existing, st);
+    } else {
+        trayId_.clear();
+        createTray(st);
+        tag(route, QString());
+        emit message(tr("%1 collegato alla polilinea: canalina %2, tratto di %3 m.").arg(item.file, trayId_, num(dv(st, "lengthM"))));
+    }
+    QTimer::singleShot(0, this, [this] { placeNextImport(); });
+    return true;
+}
+
+void CanaloPanel::cancelPending()
+{
+    if (pendingText_.isEmpty())
+        return;
+    emit message(tr("%1 non collegato.").arg(pending_.file));
+    pending_ = {};
+    pendingText_.clear();
+    emit changed();
+    placeNextImport();
+}
+
+void CanaloPanel::applyImportTo(const QString& id, const QJsonObject& imported)
+{
+    // Misure, cavi e lunghezza dal tratto importato; il resto (staffaggio, tavola, posizione della sezione) resta.
+    trayId_ = id;
+    QJsonObject st = state();
+    for (const char* key : {"width", "height", "cables", "lengthM"})
+        if (imported.contains(QLatin1String(key)))
+            st.insert(QLatin1String(key), imported.value(QLatin1String(key)));
     st.insert(QStringLiteral("cartesioAutoSize"), false);
-    trayId_.clear();
-    createTray(st);
-    emit message(tr("%1: importati %n cavi da %2 (canalina %3 × %4 mm). Disegna sezione la mette nel disegno.", nullptr,
-                    static_cast<int>(st.value(QStringLiteral("cables")).toArray().size()))
-                     .arg(trayId_, QFileInfo(path).fileName(), num(dv(st, "width"), 0), num(dv(st, "height"), 0)));
+    store(st, tr("Canalina %1: misure e cavi importati (%2 × %3 mm, %n cavi).", nullptr,
+                 static_cast<int>(imported.value(QStringLiteral("cables")).toArray().size()))
+                  .arg(id, num(dv(imported, "width"), 0), num(dv(imported, "height"), 0)));
+}
+
+double CanaloPanel::routeLengthM(const std::vector<EntityId>& ids) const
+{
+    if (!drawing_)
+        return 0.0;
+    const Document& doc = drawing_->document();
+    double length = 0.0;
+    auto segment = [&](Vec2 a, Vec2 b, double bulge) {
+        const double chord = std::hypot(b.x - a.x, b.y - a.y);
+        if (std::abs(bulge) < 1e-9) {
+            length += chord;
+        } else {   // arco: corda e angolo dalla curvatura
+            const double angle = 4.0 * std::atan(std::abs(bulge));
+            length += chord * angle / (2.0 * std::sin(angle / 2.0));
+        }
+    };
+    for (EntityId id : ids) {
+        const Entity* e = doc.find(id);
+        if (const auto* l = dynamic_cast<const LineEntity*>(e))
+            segment(l->start, l->end, 0.0);
+        else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e)) {
+            for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
+                segment(pl->vertices[i].point, pl->vertices[i + 1].point, pl->vertices[i].bulge);
+            if (pl->closed && pl->vertices.size() > 2)
+                segment(pl->vertices.back().point, pl->vertices.front().point, pl->vertices.back().bulge);
+        }
+    }
+    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
+    return length * unitsFactor(units, 6);   // in metri
 }
 
 // ---------------------------------------------------------------- database

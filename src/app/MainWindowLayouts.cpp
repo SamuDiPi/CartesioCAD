@@ -1671,6 +1671,22 @@ bool MainWindow::runScript(const QString& path)
                 print(tr("-CIRCUITIASSEGNA: %1 punti").arg(circuits_->assignToSelection(code)));
                 continue;
             }
+            // -CANALOIMPORTA file POLILINEA|DETTAGLIO|NIENTE|CNx: un DWG/DXF di progetto come Importa DWG/DXF di
+            // CanaloCAD, collocato senza finestra (POLILINEA = la polilinea selezionata).
+            if (d && word == QLatin1String("-CANALOIMPORTA")) {
+                const QString file = resolve(nextToken());
+                const QString where = nextToken().toUpper();
+                canalo_->setDrawing(d);
+                canalo_->setScriptPlacement(where == QLatin1String("POLILINEA") ? QStringLiteral("pick")
+                                            : where == QLatin1String("DETTAGLIO") ? QStringLiteral("detail")
+                                            : where == QLatin1String("NIENTE")    ? QStringLiteral("none")
+                                                                                  : where);
+                canalo_->importFile(file);
+                canalo_->setScriptPlacement({});
+                for (const QString& line : canalo_->reportLines())
+                    print(line);
+                continue;
+            }
             // Diagnosi (non documentato): immagine della finestra Canalina, con la scheda indicata (0 Cavi, 1 Riepilogo).
             if (word == QLatin1String("-CANALINAPNG")) {
                 const QString target = resolve(nextToken());

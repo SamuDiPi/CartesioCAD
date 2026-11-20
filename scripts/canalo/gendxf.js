@@ -67,18 +67,24 @@ function edgeDxf(state, title) {
   const script = `<script>
 window.addEventListener("load", function () { setTimeout(function () {
   var out = document.createElement("pre");
+  var fail = function (e) { out.id = "dxferr"; out.textContent = String(e && e.stack || e); document.body.appendChild(out); };
   try {
     state = normalizeSection(${JSON.stringify(state)});
     recalculateAll();
     var dxf = generateDXFStringForCurrentState(${JSON.stringify(title)});
-    // La stessa tavola riletta con "Importa DWG/DXF" partendo da una sezione nuova: sigle, diametri e misure.
+    // La stessa tavola riletta come file con "Importa DWG/DXF" partendo da una sezione nuova:
+    // misure, sigle e diametri.
     state = normalizeSection(DEFAULT_SECTION_STATE);
-    parseDXFTextContent(dxf, ${JSON.stringify(title + ".dxf")});
+    // Come processSingleCADFile con un file .dxf: i byte del file (dxfToBlob) passano da extractRawAscii e
+    // parseDXFTextContent (qui senza la lettura asincrona del file).
+    var u = new Uint8Array(dxf.length);
+    for (var i = 0; i < dxf.length; i++) { var ch = dxf.charCodeAt(i); u[i] = ch <= 0xff ? ch : 0x3f; }
+    parseDXFTextContent(extractRawAscii(u), ${JSON.stringify(title + ".dxf")});
     recalculateAll();
     var imported = [state.width + "x" + state.height].concat(state.cables.map(function (c) { return c.code + " | " + c.d; })).join("\\n");
     out.id = "dxfout"; out.textContent = btoa(unescape(encodeURIComponent(JSON.stringify({ dxf: dxf, imported: imported }))));
-  } catch (e) { out.id = "dxferr"; out.textContent = String(e && e.stack || e); }
-  document.body.appendChild(out);
+    document.body.appendChild(out);
+  } catch (e) { fail(e); }
 }, 300); });
 </script>`;
   const page = path.join(os.tmpdir(), "canalo_gendxf.html");
