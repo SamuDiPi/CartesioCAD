@@ -68,27 +68,11 @@ const std::vector<CableType> kCatalog = {
 };
 
 const std::vector<std::pair<std::string, std::vector<Series>>> kBrands = {
-    {"LEGRAND", {
-        {"P31_ASO", "Legrand P31 Plus — Passerella Asolata (370xx)", "LG-370", "perforated"},
-        {"P31_CIE", "Legrand P31 Plus — Canale Cieco (372xx)", "LG-372", "solid"},
-        {"CABLOFIL", "Cablofil CF — Passerella a Filo (CM50/100)", "CF-CM", "mesh"},
-    }},
-    {"OBO", {
-        {"RKS_MAGIC", "OBO RKS-Magic® — Passerella Asolata", "OBO-604", "perforated"},
-        {"MKS_MAGIC", "OBO MKS-Magic® — Canale Portacavi", "OBO-605", "solid"},
-        {"GRM_MAGIC", "OBO GR-Magic® — Passerella a Filo", "OBO-600", "mesh"},
-    }},
-    {"BTICINO", {
-        {"BT_S27", "Bticino Serie 27 — Passerella Asolata", "BT-S27", "perforated"},
-        {"BT_S28", "Bticino Serie 28 — Canale Cieco IP40", "BT-S28", "solid"},
-    }},
-    {"NIEDAX", {
-        {"NDX_RL", "Niedax RL — Passerella Asolata Standard", "NDX-RL", "perforated"},
-        {"NDX_RS", "Niedax RS — Canale Chiuso Pesante", "NDX-RS", "solid"},
-    }},
-    {"CUSTOM", {
-        {"CUSTOM_ASO", "Custom — Passerella Asolata", "CST-P", "perforated"},
-        {"CUSTOM_CIE", "Custom — Canale Chiuso", "CST-C", "solid"},
+    {"TIPOLOGIE", {
+        {"PAS_ASO", "Passerella asolata in lamiera forata", "PAS", "perforated"},
+        {"CAN_CIE", "Canale portacavi cieco in lamiera piena", "CAN", "solid"},
+        {"PAS_FIL", "Passerella a filo (rete elettrosaldata)", "PFI", "mesh"},
+        {"PAS_SCA", "Passerella a scala (a pioli)", "PSC", "ladder"},
     }},
 };
 

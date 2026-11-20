@@ -1,5 +1,5 @@
 {
-  "nota": "Percorsi guidati della Guida. Ogni passo: testo, pulsante da evidenziare nella barra multifunzione (testo del pulsante), condizione che lo chiude da sola. Condizioni: drawing (un disegno aperto), entity (kind = tipo di oggetto o *, count = quanti nuovi), selection (min), command (name = comando finito con una modifica), undo (qualcosa da ripristinare), saved, layout (si lavora in un layout), tab (name), panel (name), plantProject, plantCircuits (min), plantRuns (min), tagged (prefix: oggetti dell'impianto), counter (name: canalo, verify), circuits (schema caricato), next (si va avanti con il pulsante).",
+  "nota": "Percorsi guidati della Guida. Ogni passo: testo, pulsante da evidenziare nella barra multifunzione (testo del pulsante), condizione che lo chiude da sola. Condizioni: drawing (un disegno aperto), entity (kind = tipo di oggetto o *, count = quanti nuovi), selection (min), command (name = comando finito con una modifica), undo (qualcosa da ripristinare), saved, layout (si lavora in un layout), tab (name), panel (name: Properties, Layers, Circuits, Library, Plant, Guide, Canalo), plantProject, plantCircuits (min), plantRuns (min), tagged (prefix: oggetti dell'impianto), counter (name: canalo, verify), canalo (cables: una canalina del disegno con almeno tanti cavi), circuits (schema caricato), next (si va avanti con il pulsante).",
   "percorsi": [
     {
       "titolo": "Il primo disegno",
@@ -61,16 +61,17 @@
       ]
     },
     {
-      "titolo": "CanaloCAD: verificare una sezione",
-      "descrizione": "Disegnare la sezione di una canalina e farne i calcoli e la tavola.",
+      "titolo": "CanaloCAD: una canalina con i suoi cavi",
+      "descrizione": "Disegnare la canalina, scegliere i cavi dal database, vedere i calcoli e mettere sezione e tavola di CanaloCAD nel disegno.",
       "minuti": 5,
       "passi": [
         { "testo": "Serve un disegno aperto (Nuovo).", "fatto": { "tipo": "drawing" } },
-        { "testo": "Disegna il bordo della canalina: Rettangolo, un clic per il primo angolo, poi scrivi @300,75 e Invio (canalina 300×75 mm).", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
-        { "testo": "Disegna almeno tre cavi: cerchi dentro il rettangolo (Cerchio; per esempio raggi 6, 8 e 10).", "pulsante": "Cerchio", "fatto": { "tipo": "entity", "kind": "Circle", "count": 3 } },
-        { "testo": "Seleziona tutta la sezione con una finestra (trascina da sinistra a destra attorno a tutto).", "fatto": { "tipo": "selection", "min": 4 } },
-        { "testo": "Plugin > Verifica sezione: scegli serie, coperchio, staffaggio; spunta Disegna la tavola A3 se vuoi la tavola. OK.", "pulsante": "Verifica sezione", "fatto": { "tipo": "counter", "name": "canalo" } },
-        { "testo": "I risultati (riempimento, Kr, segregazione, staffaggio, distinta) sono nella riga di comando: F2 apre la cronologia. Poi Avanti.", "fatto": { "tipo": "next" } }
+        { "testo": "Disegna la sezione della canalina: Rettangolo, un clic per il primo angolo, poi scrivi @300,75 e Invio (canalina 300×75 mm). Va bene anche il percorso in pianta, con linee o polilinee.", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
+        { "testo": "Plugin > Canalina: si apre la tavolozza con il database dei cavi.", "pulsante": "Canalina", "fatto": { "tipo": "panel", "name": "Canalo" } },
+        { "testo": "Seleziona il rettangolo e premi Nuova canalina nella tavolozza: le misure si leggono dal disegno.", "fatto": { "tipo": "canalo", "cables": 0 } },
+        { "testo": "Scegli i cavi nel database (categorie e ricerca in alto): quantità, Terna a trifoglio per gli unipolari, poi Aggiungi o doppio clic. Aggiungine almeno tre.", "fatto": { "tipo": "canalo", "cables": 3 } },
+        { "testo": "Nel riepilogo: riempimento, Kr, segregazione, staffaggio, tiro e distinta di CanaloCAD (in rosso quello che non va). Dati canalina... cambia misure, tipologia e staffaggio; Dimensiona... sceglie la larghezza. Poi Avanti.", "fatto": { "tipo": "next" } },
+        { "testo": "Disegna sezione mette nel disegno la sezione di CanaloCAD al vero; Inserisci tavola la tavola completa (la stessa che esporta CanaloCAD). Selezionando un oggetto della canalina si torna al suo riepilogo. Poi Avanti.", "fatto": { "tipo": "next" } }
       ]
     },
     {

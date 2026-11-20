@@ -110,7 +110,32 @@ const std::vector<Series>& seriesOf(const std::string& brand)
     for (const auto& [name, list] : kBrands)
         if (name == brand)
             return list;
-    return kBrands.front().second;   // LEGRAND
+    return kBrands.front().second;   // le tipologie (non ci sono più costruttori)
+}
+
+const Series& seriesForType(const std::string& trayType)
+{
+    const std::vector<Series>& list = kBrands.front().second;
+    for (const Series& s : list)
+        if (s.type == trayType)
+            return s;
+    return list.front();
+}
+
+const Series& seriesById(const std::string& id)
+{
+    for (const auto& [name, list] : kBrands)
+        for (const Series& s : list)
+            if (s.id == id)
+                return s;
+    // Serie dei costruttori dei progetti salvati prima: la tipologia corrispondente.
+    static const std::pair<const char*, const char*> legacy[] = {
+        {"P31_CIE", "solid"}, {"MKS_MAGIC", "solid"}, {"BT_S28", "solid"}, {"NDX_RS", "solid"}, {"CUSTOM_CIE", "solid"},
+        {"CABLOFIL", "mesh"}, {"GRM_MAGIC", "mesh"}};
+    for (const auto& [old, type] : legacy)
+        if (id == old)
+            return seriesForType(type);
+    return seriesForType("perforated");
 }
 
 const std::vector<Support>& supports() { return kSupports; }
@@ -580,13 +605,8 @@ Metrics recalculate(Tray& tray)
 
     const double nVerghe = std::ceil(tray.lengthM / 3.0);
     const double nStaffe = std::ceil(tray.lengthM / tray.spanM) + 1.0;
-    const std::vector<Series>& serList = seriesOf(tray.brand);
-    const Series* serObj = &serList.front();
-    for (const Series& s : serList)
-        if (s.id == tray.seriesId) {
-            serObj = &s;
-            break;
-        }
+    // Come la pagina: la serie della distinta è quella della tipologia di canalina.
+    const Series* serObj = &seriesForType(tray.trayType);
     const std::string& pCode = serObj->code;
     const double freeAreaCm2 = std::max(0.0, jsRound((trayArea - usedArea) / 100.0));
     const double nSacchettiRei = std::max(2.0, std::ceil(freeAreaCm2 / 35.0)) * tray.reiCount;
@@ -891,20 +911,11 @@ Tray readSection(const Drawn& drawn, Vec2* originOut)
     auto traceLeader = [&](const Cir& cir) -> const Txt* {
         const Txt* best = nullptr;
         double bestDist = 9999.0;
-        // Le bandierine che toccano il cerchio, dalla più vicina al centro: a parità di distanza dalla sigla vince
-        // quella che parte da questo cavo e non da un cavo accostato (la pagina prende la prima disegnata).
-        std::vector<std::pair<double, const Seg*>> touching;
         for (const Seg& s0 : leaderSegments) {
             const double d1 = std::hypot(s0.x1 - cir.cx, s0.y1 - cir.cy);
             const double d2 = std::hypot(s0.x2 - cir.cx, s0.y2 - cir.cy);
-            if (d1 <= cir.r + 4.5 || d2 <= cir.r + 4.5)
-                touching.push_back({std::min(d1, d2), &s0});
-        }
-        std::stable_sort(touching.begin(), touching.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-        for (const auto& [startDist, seg0] : touching) {
-            const Seg& s0 = *seg0;
-            const double d1 = std::hypot(s0.x1 - cir.cx, s0.y1 - cir.cy);
-            const double d2 = std::hypot(s0.x2 - cir.cx, s0.y2 - cir.cy);
+            if (!(d1 <= cir.r + 4.5 || d2 <= cir.r + 4.5))
+                continue;
             double ex = d1 < d2 ? s0.x2 : s0.x1, ey = d1 < d2 ? s0.y2 : s0.y1;
             std::vector<const Seg*> visited{&s0};
             for (int hop = 0; hop < 3; ++hop) {
@@ -1039,59 +1050,6 @@ Tray readSection(const Drawn& drawn, Vec2* originOut)
         }
     }
     return tray;
-}
-
-int matchCatalog(Tray& tray, const Drawn& drawn, const std::vector<CableType>& extra)
-{
-    // Etichette "SIGLA (TIPO FORMAZIONE)" del catalogo, ognuna usabile una volta.
-    // Un testo può corrispondere a più tipi con lo stesso nome (un cavo proprio con un altro diametro): decide il
-    // diametro del cerchio.
-    struct Known {
-        std::string code, full;   // sigla e testo intero (letto come sigla se la parentesi non è una formazione)
-        const CableType* type;
-        std::size_t text;
-    };
-    std::vector<Known> known;
-    std::vector<const CableType*> types;
-    for (const CableType& c : catalog())
-        types.push_back(&c);
-    for (const CableType& c : extra)
-        types.push_back(&c);
-    for (std::size_t ti = 0; ti < drawn.texts.size(); ++ti) {
-        const std::string str = cleanMText(drawn.texts[ti].text);
-        for (const CableType* c : types) {
-            const std::string suffix = sectionLabel(cableFrom(*c, " ")).substr(1);   // " (TIPO FORMAZIONE)"
-            if (suffix.size() > 1 && str.size() > suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
-                known.push_back({trim(str.substr(0, str.size() - suffix.size())), str, c, ti});
-        }
-    }
-    std::vector<bool> usedText(drawn.texts.size(), false);
-    int matched = 0;
-    for (Cable& cable : tray.cables) {
-        // Prima la sigla uguale, poi una sigla che la estende (QE1 C-3/2 letta come QE1 C-3); sempre con il diametro.
-        Known* hit = nullptr;
-        for (int pass = 0; pass < 2 && !hit; ++pass)
-            for (Known& k : known)
-                if (!usedText[k.text] && std::abs(k.type->d - cable.d) <= 0.11
-                    && (pass == 0 ? k.code == cable.code || k.full == cable.code : k.code.rfind(cable.code, 0) == 0)) {
-                    hit = &k;
-                    break;
-                }
-        if (!hit)
-            continue;
-        usedText[hit->text] = true;
-        Cable c = cableFrom(*hit->type, hit->code);
-        c.x = cable.x;
-        c.y = cable.y;
-        c.origX = cable.origX;
-        c.origY = cable.origY;
-        c.ib = cable.ib;
-        c.trefoil = cable.trefoil;
-        c.trefoilGroup = cable.trefoilGroup;
-        cable = c;
-        ++matched;
-    }
-    return matched;
 }
 
 } // namespace cartesio::canalo

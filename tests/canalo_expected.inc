@@ -34,10 +34,10 @@ void canaloCase0()
     CHECK(approx(t.cables[2].x, 50.4, 1e-9) && approx(t.cables[2].y, 9.1, 1e-9));
     CHECK(approx(t.cables[3].x, 66.0, 1e-9) && approx(t.cables[3].y, 6.1, 1e-9));
     CHECK(m.bom.size() == 4);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-200x75" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-PE-16" && m.bom[3].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[3].qty, 4.0) && m.bom[3].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PAS-200x75" && m.bom[0].desc == "Passerella asolata in lamiera forata L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PAS-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PAS-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PAS-PE-16" && m.bom[3].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[3].qty, 4.0) && m.bom[3].note == "1 ogni 12m");
 }
 
 void canaloCase1()
@@ -87,12 +87,12 @@ void canaloCase1()
     CHECK(approx(t.cables[7].x, 94.6, 1e-9) && approx(t.cables[7].y, 2.9, 1e-9));
     CHECK(approx(t.cables[8].x, 101.2, 1e-9) && approx(t.cables[8].y, 2.9, 1e-9));
     CHECK(m.bom.size() == 6);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-200x75" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-STF-200" && m.bom[3].desc == "Mensola Rinforzata con Saetta L=250mm (Passo Ls=1.5m)" && approx(m.bom[3].qty, 21.0) && m.bom[3].note == "Inclusi 42 tasselli M10");
-    CHECK(m.bom.size() > 4 && m.bom[4].code == "LG-370-CRV90-200-R300" && m.bom[4].desc == "Curva piana 90° L=200mm H=75mm (R_acc=300mm >= R_min=238mm)" && approx(m.bom[4].qty, 2.0) && m.bom[4].note == "Cavo critico: FG16M16-1X95-1");
-    CHECK(m.bom.size() > 5 && m.bom[5].code == "LG-370-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 4.0) && m.bom[5].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PAS-200x75" && m.bom[0].desc == "Passerella asolata in lamiera forata L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PAS-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PAS-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PAS-STF-200" && m.bom[3].desc == "Mensola Rinforzata con Saetta L=250mm (Passo Ls=1.5m)" && approx(m.bom[3].qty, 21.0) && m.bom[3].note == "Inclusi 42 tasselli M10");
+    CHECK(m.bom.size() > 4 && m.bom[4].code == "PAS-CRV90-200-R300" && m.bom[4].desc == "Curva piana 90° L=200mm H=75mm (R_acc=300mm >= R_min=238mm)" && approx(m.bom[4].qty, 2.0) && m.bom[4].note == "Cavo critico: FG16M16-1X95-1");
+    CHECK(m.bom.size() > 5 && m.bom[5].code == "PAS-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 4.0) && m.bom[5].note == "1 ogni 12m");
 }
 
 void canaloCase2()
@@ -138,14 +138,14 @@ void canaloCase2()
     CHECK(approx(t.cables[4].x, 132.4, 1e-9) && approx(t.cables[4].y, 3.4, 1e-9));
     CHECK(approx(t.cables[5].x, 124.9, 1e-9) && approx(t.cables[5].y, 3.6, 1e-9));
     CHECK(m.bom.size() == 8);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-200x75" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-SET-H75" && m.bom[2].desc == "Setto separatore longitudinale H=75mm (1 file)" && approx(m.bom[2].qty, 30.0) && m.bom[2].note == "Segregazione CEI 64-8");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-GIU-M6" && m.bom[3].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[3].qty, 10.0) && m.bom[3].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 4 && m.bom[4].code == "LG-370-STF-200" && m.bom[4].desc == "Trapezio Soffitto 2xM10 + C40 L=250mm (Passo Ls=2m)" && approx(m.bom[4].qty, 16.0) && m.bom[4].note == "Inclusi 32 tasselli M10");
-    CHECK(m.bom.size() > 5 && m.bom[5].code == "LG-370-DEVT-200" && m.bom[5].desc == "Deviazione piana a T L=200mm H=75mm completa di giunti" && approx(m.bom[5].qty, 1.0) && m.bom[5].note == "Raggio R=300mm");
-    CHECK(m.bom.size() > 6 && m.bom[6].code == "LG-370-RID-200" && m.bom[6].desc == "Riduzione simmetrica/asimmetrica di larghezza L=200mm" && approx(m.bom[6].qty, 2.0) && m.bom[6].note == "Acciaio zincato");
-    CHECK(m.bom.size() > 7 && m.bom[7].code == "LG-370-PE-16" && m.bom[7].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[7].qty, 4.0) && m.bom[7].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PAS-200x75" && m.bom[0].desc == "Passerella asolata in lamiera forata L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PAS-COP-200" && m.bom[1].desc == "Coperchio superiore (snap) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PAS-SET-H75" && m.bom[2].desc == "Setto separatore longitudinale H=75mm (1 file)" && approx(m.bom[2].qty, 30.0) && m.bom[2].note == "Segregazione CEI 64-8");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PAS-GIU-M6" && m.bom[3].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[3].qty, 10.0) && m.bom[3].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 4 && m.bom[4].code == "PAS-STF-200" && m.bom[4].desc == "Trapezio Soffitto 2xM10 + C40 L=250mm (Passo Ls=2m)" && approx(m.bom[4].qty, 16.0) && m.bom[4].note == "Inclusi 32 tasselli M10");
+    CHECK(m.bom.size() > 5 && m.bom[5].code == "PAS-DEVT-200" && m.bom[5].desc == "Deviazione piana a T L=200mm H=75mm completa di giunti" && approx(m.bom[5].qty, 1.0) && m.bom[5].note == "Raggio R=300mm");
+    CHECK(m.bom.size() > 6 && m.bom[6].code == "PAS-RID-200" && m.bom[6].desc == "Riduzione simmetrica/asimmetrica di larghezza L=200mm" && approx(m.bom[6].qty, 2.0) && m.bom[6].note == "Acciaio zincato");
+    CHECK(m.bom.size() > 7 && m.bom[7].code == "PAS-PE-16" && m.bom[7].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[7].qty, 4.0) && m.bom[7].note == "1 ogni 12m");
 }
 
 void canaloCase3()
@@ -162,8 +162,8 @@ void canaloCase3()
     t.seismic = "cable_9m";
     t.reiCount = 2;
     t.earth = "none";
-    t.brand = "OBO";
-    t.seriesId = "MKS_MAGIC";
+    t.brand = "TIPOLOGIE";
+    t.seriesId = "CAN_CIE";
     t.lengthM = 47.0;
     t.pdfLoaded = true;
     { auto c = canalo::cableFrom(*canalo::catalogItem("FG16_4G25")); c.code += "-1"; c.ib = 90.0; c.origX = 18.0; c.origY = c.d / 2.0; t.cables.push_back(c); }
@@ -205,11 +205,11 @@ void canaloCase3()
     CHECK(approx(t.cables[6].x, 210.4, 1e-9) && approx(t.cables[6].y, 4.9, 1e-9));
     CHECK(approx(t.cables[7].x, 229.2, 1e-9) && approx(t.cables[7].y, 3.9, 1e-9));
     CHECK(m.bom.size() == 6);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "OBO-605-300x100" && m.bom[0].desc == "OBO MKS-Magic® — Canale Portacavi L=300xH=100mm sp.2mm" && approx(m.bom[0].qty, 48.0) && m.bom[0].note == "16 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "OBO-605-SET-H100" && m.bom[1].desc == "Setto separatore longitudinale H=100mm (2 file)" && approx(m.bom[1].qty, 96.0) && m.bom[1].note == "Segregazione CEI 64-8");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "OBO-605-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 16.0) && m.bom[2].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "OBO-605-STF-300" && m.bom[3].desc == "Mensola Parete Pesante Doppia C50 L=350mm (Passo Ls=2.5m)" && approx(m.bom[3].qty, 20.0) && m.bom[3].note == "Inclusi 40 tasselli M10");
-    CHECK(m.bom.size() > 4 && m.bom[4].code == "OBO-605-SISM-CABLE_9M" && m.bom[4].desc == "Kit controvento antisismico NTC 2018 (Funi 45° ogni 9m)" && approx(m.bom[4].qty, 6.0) && m.bom[4].note == "Rif. NTC 2018");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "CAN-300x100" && m.bom[0].desc == "Canale portacavi cieco in lamiera piena L=300xH=100mm sp.2mm" && approx(m.bom[0].qty, 48.0) && m.bom[0].note == "16 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "CAN-SET-H100" && m.bom[1].desc == "Setto separatore longitudinale H=100mm (2 file)" && approx(m.bom[1].qty, 96.0) && m.bom[1].note == "Segregazione CEI 64-8");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "CAN-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 16.0) && m.bom[2].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "CAN-STF-300" && m.bom[3].desc == "Mensola Parete Pesante Doppia C50 L=350mm (Passo Ls=2.5m)" && approx(m.bom[3].qty, 20.0) && m.bom[3].note == "Inclusi 40 tasselli M10");
+    CHECK(m.bom.size() > 4 && m.bom[4].code == "CAN-SISM-CABLE_9M" && m.bom[4].desc == "Kit controvento antisismico NTC 2018 (Funi 45° ogni 9m)" && approx(m.bom[4].qty, 6.0) && m.bom[4].note == "Rif. NTC 2018");
     CHECK(m.bom.size() > 5 && m.bom[5].code == "FIRE-EI120-300x100" && m.bom[5].desc == "Barriera tagliafuoco intumescente EI120 (cuscini + mastice endotermico per 279 cm² netti/varco)" && approx(m.bom[5].qty, 2.0) && m.bom[5].note == "16 cuscini intumescenti tot.");
 }
 
@@ -254,12 +254,12 @@ void canaloCase4()
     CHECK(approx(t.cables[3].x, 162.4, 1e-9) && approx(t.cables[3].y, 7.6, 1e-9));
     CHECK(approx(t.cables[4].x, 130.0, 1e-9) && approx(t.cables[4].y, 8.8, 1e-9));
     CHECK(m.bom.size() == 6);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-200x75" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-200" && m.bom[1].desc == "Coperchio superiore (clamped) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-SET-H75" && m.bom[2].desc == "Setto separatore longitudinale H=75mm (1 file)" && approx(m.bom[2].qty, 30.0) && m.bom[2].note == "Segregazione CEI 64-8");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-GIU-M6" && m.bom[3].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[3].qty, 10.0) && m.bom[3].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 4 && m.bom[4].code == "LG-370-STF-200" && m.bom[4].desc == "Supporto a Pavimento su Omega C40 L=250mm (Passo Ls=3m)" && approx(m.bom[4].qty, 11.0) && m.bom[4].note == "Inclusi 22 tasselli M10");
-    CHECK(m.bom.size() > 5 && m.bom[5].code == "LG-370-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 4.0) && m.bom[5].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PFI-200x75" && m.bom[0].desc == "Passerella a filo (rete elettrosaldata) L=200xH=75mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PFI-COP-200" && m.bom[1].desc == "Coperchio superiore (clamped) L=200mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PFI-SET-H75" && m.bom[2].desc == "Setto separatore longitudinale H=75mm (1 file)" && approx(m.bom[2].qty, 30.0) && m.bom[2].note == "Segregazione CEI 64-8");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PFI-GIU-M6" && m.bom[3].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[3].qty, 10.0) && m.bom[3].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 4 && m.bom[4].code == "PFI-STF-200" && m.bom[4].desc == "Supporto a Pavimento su Omega C40 L=250mm (Passo Ls=3m)" && approx(m.bom[4].qty, 11.0) && m.bom[4].note == "Inclusi 22 tasselli M10");
+    CHECK(m.bom.size() > 5 && m.bom[5].code == "PFI-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 4.0) && m.bom[5].note == "1 ogni 12m");
 }
 
 void canaloCase5()
@@ -299,10 +299,10 @@ void canaloCase5()
     CHECK(approx(t.cables[2].x, 70.0, 1e-9) && approx(t.cables[2].y, 30.0, 1e-9));
     CHECK(approx(t.cables[3].x, 90.0, 1e-9) && approx(t.cables[3].y, 8.0, 1e-9));
     CHECK(m.bom.size() == 4);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-100x60" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=100xH=60mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-100" && m.bom[1].desc == "Coperchio superiore (snap) L=100mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-PE-16" && m.bom[3].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[3].qty, 4.0) && m.bom[3].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PAS-100x60" && m.bom[0].desc == "Passerella asolata in lamiera forata L=100xH=60mm sp.1.5mm" && approx(m.bom[0].qty, 30.0) && m.bom[0].note == "10 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PAS-COP-100" && m.bom[1].desc == "Coperchio superiore (snap) L=100mm" && approx(m.bom[1].qty, 30.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PAS-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 10.0) && m.bom[2].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PAS-PE-16" && m.bom[3].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[3].qty, 4.0) && m.bom[3].note == "1 ogni 12m");
 }
 
 void canaloCase6()
@@ -365,12 +365,12 @@ void canaloCase6()
     CHECK(approx(t.cables[12].x, 29.4, 1e-9) && approx(t.cables[12].y, 32.1, 1e-9));
     CHECK(approx(t.cables[13].x, 17.3, 1e-9) && approx(t.cables[13].y, 23.4, 1e-9));
     CHECK(m.bom.size() == 6);
-    CHECK(m.bom.size() > 0 && m.bom[0].code == "LG-370-100x50" && m.bom[0].desc == "Legrand P31 Plus — Passerella Asolata (370xx) L=100xH=50mm sp.1.5mm" && approx(m.bom[0].qty, 81.0) && m.bom[0].note == "27 verghe da 3m");
-    CHECK(m.bom.size() > 1 && m.bom[1].code == "LG-370-COP-100" && m.bom[1].desc == "Coperchio superiore (snap) L=100mm" && approx(m.bom[1].qty, 81.0) && m.bom[1].note == "Inclusi fermacoperchi");
-    CHECK(m.bom.size() > 2 && m.bom[2].code == "LG-370-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 27.0) && m.bom[2].note == "1 ogni 3m");
-    CHECK(m.bom.size() > 3 && m.bom[3].code == "LG-370-STF-100" && m.bom[3].desc == "Pendino Centrale Monotirante M10 L=150mm (Passo Ls=1m)" && approx(m.bom[3].qty, 81.0) && m.bom[3].note == "Inclusi 162 tasselli M10");
-    CHECK(m.bom.size() > 4 && m.bom[4].code == "LG-370-CRV90-100-R150" && m.bom[4].desc == "Curva piana 90° L=100mm H=50mm (R_acc=150mm >= R_min=134mm)" && approx(m.bom[4].qty, 4.0) && m.bom[4].note == "Cavo critico: FG16OM16-4G6-2");
-    CHECK(m.bom.size() > 5 && m.bom[5].code == "LG-370-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 8.0) && m.bom[5].note == "1 ogni 12m");
+    CHECK(m.bom.size() > 0 && m.bom[0].code == "PAS-100x50" && m.bom[0].desc == "Passerella asolata in lamiera forata L=100xH=50mm sp.1.5mm" && approx(m.bom[0].qty, 81.0) && m.bom[0].note == "27 verghe da 3m");
+    CHECK(m.bom.size() > 1 && m.bom[1].code == "PAS-COP-100" && m.bom[1].desc == "Coperchio superiore (snap) L=100mm" && approx(m.bom[1].qty, 81.0) && m.bom[1].note == "Inclusi fermacoperchi");
+    CHECK(m.bom.size() > 2 && m.bom[2].code == "PAS-GIU-M6" && m.bom[2].desc == "Kit giunzione lineare rinforzata con bulloneria M6" && approx(m.bom[2].qty, 27.0) && m.bom[2].note == "1 ogni 3m");
+    CHECK(m.bom.size() > 3 && m.bom[3].code == "PAS-STF-100" && m.bom[3].desc == "Pendino Centrale Monotirante M10 L=150mm (Passo Ls=1m)" && approx(m.bom[3].qty, 81.0) && m.bom[3].note == "Inclusi 162 tasselli M10");
+    CHECK(m.bom.size() > 4 && m.bom[4].code == "PAS-CRV90-100-R150" && m.bom[4].desc == "Curva piana 90° L=100mm H=50mm (R_acc=150mm >= R_min=134mm)" && approx(m.bom[4].qty, 4.0) && m.bom[4].note == "Cavo critico: FG16OM16-4G6-2");
+    CHECK(m.bom.size() > 5 && m.bom[5].code == "PAS-PE-16" && m.bom[5].desc == "Morsetto equipotenziale + capocorda M6 + conduttore PE (GV16)" && approx(m.bom[5].qty, 8.0) && m.bom[5].note == "1 ogni 12m");
 }
 
 void testCanaloAgainstPage()

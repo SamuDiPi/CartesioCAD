@@ -141,8 +141,8 @@ Run runFrom(const QJsonObject& o)
     r.cover = o["coperchio"].toString(QStringLiteral("snap")).toStdString();
     r.support = o["staffaggio"].toString(QStringLiteral("none")).toStdString();
     r.spanM = o["passo"].toDouble(1.5);
-    r.brand = o["marca"].toString(QStringLiteral("LEGRAND")).toStdString();
-    r.seriesId = o["serie"].toString(QStringLiteral("P31_ASO")).toStdString();
+    r.brand = o["marca"].toString(QStringLiteral("TIPOLOGIE")).toStdString();
+    r.seriesId = o["serie"].toString(QStringLiteral("PAS_ASO")).toStdString();
     r.notes = s(o["note"]);
     r.laying = o["posa"].toString(QStringLiteral("vista")).toStdString();
     r.ambientC = o["temperatura"].toDouble(30.0);

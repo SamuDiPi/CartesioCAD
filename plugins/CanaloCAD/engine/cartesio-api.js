@@ -63,6 +63,13 @@ var __cartesio = {
     own.forEach(function (c) { c.__own = true; CABLE_CATALOG.push(c); });
     return String(CABLE_CATALOG.length);
   },
+  // Scala della tavola e dei testi come le scelte della pagina (la scala va anche nel cartiglio).
+  setScales: function (json, scale, textScale) {
+    state = normalizeSection(JSON.parse(json));
+    if (scale) onScaleChange(scale);
+    if (textScale) onTextScaleChange(String(textScale));
+    return __cartesio.calc(JSON.stringify(state));
+  },
   // Diagnosi: lo stato corrente della pagina.
   currentState: function () { return JSON.stringify(state); },
   // Tavola DXF della sezione: lo stesso testo che la pagina scarica con "Esporta DXF".

@@ -753,7 +753,7 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
 {
     QString name = q(r.name), notes = q(r.notes), circuits = joinCodes(r.circuits);
     int kind = static_cast<int>(r.kind), septums = r.septums;
-    QString tubeType = q(r.tubeType), cover = q(r.cover), support = q(r.support), series = q(r.brand + "|" + r.seriesId);
+    QString tubeType = q(r.tubeType), cover = q(r.cover), support = q(r.support), series = q("TIPOLOGIE|" + canalo::seriesById(r.seriesId).id);
     double outer = r.tubeOuter, inner = r.tubeInner, width = r.width, height = r.height, span = r.spanM, ambient = r.ambientC;
     QString laying = q(r.laying);
     FormDialog d(isNew ? tr("Nuova tratta") : tr("Tratta %1").arg(q(r.id)), FormDialog::Ok | FormDialog::Cancel, this);

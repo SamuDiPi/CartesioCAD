@@ -41,6 +41,11 @@ struct Series {
 };
 const std::vector<std::pair<std::string, std::vector<Series>>>& brands();
 const std::vector<Series>& seriesOf(const std::string& brand);
+// Serie della distinta per la tipologia di canalina (come BOM_SERIES_FOR della pagina).
+const Series& seriesForType(const std::string& trayType);
+// Serie per codice; anche quelle dei costruttori dei progetti di prima (P31_ASO, MKS_MAGIC...) diventano la
+// tipologia corrispondente.
+const Series& seriesById(const std::string& id);
 
 // Staffaggio: carichi ammessi (kg) per passo 1, 1,5, 2, 2,5 e 3 m.
 struct Support {
@@ -79,7 +84,7 @@ struct Tray {
     int reiCount = 0;                    // attraversamenti EI120
     std::string support = "none";
     double spanM = 1.5;
-    std::string brand = "LEGRAND", seriesId = "P31_ASO";
+    std::string brand = "TIPOLOGIE", seriesId = "PAS_ASO";
     bool pdfLoaded = false;              // correnti d'impiego note (schema unifilare)
     std::vector<Cable> cables;
 };
@@ -141,33 +146,6 @@ struct Drawn {
 // Canalina e cavi letti dalla sezione disegnata, come l'importazione DXF della pagina (senza le tabelle cavi
 // del disegno e lo schema unifilare). `origin` riceve l'angolo della canalina nel disegno.
 Tray readSection(const Drawn& drawn, Vec2* origin = nullptr);
-
-// Tavola A3 orizzontale nel disegno (come quella esportata da CanaloCAD): sezione in scala con i cavi numerati,
-// risultati, tabella dei cavi, distinta e cartiglio. `tray` già calcolata (recalculate) e i suoi `metrics`.
-struct SheetOptions {
-    Vec2 origin;          // spigolo in basso a sinistra del foglio
-    double unit = 1.0;    // unità di disegno per millimetro di carta
-    int layer = -1;
-    std::string title, project, date;
-};
-std::vector<std::unique_ptr<Entity>> drawSheet(const Tray& tray, const Metrics& metrics, const SheetOptions& options);
-
-// Sezione composta con i cavi del catalogo, disegnata al vero (`unit` = unità di disegno per mm) come la legge
-// readSection: bordo della canalina, cerchi dei cavi nelle posizioni di `tray` (già calcolata), bandierine verso
-// una colonna di sigle a destra e il testo "CANALINA LxH" sotto. Così la sezione si può riverificare.
-struct SectionLayers {
-    int tray = -1, cables = -1, leaders = -1, texts = -1;
-};
-std::vector<std::unique_ptr<Entity>> drawSection(const Tray& tray, Vec2 origin, double unit, const SectionLayers& layers);
-// Etichetta di un cavo nella sezione: sigla e, tra parentesi, tipo e formazione (es. "QE1 C-3 (FG16OM16 3G2,5)").
-std::string sectionLabel(const Cable& cable);
-// Dopo readSection: i cavi con un'etichetta come quelle di drawSection riprendono dal catalogo tipo, sistema
-// (energia, sicurezza, segnale), peso e portata, invece di quelli dedotti dal diametro, e la sigla completa.
-// Restituisce quanti cavi sono stati riconosciuti.
-// `extra`: cavi propri (libreria personale, progetto dell'impianto) oltre al catalogo.
-int matchCatalog(Tray& tray, const Drawn& drawn, const std::vector<CableType>& extra = {});
-// Larghezza commerciale più piccola, con l'altezza di `tray`, in cui i cavi stanno con riempimento ≤ maxFillPct.
-double suggestedWidth(const Tray& tray, double maxFillPct = 50.0);
 
 // Numeri formattati come JavaScript (toFixed e String(numero)), per descrizioni identiche alla pagina.
 double fixed(double v, int decimals);
