@@ -252,6 +252,11 @@ void CanaloPanel::refresh()
         status_ = tr("Ultima canalina usata (nel disegno non è selezionata).");
     else
         status_.clear();
+    // Si chiama a ogni passo dei comandi del disegno: la finestra si ridisegna solo se cambia quello che mostra.
+    const QString shown = trayId_ + u'|' + status_ + u'|' + metricsFor_ + u'|' + pendingText_ + u'|' + QString::number(cableSelected_);
+    if (shown == shown_)
+        return;
+    shown_ = shown;
     emit changed();
 }
 
@@ -285,11 +290,13 @@ void CanaloPanel::store(QJsonObject st, const QString& what)
     if (!drawing_ || trayId_.isEmpty())
         return;
     CanaloEngine& engine = CanaloEngine::instance();
-    // Misura scelta dai cavi (come Dimensiona di CanaloCAD) se la canalina non ha la misura del disegno.
+    // Misura scelta dai cavi (come Dimensiona di CanaloCAD) se la canalina non ha la misura del disegno. Un solo
+    // calcolo: i risultati servono anche al riepilogo.
+    QJsonObject metrics;
     if (st.value(QStringLiteral("cartesioAutoSize")).toBool(false) && !st.value(QStringLiteral("cables")).toArray().isEmpty())
-        st = engine.autoSize(st, dv(st, "cartesioReserve", 30.0));
+        st = engine.autoSize(st, dv(st, "cartesioReserve", 30.0), &metrics);
     else
-        st = engine.calculate(st);
+        st = engine.calculate(st, &metrics);
     if (st.isEmpty()) {
         emit message(tr("CanaloCAD: %1").arg(engine.error()));
         return;
@@ -300,11 +307,19 @@ void CanaloPanel::store(QJsonObject st, const QString& what)
         commitSection(st);
     doc.setCanaloTray(trayId_.toStdString(), compact(st).toStdString());
     doc.checkpoint();
+    setMetrics(st, metrics);
     drawing_->notifyChanged();
-    updateSummary();
     if (!what.isEmpty())
         emit message(what);
     emit changed();
+}
+
+void CanaloPanel::setMetrics(const QJsonObject& st, QJsonObject metrics)
+{
+    // Canalina con la misura del disegno: la larghezza che servirebbe per questi cavi, se è più larga.
+    metrics.insert(QStringLiteral("cartesioMinWidth"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false) ? 0 : minimumWidth(st, metrics));
+    metrics_ = metrics;
+    metricsFor_ = trayId_ + u'|' + compact(st);
 }
 
 QString CanaloPanel::createTray(QJsonObject st)
@@ -408,9 +423,18 @@ double CanaloPanel::drawingUnit() const
     return unitsFactor(4, units);
 }
 
-int CanaloPanel::minimumWidth(const QJsonObject& st) const
+int CanaloPanel::minimumWidth(const QJsonObject& st, const QJsonObject& metrics) const
 {
-    if (st.value(QStringLiteral("cables")).toArray().isEmpty())
+    const QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
+    if (cables.isEmpty())
+        return 0;
+    // Prima il controllo veloce: riserva rispettata e cavi dentro l'altezza (posizioni già calcolate) = ci stanno.
+    bool overflow = dv(metrics, "fillPct") > 100.0 - dv(st, "cartesioReserve", 30.0);
+    for (const QJsonValue& v : cables) {
+        const QJsonObject c = v.toObject();
+        overflow = overflow || dv(c, "y") + dv(c, "d") / 2.0 > dv(st, "height") + 0.01;
+    }
+    if (!overflow)
         return 0;
     const QJsonObject sized = CanaloEngine::instance().autoSize(st, dv(st, "cartesioReserve", 30.0));
     const double need = dv(sized, "width");
@@ -422,43 +446,96 @@ std::vector<EntityId> CanaloPanel::commitSection(const QJsonObject& st)
     std::vector<EntityId> ids;
     if (!drawing_)
         return ids;
-    CanaloEngine& engine = CanaloEngine::instance();
-    // La sezione della tavola di CanaloCAD al vero (scala 1:1): profilo, cavi, bandierine, quote, staffaggio.
-    QJsonObject real = st;
-    real.insert(QStringLiteral("scale"), QStringLiteral("1:1"));
-    const QString path = tempPath(QStringLiteral("CartesioCAD_%1_sezione.dxf").arg(trayId_));
-    {
-        QFile file(path);
-        if (!file.open(QIODevice::WriteOnly))
-            return ids;
-        file.write(engine.dxfBytes(real, sv(st, "title")));
-    }
-    Document source;
-    QString error;
-    const bool read = DrawingWidget::readFile(path, source, &error);
-    QFile::remove(path);
-    if (!read) {
-        emit message(tr("CANALINA: %1").arg(error));
+    // La sezione della tavola di CanaloCAD al vero (profilo, cavi, bandierine, quote, staffaggio): le entità che scrive
+    // l'export DXF della pagina, prese direttamente dal motore (niente file DXF da scrivere e rileggere).
+    QStringList wanted;
+    for (const std::string& l : sectionLayers())
+        wanted << QString::fromStdString(l);
+    const QJsonObject scene = CanaloEngine::instance().sectionEntities(st, wanted);
+    const QJsonArray items = scene.value(QStringLiteral("entities")).toArray();
+    if (items.isEmpty()) {
+        emit message(tr("CANALINA: la tavola di CanaloCAD non ha la sezione (%1).").arg(CanaloEngine::instance().error()));
         return ids;
     }
     Document& doc = drawing_->document();
+    // Layer e stili di testo della tavola di CanaloCAD (colori e spessori della pagina).
+    const QJsonObject specs = scene.value(QStringLiteral("layers")).toObject();
+    std::map<QString, int> layerIndex;
+    auto layerOf = [&](const QString& name) {
+        auto it = layerIndex.find(name);
+        if (it != layerIndex.end())
+            return it->second;
+        int index = doc.findLayer(name.toStdString());
+        if (index < 0) {
+            const QJsonObject spec = specs.value(name).toObject();
+            Layer l;
+            l.name = name.toStdString();
+            l.color = spec.value(QStringLiteral("aci")).toInt(7);
+            if (spec.contains(QStringLiteral("tc")))
+                l.trueColor = spec.value(QStringLiteral("tc")).toInt(-1);
+            if (spec.contains(QStringLiteral("lw")))
+                l.lineweight = spec.value(QStringLiteral("lw")).toInt();
+            index = doc.addLayer(l);
+        }
+        layerIndex[name] = index;
+        return index;
+    };
+    for (const char* style : {"ARIAL", "TITLE_CAD"})
+        if (!doc.findTextStyle(style)) {
+            TextStyle s;
+            s.name = style;
+            s.font = "arial.ttf";
+            doc.setTextStyle(s);
+        }
     const QJsonObject where = st.value(QStringLiteral("cartesioSection")).toObject();
-    const Affine place = Affine::translation({dv(where, "x"), dv(where, "y")}) * Affine::scaling({0.0, 0.0}, drawingUnit());
-    const ImportSource src = ImportSource::from(source);
-    Importer importer(doc, src);
+    const Vec2 origin{dv(where, "x"), dv(where, "y")};
+    const double unit = drawingUnit();
+    auto P = [&](double x, double y) { return Vec2{origin.x + x * unit, origin.y + y * unit}; };
+    const std::string tagName = (trayId_ + QLatin1String(kSectionRole)).toStdString();
     std::vector<std::unique_ptr<Entity>> added;
     std::vector<const Entity*> raw;
-    const std::string tagName = (trayId_ + QLatin1String(kSectionRole)).toStdString();
-    for (const auto& e : source.entities()) {
-        const int li = e->layer();
-        const std::string layer = li >= 0 && li < static_cast<int>(source.layers().size()) ? source.layers()[static_cast<std::size_t>(li)].name : "";
-        if (!sectionLayers().count(layer) || e->space() != 0)
+    for (const QJsonValue& v : items) {
+        const QJsonObject o = v.toObject();
+        const QString type = o.value(QStringLiteral("t")).toString();
+        const QJsonArray p = o.value(QStringLiteral("p")).toArray();
+        std::unique_ptr<Entity> e;
+        if (type == QLatin1String("line")) {
+            e = std::make_unique<LineEntity>(P(p[0].toDouble(), p[1].toDouble()), P(p[2].toDouble(), p[3].toDouble()));
+        } else if (type == QLatin1String("circle")) {
+            e = std::make_unique<CircleEntity>(P(p[0].toDouble(), p[1].toDouble()), p[2].toDouble() * unit);
+        } else if (type == QLatin1String("text")) {
+            auto t = std::make_unique<TextEntity>(P(p[0].toDouble(), p[1].toDouble()), p[2].toDouble() * unit,
+                                                  o.value(QStringLiteral("s")).toString().toStdString());
+            t->style = o.value(QStringLiteral("st")).toString().toStdString();
+            const int align = o.value(QStringLiteral("a")).toInt();   // 72 del DXF: 1 centro, 2 destra
+            t->hAlign = align == 1 ? TextEntity::Center : align == 2 ? TextEntity::Right : TextEntity::Left;
+            t->alignPoint = t->position;
+            e = std::move(t);
+        } else if (type == QLatin1String("hatch")) {
+            auto h = std::make_unique<HatchEntity>();
+            std::vector<PolyVertex> loop;
+            for (const QJsonValue& vv : o.value(QStringLiteral("v")).toArray()) {
+                const QJsonArray a = vv.toArray();
+                PolyVertex pv;
+                pv.point = P(a[0].toDouble(), a[1].toDouble());
+                pv.bulge = a[2].toDouble();
+                loop.push_back(pv);
+            }
+            h->loops.push_back(std::move(loop));
+            h->solid = true;
+            h->pattern = "SOLID";
+            h->hatchStyle = 1;
+            e = std::move(h);
+        }
+        if (!e)
             continue;
-        auto copy = importer.copy(*e);
-        copy->transform(place);
-        copy->setCanaloTray(tagName);
-        raw.push_back(copy.get());
-        added.push_back(std::move(copy));
+        e->setLayer(layerOf(o.value(QStringLiteral("l")).toString()));
+        e->setColor(o.value(QStringLiteral("c")).toInt(256));
+        if (o.value(QStringLiteral("tc")).isDouble())
+            e->setTrueColor(o.value(QStringLiteral("tc")).toInt());
+        e->setCanaloTray(tagName);
+        raw.push_back(e.get());
+        added.push_back(std::move(e));
     }
     doc.commit(std::move(added), sectionEntities());
     for (const Entity* e : raw)
@@ -477,10 +554,10 @@ void CanaloPanel::updateSummary()
     const QString key = trayId_ + u'|' + compact(st);
     if (key == metricsFor_)
         return;
-    CanaloEngine::instance().calculate(st, &metrics_);
-    // Canalina con la misura del disegno: quella che servirebbe per questi cavi, se è più larga.
-    metrics_.insert(QStringLiteral("cartesioMinWidth"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false) ? 0 : minimumWidth(st));
-    metricsFor_ = key;
+    // Uno stato nuovo (aperto dal file, Annulla): calcolato una volta, come quello salvato.
+    QJsonObject metrics;
+    CanaloEngine::instance().calculate(st, &metrics);
+    setMetrics(st, metrics);
 }
 
 // ---------------------------------------------------------------- per il QML

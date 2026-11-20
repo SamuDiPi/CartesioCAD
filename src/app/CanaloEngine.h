@@ -53,6 +53,9 @@ public:
     QJsonObject setScales(const QJsonObject& state, const QString& scale, double textScale, QJsonObject* metrics = nullptr);
     // Tavola DXF della sezione, testo come quello scaricato dalla pagina (righe CRLF, caratteri fino a U+00FF).
     QString dxf(const QJsonObject& state, const QString& title);
+    // Gli oggetti della tavola sui layer indicati come li scrive l'export DXF della pagina, senza il testo DXF (più
+    // veloce): "entities" (t line/circle/text/hatch, l layer, p coordinate, c ACI, tc colore RGB...), "layers".
+    QJsonObject sectionEntities(const QJsonObject& state, const QStringList& layers);
     // Lo stesso in byte Windows-1252 / Latin-1, come il file della pagina.
     QByteArray dxfBytes(const QJsonObject& state, const QString& title);
     // Diagnosi: valuta un'espressione nel contesto della pagina (testo del risultato).

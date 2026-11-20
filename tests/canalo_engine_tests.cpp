@@ -3,6 +3,7 @@
 #include "app/CanaloEngine.h"
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -25,7 +26,11 @@ static int failures = 0;
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);   // i font per misurare i testi
+    QElapsedTimer loadTimer;
+    loadTimer.start();
     CanaloEngine& engine = CanaloEngine::instance();
+    if (qEnvironmentVariableIsSet("CANALO_BENCH"))
+        std::printf("caricamento %7.1f ms\n", loadTimer.nsecsElapsed() / 1e6);
     if (!engine.ok()) {
         std::printf("Motore non caricato: %s\n", qPrintable(engine.error()));
         return 1;
@@ -65,6 +70,26 @@ int main(int argc, char* argv[])
           && withOwn.value(QStringLiteral("cables")).toArray()[0].toObject().value(QStringLiteral("sys")).toString() == QStringLiteral("SPECIAL_ELV"));
     engine.setOwnCables({});
     CHECK(engine.addCable(fresh, QStringLiteral("USR_BUS"), 1, false).value(QStringLiteral("cables")).toArray().isEmpty());
+    // Diagnosi: CANALO_BENCH=1 misura i tempi delle operazioni del motore.
+    if (qEnvironmentVariableIsSet("CANALO_BENCH")) {
+        QFile f(QStringLiteral(CARTESIO_SOURCE_DIR "/tests/canalo_dxf/base.json"));
+        f.open(QIODevice::ReadOnly);
+        const QJsonObject base = QJsonDocument::fromJson(f.readAll()).object();
+        auto bench = [](const char* name, auto&& fn) {
+            QElapsedTimer t;
+            t.start();
+            for (int i = 0; i < 5; ++i)
+                fn();
+            std::printf("%-12s %7.1f ms\n", name, t.nsecsElapsed() / 5e6);
+        };
+        bench("calculate", [&] { engine.calculate(base); });
+        bench("addCable", [&] { engine.addCable(base, QStringLiteral("FG16_3G2.5"), 1, false); });
+        bench("autoSize", [&] { engine.autoSize(base, 30.0); });
+        bench("dxf", [&] { engine.dxf(base, QStringLiteral("b")); });
+        bench("defaultState", [&] { engine.defaultState(); });
+        bench("database", [&] { engine.database(); });
+    }
+
     if (const QString expr = qEnvironmentVariable("CANALO_EVAL"); !expr.isEmpty())
         std::printf("%s\n", qPrintable(engine.evaluate(expr)));   // diagnosi: CANALO_EVAL=espressione
 

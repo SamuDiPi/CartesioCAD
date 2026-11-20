@@ -143,7 +143,10 @@ private:
     std::vector<EntityId> commitSection(const QJsonObject& state);
     void updateSummary();
     double drawingUnit() const;   // unità di disegno per millimetro
-    int minimumWidth(const QJsonObject& state) const;   // per i cavi, con la riserva (0 se ci stanno)
+    // Larghezza che servirebbe per i cavi con la riserva (0 se ci stanno); `metrics` del calcolo appena fatto.
+    int minimumWidth(const QJsonObject& state, const QJsonObject& metrics) const;
+    // Risultati della canalina corrente (dal calcolo appena fatto), con la larghezza minima.
+    void setMetrics(const QJsonObject& state, QJsonObject metrics);
     // Importazioni da collocare, una alla volta.
     struct Import {
         QJsonObject state;
@@ -166,6 +169,7 @@ private:
     std::vector<int> dbFiltered_;
     QJsonObject metrics_;   // risultati della canalina corrente
     QString metricsFor_;    // stato a cui si riferiscono
+    QString shown_;         // quello che la finestra mostra (per non ridisegnarla se non cambia)
     std::vector<Import> imports_;
     Import pending_;
     QString pendingText_;
