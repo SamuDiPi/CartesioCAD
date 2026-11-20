@@ -111,8 +111,8 @@ QByteArray MainView::saveState() const
 {
     QByteArray out;
     QDataStream s(&out, QIODevice::WriteOnly);
-    s << quint8(4) << panels_[0] << panels_[1] << panels_[2] << qint32(leftWidth_) << qint32(rightWidth_) << panels_[3] << panels_[4]
-      << panels_[5];
+    s << quint8(5) << panels_[0] << panels_[1] << panels_[2] << qint32(leftWidth_) << qint32(rightWidth_) << panels_[3] << panels_[4]
+      << panels_[5] << panels_[6];
     return out;
 }
 
@@ -121,9 +121,9 @@ void MainView::restoreState(const QByteArray& state)
     QDataStream s(state);
     quint8 version = 0;
     s >> version;
-    if (version < 1 || version > 4)
+    if (version < 1 || version > 5)
         return;
-    bool p0 = false, p1 = false, p2 = false, p3 = false, p4 = false, p5 = false;
+    bool p0 = false, p1 = false, p2 = false, p3 = false, p4 = false, p5 = false, p6 = false;
     qint32 l = leftWidth_, r = rightWidth_;
     s >> p0 >> p1 >> p2 >> l >> r;
     if (version >= 2)
@@ -132,6 +132,8 @@ void MainView::restoreState(const QByteArray& state)
         s >> p4;   // tavolozza Impianto (dalla versione 3)
     if (version >= 4)
         s >> p5;   // tavolozza Guida (dalla versione 4)
+    if (version >= 5)
+        s >> p6;   // tavolozza Canalina (dalla versione 5)
     if (s.status() != QDataStream::Ok)
         return;
     leftWidth_ = std::clamp<int>(l, 200, 1200);
@@ -142,6 +144,7 @@ void MainView::restoreState(const QByteArray& state)
     setPanelVisible(Library, p3);
     setPanelVisible(Plant, p4);
     setPanelVisible(Guide, p5);
+    setPanelVisible(Canalo, p6);
     emit panelsChanged();
 }
 

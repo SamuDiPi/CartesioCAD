@@ -68,27 +68,11 @@ const std::vector<CableType> kCatalog = {
 };
 
 const std::vector<std::pair<std::string, std::vector<Series>>> kBrands = {
-    {"MARCA_A", {
-        {"A1_ASO", "Marca A Serie A1 — Passerella Asolata (370xx)", "A-370", "perforated"},
-        {"A1_CIE", "Marca A Serie A1 — Canale Cieco (372xx)", "A-372", "solid"},
-        {"FILO", "Filo CF — Passerella a Filo (CM50/100)", "F-CM", "mesh"},
-    }},
-    {"MARCA_B", {
-        {"B1", "MARCA_B B1 — Passerella Asolata", "MARCA_B-604", "perforated"},
-        {"B2", "MARCA_B B2 — Canale Portacavi", "MARCA_B-605", "solid"},
-        {"B3", "MARCA_B B3 — Passerella a Filo", "MARCA_B-600", "mesh"},
-    }},
-    {"MARCA_C", {
-        {"C_S27", "Marca C Serie 27 — Passerella Asolata", "C-S27", "perforated"},
-        {"C_S28", "Marca C Serie 28 — Canale Cieco IP40", "C-S28", "solid"},
-    }},
-    {"MARCA_D", {
-        {"D_RL", "Marca D RL — Passerella Asolata Standard", "D-RL", "perforated"},
-        {"D_RS", "Marca D RS — Canale Chiuso Pesante", "D-RS", "solid"},
-    }},
-    {"CUSTOM", {
-        {"CUSTOM_ASO", "Custom — Passerella Asolata", "CST-P", "perforated"},
-        {"CUSTOM_CIE", "Custom — Canale Chiuso", "CST-C", "solid"},
+    {"TIPOLOGIE", {
+        {"PAS_ASO", "Passerella asolata in lamiera forata", "PAS", "perforated"},
+        {"CAN_CIE", "Canale portacavi cieco in lamiera piena", "CAN", "solid"},
+        {"PAS_FIL", "Passerella a filo (rete elettrosaldata)", "PFI", "mesh"},
+        {"PAS_SCA", "Passerella a scala (a pioli)", "PSC", "ladder"},
     }},
 };
 

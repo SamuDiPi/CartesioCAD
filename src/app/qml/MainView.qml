@@ -143,12 +143,13 @@ Rectangle {
         // Tavolozze a destra: Impianto, Circuiti e Blocchi (una sopra l'altra, in parti uguali, quelle aperte).
         Item {
             id: rightArea
-            visible: (main.circuitsVisible || main.libraryVisible || main.plantVisible || main.guideVisible) && !main.startVisible
+            visible: (main.circuitsVisible || main.libraryVisible || main.plantVisible || main.guideVisible || main.canaloVisible)
+                     && !main.startVisible
             anchors.right: parent.right
             width: visible ? main.rightWidth : 0
             height: parent.height
             readonly property int shown: (main.guideVisible ? 1 : 0) + (main.plantVisible ? 1 : 0) + (main.circuitsVisible ? 1 : 0)
-                                         + (main.libraryVisible ? 1 : 0)
+                                         + (main.libraryVisible ? 1 : 0) + (main.canaloVisible ? 1 : 0)
             readonly property real share: shown > 0 ? height / shown : height
             Panel {
                 id: guidePanel
@@ -159,10 +160,21 @@ Rectangle {
                 source: "qrc:/qml/GuidePanel.qml"
                 onCloseRequested: main.guideVisible = false
             }
+            // Canalina: database dei cavi, cavi e riepilogo della canalina selezionata (calcoli di CanaloCAD).
+            Panel {
+                id: canaloPanel
+                visible: main.canaloVisible
+                y: guidePanel.height
+                width: parent.width
+                height: visible ? rightArea.share : 0
+                title: qsTr("Canalina")
+                source: "qrc:/qml/CanaloPanel.qml"
+                onCloseRequested: main.canaloVisible = false
+            }
             Panel {
                 id: plantPanel
                 visible: main.plantVisible
-                y: guidePanel.height
+                y: guidePanel.height + canaloPanel.height
                 width: parent.width
                 height: visible ? rightArea.share : 0
                 title: qsTr("Impianto")
@@ -172,7 +184,7 @@ Rectangle {
             Panel {
                 id: circuitsPanel
                 visible: main.circuitsVisible
-                y: guidePanel.height + plantPanel.height
+                y: guidePanel.height + canaloPanel.height + plantPanel.height
                 width: parent.width
                 height: visible ? rightArea.share : 0
                 title: qsTr("Circuiti")
@@ -181,7 +193,7 @@ Rectangle {
             }
             Panel {
                 visible: main.libraryVisible
-                y: guidePanel.height + plantPanel.height + circuitsPanel.height
+                y: guidePanel.height + canaloPanel.height + plantPanel.height + circuitsPanel.height
                 width: parent.width
                 height: parent.height - y
                 title: qsTr("Blocchi")

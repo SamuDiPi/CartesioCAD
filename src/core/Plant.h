@@ -62,7 +62,7 @@ struct Run {
     std::string cover = "snap";
     std::string support = "none";
     double spanM = 1.5;
-    std::string brand = "MARCA_A", seriesId = "A1_ASO";
+    std::string brand = "TIPOLOGIE", seriesId = "PAS_ASO";
     std::vector<std::string> circuits;   // sigle
     std::string notes;
     // Posa per la portata dei cavi: tubi "vista" (su parete o soffitto) o "incassato" (in parete isolante);

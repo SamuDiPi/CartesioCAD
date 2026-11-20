@@ -9,6 +9,8 @@
 #include "app/PlantPanel.h"
 #include "app/Ribbon.h"
 
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimer>
 
@@ -132,7 +134,8 @@ void MainWindow::guideCheckStep()
         ok = ribbon_->currentTabTitle() == done.value(QStringLiteral("name")).toString();
     } else if (type == QLatin1String("panel")) {
         static const QStringList names = {QStringLiteral("Properties"), QStringLiteral("Layers"), QStringLiteral("Circuits"),
-                                          QStringLiteral("Library"), QStringLiteral("Plant"), QStringLiteral("Guide")};
+                                          QStringLiteral("Library"), QStringLiteral("Plant"), QStringLiteral("Guide"),
+                                          QStringLiteral("Canalo")};
         const int index = names.indexOf(done.value(QStringLiteral("name")).toString());
         ok = index >= 0 && panelShown(index);
     } else if (type == QLatin1String("plantProject")) {
@@ -147,6 +150,12 @@ void MainWindow::guideCheckStep()
     } else if (type == QLatin1String("counter")) {
         const QString name = done.value(QStringLiteral("name")).toString();
         ok = name == QLatin1String("verify") ? plant_->verifyCount() > guideSnap_.verify : canaloChecks_ > guideSnap_.canalo;
+    } else if (type == QLatin1String("canalo") && d) {
+        // Una canalina del disegno con almeno "cables" cavi (0: basta che ci sia).
+        const int min = done.value(QStringLiteral("cables")).toInt(0);
+        for (const auto& [id, json] : d->document().canaloTrays())
+            if (QJsonDocument::fromJson(QByteArray::fromStdString(json)).object().value(QStringLiteral("cables")).toArray().size() >= min)
+                ok = true;
     } else if (type == QLatin1String("circuits")) {
         ok = !circuits_->circuits().empty();
     }

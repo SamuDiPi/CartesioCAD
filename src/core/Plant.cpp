@@ -620,12 +620,11 @@ RunCheck checkRun(const Project& project, const Run& run, double lengthM)
         tray.trayType = "solid";
         tray.support = "none";
     } else {
-        tray.brand = run.brand;
-        tray.seriesId = run.seriesId;
-        tray.trayType = "perforated";
-        for (const canalo::Series& s : canalo::seriesOf(run.brand))
-            if (s.id == run.seriesId)
-                tray.trayType = s.type;
+        // Tipologia della serie (anche quelle dei costruttori dei progetti di prima).
+        const canalo::Series& series = canalo::seriesById(run.seriesId);
+        tray.brand = "TIPOLOGIE";
+        tray.seriesId = series.id;
+        tray.trayType = series.type;
         tray.support = run.support;
         tray.spanM = run.spanM;
     }
@@ -863,11 +862,7 @@ std::vector<BomItem> plantBom(const Project& project, const std::map<std::string
             add("Canali", "Derivazione a T per canale " + size, g.tees, "cad");
             add("Canali", "Giunzione per canale " + size, std::ceil(g.lengthM / 2.0), "cad");
         } else {
-            const std::vector<canalo::Series>& list = canalo::seriesOf(r.brand);
-            const canalo::Series* series = &list.front();
-            for (const canalo::Series& s : list)
-                if (s.id == r.seriesId)
-                    series = &s;
+            const canalo::Series* series = &canalo::seriesById(r.seriesId);
             const double bars = std::ceil(g.lengthM / 3.0);
             add("Passerelle", series->name + " " + size, bars * 3.0, "m", "verghe da 3 m");
             if (r.cover != "none")

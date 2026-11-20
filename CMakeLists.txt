@@ -26,7 +26,6 @@ add_library(cartesio_core STATIC
     src/core/Annotation.cpp
     src/core/Compare.cpp
     src/core/Canalo.cpp
-    src/core/CanaloSheet.cpp
     src/core/Plant.cpp
     src/core/Ampacity.cpp
     src/core/Geometry.cpp
@@ -142,6 +141,8 @@ if(CARTESIO_BUILD_APP)
         src/app/CircuitsPanel.h
         src/app/CircuitsPanel.cpp
         src/app/PlantPanel.cpp
+        src/app/CanaloPanel.h
+        src/app/CanaloPanel.cpp
         src/app/GuidePanel.cpp
         src/app/MainWindowGuide.cpp
         src/app/PlantFile.cpp
@@ -192,7 +193,7 @@ if(CARTESIO_BUILD_APP)
     qt_add_resources(CartesioCAD "interfaccia_qml" PREFIX "/qml" BASE src/app/qml
         FILES src/app/qml/Theme.qml src/app/qml/Ribbon.qml src/app/qml/CommandLine.qml src/app/qml/FileTabs.qml
               src/app/qml/StatusBar.qml src/app/qml/PropertiesPalette.qml src/app/qml/LayerManager.qml
-              src/app/qml/CircuitsPanel.qml src/app/qml/PlantPanel.qml src/app/qml/GuidePanel.qml src/app/qml/BlockLibrary.qml src/app/qml/FormDialog.qml src/app/qml/StartPage.qml
+              src/app/qml/CircuitsPanel.qml src/app/qml/PlantPanel.qml src/app/qml/CanaloPanel.qml src/app/qml/GuidePanel.qml src/app/qml/BlockLibrary.qml src/app/qml/FormDialog.qml src/app/qml/StartPage.qml
               src/app/qml/PlotDialog.qml src/app/qml/MainView.qml
               src/app/qml/PlotPreview.qml src/app/qml/StyleEditor.qml src/app/qml/UiCheckBox.qml src/app/qml/UiComboBox.qml
               src/app/qml/UiSpinBox.qml src/app/qml/UiPushButton.qml src/app/qml/UiLineEdit.qml src/app/qml/UiBox.qml)

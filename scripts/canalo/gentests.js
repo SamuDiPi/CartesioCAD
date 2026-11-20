@@ -10,7 +10,7 @@ const scenarios = [
   { name: "setto_segnali", tray: { septums: 1, support: "ceiling_trap", spanM: 2.0, tees: 1, reducers: 2 },
     cables: [["FG16_4G16"], ["FG16_4G16"], ["FG16_3G4"], ["LIYCY_2X0.75"], ["BUS_KNX"], ["DATA_CAT6A"]] },
   { name: "due_setti_fuoco", tray: { width: 300, height: 100, thk: 2.0, septums: 2, trayType: "solid", cover: "none", support: "wall_heavy",
-             spanM: 2.5, seismic: "cable_9m", reiCount: 2, earth: "none", brand: "MARCA_B", seriesId: "B2", lengthM: 47, pdfLoaded: true },
+             spanM: 2.5, seismic: "cable_9m", reiCount: 2, earth: "none", brand: "TIPOLOGIE", seriesId: "CAN_CIE", lengthM: 47, pdfLoaded: true },
     cables: [["FG16_4G25", { ib: 90 }], ["FG16_4G25", { ib: 80 }], ["FG16_5G10", { ib: 40 }], ["FTG18_4G10", { ib: 50 }], ["FTG18_3G2.5", { ib: 10 }],
              ["IRAI_LOOP"], ["EVAC_100V"], ["FO_8_OM4"]] },
   { name: "setto_solo_bt", tray: { septums: 1, cover: "clamped", trayType: "mesh", support: "floor_omega", spanM: 3.0 },
@@ -32,7 +32,7 @@ for (const sc of scenarios) {
   // valori iniziali della pagina
   Object.assign(st, { width: 200, height: 75, thk: 1.5, lengthM: 30, bends90: 0, tees: 0, reducers: 0, seismic: "none", trayType: "perforated",
                       packing: "gravity", cover: "snap", septums: 0, septumPositions: [], earth: "gv16", reiCount: 0, support: "none", spanM: 1.5,
-                      brand: "MARCA_A", seriesId: "A1_ASO", pdfLoaded: false }, sc.tray);
+                      brand: "TIPOLOGIE", seriesId: "PAS_ASO", pdfLoaded: false }, sc.tray);
   st.cables = sc.cables.map(([id, o = {}], i) => {
     const it = api.CABLE_CATALOG.find(c => c.id === id);
     return { id: i + 1, code: `${it.code}-${i + 1}`, d: it.d, w: it.w, sec: it.sec, cores: it.cores, iz0: it.iz0, ib: o.ib || 0, bendK: it.bendK,

@@ -36,11 +36,12 @@ class MainView : public QQuickWidget {
     Q_PROPERTY(bool libraryVisible READ libraryVisible WRITE setLibraryVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool plantVisible READ plantVisible WRITE setPlantVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool guideVisible READ guideVisible WRITE setGuideVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool canaloVisible READ canaloVisible WRITE setCanaloVisible NOTIFY panelsChanged)
     Q_PROPERTY(int leftWidth READ leftWidth WRITE setLeftWidth NOTIFY panelsChanged)
     Q_PROPERTY(int rightWidth READ rightWidth WRITE setRightWidth NOTIFY panelsChanged)
 
 public:
-    enum Panel { Properties, Layers, Circuits, Library, Plant, Guide };
+    enum Panel { Properties, Layers, Circuits, Library, Plant, Guide, Canalo };
 
     // `models`: oggetti dei componenti (ribbon, tabs, cmd, sbar, props, layers, panel, start).
     MainView(const std::map<QString, QObject*>& models, QWidget* parent = nullptr);
@@ -69,6 +70,8 @@ public:
     void setPlantVisible(bool on) { setPanelVisible(Plant, on); }
     bool guideVisible() const { return panelVisible(Guide); }
     void setGuideVisible(bool on) { setPanelVisible(Guide, on); }
+    bool canaloVisible() const { return panelVisible(Canalo); }
+    void setCanaloVisible(bool on) { setPanelVisible(Canalo, on); }
     int leftWidth() const { return leftWidth_; }
     int rightWidth() const { return rightWidth_; }
     void setLeftWidth(int w);
@@ -104,7 +107,7 @@ private:
     int tileMode_ = 0;
     bool start_ = true;
     bool commandLine_ = true;
-    bool panels_[6] = {false, false, false, false, false, false};
+    bool panels_[7] = {false, false, false, false, false, false, false};
     int leftWidth_ = 320;
     int rightWidth_ = 440;
     QRect commandBar_;
