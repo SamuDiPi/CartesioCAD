@@ -100,6 +100,10 @@ public:
     // file di progetto, vuoto se nessuna.
     const std::string& plantRun() const { return plantRun_; }
     void setPlantRun(std::string id) { plantRun_ = std::move(id); }
+    // Canalina portacavi (tavolozza Canalina) a cui appartiene l'oggetto: sezione, percorso in pianta o tavola. Il
+    // codice (CN1, CN2...) è quello dello stato nel documento (Document::canaloTrays); vuoto se nessuna.
+    const std::string& canaloTray() const { return canaloTray_; }
+    void setCanaloTray(std::string id) { canaloTray_ = std::move(id); }
     double annoFactor() const { return annoFactor_; }
     void setAnnoFactor(double f) { annoFactor_ = f > 0.0 ? f : 1.0; }
 
@@ -144,6 +148,7 @@ private:
     double ltscale_ = 1.0;
     std::vector<std::string> annoScales_;
     std::string plantRun_;
+    std::string canaloTray_;
     double annoFactor_ = 1.0;
 };
 

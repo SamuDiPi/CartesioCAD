@@ -3823,6 +3823,38 @@ void testPlant()
         runs.push_back(e->plantRun());
     CHECK(runs.size() == 3 && runs[0] == "T7" && runs[1] == "T8" && runs[2].empty());
     std::filesystem::remove(path);
+
+    // Canaline portacavi: lo stato JSON (lungo, con caratteri non ASCII e spazi ai bordi dei pezzi) e il codice sugli
+    // oggetti tornano uguali; le modifiche si annullano.
+    {
+        Document cd;
+        std::string json = "{\"title\":\"  CANALINA Ø200 — 2,5 mm² \",\"cables\":[";
+        for (int i = 0; i < 60; ++i)
+            json += std::string(i ? "," : "") + "{\"code\":\"QE1 C-" + std::to_string(i) + "\",\"desc\":\"Utenza Ø " + std::to_string(i) + " \\\"x\\\"  \"}";
+        json += "]}";
+        cd.resetCheckpoint();
+        cd.setCanaloTray("CN1", json);
+        cd.setCanaloTray("CN2", "{\"width\":300}");
+        cd.checkpoint();
+        CHECK(cd.nextCanaloTrayId() == "CN3");
+        auto outline = std::make_unique<PolylineEntity>(std::vector<PolyVertex>{{{0, 75}}, {{0, 0}}, {{200, 0}}, {{200, 75}}});
+        outline->setCanaloTray("CN1");
+        cd.add(std::move(outline));
+        const auto cpath = std::filesystem::temp_directory_path() / "cartesio_canalo_rt.dxf";
+        CHECK(writeDxf(cd, cpath, nullptr, nullptr, DxfVersion::R2000));
+        Document cback;
+        CHECK(readDxf(cpath, cback).ok);
+        CHECK(cback.canaloTrays().size() == 2 && cback.canaloTray("CN1") && *cback.canaloTray("CN1") == json);
+        CHECK(cback.canaloTray("CN2") && *cback.canaloTray("CN2") == "{\"width\":300}");
+        CHECK(cback.entities().size() == 1 && cback.entities()[0]->canaloTray() == "CN1");
+        std::filesystem::remove(cpath);
+        // Annulla: lo stato torna quello di prima.
+        cd.setCanaloTray("CN2", "{\"width\":400}");
+        cd.checkpoint();
+        CHECK(*cd.canaloTray("CN2") == "{\"width\":400}");
+        cd.undo();
+        CHECK(*cd.canaloTray("CN2") == "{\"width\":300}");
+    }
 }
 
 // Manuale: ogni comando registrato ha la sua voce (il nome tra apici inversi in docs/manuale).

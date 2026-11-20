@@ -375,7 +375,7 @@ void Writer2000::tables()
     tableHeader("UCS", kUcsTable, 0);
     pair(0, "ENDTAB");
 
-    tableHeader("APPID", kAppidTable, 4);
+    tableHeader("APPID", kAppidTable, 6);
     tableRecord("APPID", kAppidTable, "AcDbRegAppTableRecord");
     pair(2, "ACAD");
     pair(70, 0);
@@ -390,6 +390,9 @@ void Writer2000::tables()
     pair(70, 0);
     tableRecord("APPID", kAppidTable, "AcDbRegAppTableRecord");
     pair(2, "CARTESIOCAD_IMPIANTO");   // linee delle tratte dell'impianto: codice della tratta
+    pair(70, 0);
+    tableRecord("APPID", kAppidTable, "AcDbRegAppTableRecord");
+    pair(2, "CARTESIOCAD_CANALO");   // oggetti delle canaline portacavi: codice della canalina
     pair(70, 0);
     pair(0, "ENDTAB");
 
@@ -1091,6 +1094,11 @@ unsigned Writer2000::entity(const Entity& e, unsigned owner, bool paper)
         pair(1001, "CARTESIOCAD_IMPIANTO");
         text(1000, e.plantRun());
     }
+    // Oggetto di una canalina portacavi: il suo codice (lo stato è nel dizionario CARTESIO_CANALO).
+    if (handle != 0 && !e.canaloTray().empty()) {
+        pair(1001, "CARTESIOCAD_CANALO");
+        text(1000, e.canaloTray());
+    }
     // Multidirettrice: ogni freccia in più è un LEADER senza testo dalla sua punta al punto d'attacco (gli altri
     // programmi la vedono così), con i dati di CartesioCAD che la legano alla direttrice principale.
     if (handle != 0 && e.type() == EntityType::Leader) {
@@ -1424,7 +1432,44 @@ void Writer2000::objects()
     const unsigned plantRecord = doc_.plantFile().empty() ? 0 : next();
     if (plantRecord)
         rootEntries.emplace_back("CARTESIO_IMPIANTO", plantRecord);
+    // Canaline portacavi: per ognuna 2 codice e lo stato JSON di CanaloCAD in pezzi da 250 caratteri (1).
+    const unsigned canaloRecord = doc_.canaloTrays().empty() ? 0 : next();
+    if (canaloRecord)
+        rootEntries.emplace_back("CARTESIO_CANALO", canaloRecord);
     dictionary(kRootDict, 0, rootEntries);
+    if (canaloRecord) {
+        pair(0, "XRECORD");
+        pair(5, hex(canaloRecord));
+        pair(102, "{ACAD_REACTORS");
+        pair(330, hex(kRootDict));
+        pair(102, "}");
+        pair(330, hex(kRootDict));
+        pair(100, "AcDbXrecord");
+        pair(280, 1);
+        for (const auto& [id, json] : doc_.canaloTrays()) {
+            text(2, id);
+            // Pezzi di caratteri interi lunghi al massimo 250 una volta scritti (un carattere non ASCII diventa
+            // \U+XXXX, 7 caratteri): le righe dei DXF non superano i 255.
+            std::size_t i = 0;
+            while (i < json.size()) {
+                std::size_t n = 0, written = 0;
+                while (i + n < json.size()) {
+                    std::size_t len = 1;
+                    const auto lead = static_cast<unsigned char>(json[i + n]);
+                    if (lead >= 0xC0)
+                        while (i + n + len < json.size() && (static_cast<unsigned char>(json[i + n + len]) & 0xC0) == 0x80)
+                            ++len;
+                    const std::size_t cost = lead < 0x80 ? 1 : 7;
+                    if (written + cost > 250)
+                        break;
+                    written += cost;
+                    n += len;
+                }
+                text(1, json.substr(i, n));
+                i += n;
+            }
+        }
+    }
     if (plantRecord) {
         pair(0, "XRECORD");
         pair(5, hex(plantRecord));
