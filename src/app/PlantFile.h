@@ -6,12 +6,17 @@
 #include "core/Plant.h"
 #include "core/SingleLine.h"
 
+#include <QJsonObject>
 #include <QString>
 
 namespace cartesio {
 
 bool loadPlant(const QString& path, plant::Project& project, QString* error);
 bool savePlant(const QString& path, const plant::Project& project, QString* error);
+
+// Un cavo proprio in JSON, come nel file di progetto (anche per la libreria personale dei cavi).
+QJsonObject cableTypeToJson(const canalo::CableType& type);
+canalo::CableType cableTypeFromJson(const QJsonObject& object);
 
 // Circuiti letti dallo schema unifilare in PDF, uniti a quelli del progetto: i nuovi si aggiungono, quelli già
 // presenti aggiornano i dati dello schema (descrizione, cavo, corrente, lunghezza, interruttore) e conservano

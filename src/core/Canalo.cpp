@@ -1041,39 +1041,45 @@ Tray readSection(const Drawn& drawn, Vec2* originOut)
     return tray;
 }
 
-int matchCatalog(Tray& tray, const Drawn& drawn)
+int matchCatalog(Tray& tray, const Drawn& drawn, const std::vector<CableType>& extra)
 {
     // Etichette "SIGLA (TIPO FORMAZIONE)" del catalogo, ognuna usabile una volta.
+    // Un testo può corrispondere a più tipi con lo stesso nome (un cavo proprio con un altro diametro): decide il
+    // diametro del cerchio.
     struct Known {
         std::string code, full;   // sigla e testo intero (letto come sigla se la parentesi non è una formazione)
         const CableType* type;
-        bool used = false;
+        std::size_t text;
     };
     std::vector<Known> known;
-    for (const auto& t : drawn.texts) {
-        const std::string str = cleanMText(t.text);
-        for (const CableType& c : catalog()) {
-            const std::string suffix = sectionLabel(cableFrom(c, " ")).substr(1);   // " (TIPO FORMAZIONE)"
-            if (suffix.size() > 1 && str.size() > suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0) {
-                known.push_back({trim(str.substr(0, str.size() - suffix.size())), str, &c});
-                break;
-            }
+    std::vector<const CableType*> types;
+    for (const CableType& c : catalog())
+        types.push_back(&c);
+    for (const CableType& c : extra)
+        types.push_back(&c);
+    for (std::size_t ti = 0; ti < drawn.texts.size(); ++ti) {
+        const std::string str = cleanMText(drawn.texts[ti].text);
+        for (const CableType* c : types) {
+            const std::string suffix = sectionLabel(cableFrom(*c, " ")).substr(1);   // " (TIPO FORMAZIONE)"
+            if (suffix.size() > 1 && str.size() > suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0)
+                known.push_back({trim(str.substr(0, str.size() - suffix.size())), str, c, ti});
         }
     }
+    std::vector<bool> usedText(drawn.texts.size(), false);
     int matched = 0;
     for (Cable& cable : tray.cables) {
         // Prima la sigla uguale, poi una sigla che la estende (QE1 C-3/2 letta come QE1 C-3); sempre con il diametro.
         Known* hit = nullptr;
         for (int pass = 0; pass < 2 && !hit; ++pass)
             for (Known& k : known)
-                if (!k.used && std::abs(k.type->d - cable.d) <= 0.11
+                if (!usedText[k.text] && std::abs(k.type->d - cable.d) <= 0.11
                     && (pass == 0 ? k.code == cable.code || k.full == cable.code : k.code.rfind(cable.code, 0) == 0)) {
                     hit = &k;
                     break;
                 }
         if (!hit)
             continue;
-        hit->used = true;
+        usedText[hit->text] = true;
         Cable c = cableFrom(*hit->type, hit->code);
         c.x = cable.x;
         c.y = cable.y;

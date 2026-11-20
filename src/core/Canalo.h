@@ -164,7 +164,8 @@ std::string sectionLabel(const Cable& cable);
 // Dopo readSection: i cavi con un'etichetta come quelle di drawSection riprendono dal catalogo tipo, sistema
 // (energia, sicurezza, segnale), peso e portata, invece di quelli dedotti dal diametro, e la sigla completa.
 // Restituisce quanti cavi sono stati riconosciuti.
-int matchCatalog(Tray& tray, const Drawn& drawn);
+// `extra`: cavi propri (libreria personale, progetto dell'impianto) oltre al catalogo.
+int matchCatalog(Tray& tray, const Drawn& drawn, const std::vector<CableType>& extra = {});
 // Larghezza commerciale più piccola, con l'altezza di `tray`, in cui i cavi stanno con riempimento ≤ maxFillPct.
 double suggestedWidth(const Tray& tray, double maxFillPct = 50.0);
 
