@@ -267,7 +267,7 @@ private:
     bool canaloSend(const QString& target = {});
     // Calcoli di CanaloCAD sulla sezione selezionata (riempimento, portata, segregazione, staffaggio, distinta).
     void canaloCheck(bool askData, bool sheet = false);
-    // Collega la tavolozza Canalina (messaggi, guida, cavi propri del progetto dell'impianto).
+    // Collega la finestra Canalina (messaggi, guida, cavi propri del progetto dell'impianto).
     void wireCanalo();
     // Sezione composta con i cavi del catalogo: disegnata al vero e verificata (CANALOSEZIONE).
     // Negli script `scriptCables` sono i codici del catalogo (FG16_4G10*2,DATA_CAT6...): niente finestra.
@@ -394,13 +394,12 @@ private:
     QDockWidget* circuitsDock_ = nullptr;
     QDockWidget* plantDock_ = nullptr;
     QDockWidget* guideDock_ = nullptr;
-    QDockWidget* canaloDock_ = nullptr;
     // Interfaccia a widget: tavolozze nascoste mentre c'è la pagina Inizia (tornano con un disegno).
     QList<QDockWidget*> startHiddenDocks_;
     void hideDocksForStart(bool start);
     CircuitsPanel* circuits_ = nullptr;
     PlantPanel* plant_ = nullptr;
-    CanaloPanel* canalo_ = nullptr;   // tavolozza Canalina (CanaloPanel.h)
+    CanaloPanel* canalo_ = nullptr;   // finestra Canalina (CanaloPanel.h)
     GuidePanel* guide_ = nullptr;
     QAction* guideAct_ = nullptr;
     QTimer* guideTimer_ = nullptr;

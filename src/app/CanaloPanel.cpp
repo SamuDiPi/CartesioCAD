@@ -11,10 +11,11 @@
 #include "app/QmlUi.h"
 #include "app/Theme.h"
 
+#include "core/Canalo.h"
 #include "core/Document.h"
 #include "core/Import.h"
-#include "core/io/Dxf.h"
 
+#include <QCloseEvent>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -22,10 +23,12 @@
 #include <QJsonDocument>
 #include <QMessageBox>
 #include <QQmlContext>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
 
 #include <algorithm>
+#include <cmath>
 #include <set>
 
 namespace cartesio {
@@ -59,6 +62,14 @@ QString compact(const QJsonObject& o)
 {
     return QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact));
 }
+
+// Codice della canalina dal codice sull'oggetto ("CN1" o "CN1/sezione").
+QString trayOf(const std::string& tag)
+{
+    return QString::fromStdString(tag).section(u'/', 0, 0);
+}
+
+const char* const kSectionRole = "/sezione";
 
 // Layer della sezione nella tavola di CanaloCAD (il resto è cornice, tabelle, vista 3D, curva di carico).
 const std::set<std::string>& sectionLayers()
@@ -133,16 +144,65 @@ QString tempPath(const QString& name)
     return QDir(QStandardPaths::writableLocation(QStandardPaths::TempLocation)).filePath(name);
 }
 
+// Ingombro del profilo della canalina disegnata (unità del disegno): i tratti orizzontali e verticali di linee e
+// polilinee (le bandierine sono oblique); vuoto se non ce ne sono.
+BBox outlineBox(const Document& doc, const std::vector<EntityId>& ids)
+{
+    BBox box;
+    auto segment = [&](Vec2 a, Vec2 b) {
+        const double dx = std::abs(b.x - a.x), dy = std::abs(b.y - a.y);
+        if (dx < 1e-6 * std::max(1.0, dy) || dy < 1e-6 * std::max(1.0, dx)) {
+            box.expand(a);
+            box.expand(b);
+        }
+    };
+    for (EntityId id : ids) {
+        const Entity* e = doc.find(id);
+        if (const auto* l = dynamic_cast<const LineEntity*>(e))
+            segment(l->start, l->end);
+        else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e)) {
+            for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
+                segment(pl->vertices[i].point, pl->vertices[i + 1].point);
+            if (pl->closed && pl->vertices.size() > 2)
+                segment(pl->vertices.back().point, pl->vertices.front().point);
+        }
+    }
+    return box;
+}
+
 } // namespace
 
 CanaloPanel::CanaloPanel(QWidget* parent) : QQuickWidget(parent)
 {
+    // Finestra a sé, sopra la finestra principale, spostabile anche su un altro schermo.
+    setWindowFlags(Qt::Window);
+    setWindowTitle(tr("Canalina - CanaloCAD"));
     setupQuickEngine(this);
     setClearColor(theme::kWindow);
+    setResizeMode(QQuickWidget::SizeRootObjectToView);
     rootContext()->setContextProperty(QStringLiteral("canalo"), this);
-    if (!qmlRootUi())   // nella scena unica il componente lo carica MainView.qml
-        setSource(QUrl(QStringLiteral("qrc:/qml/CanaloPanel.qml")));
-    setMinimumWidth(380);
+    setSource(QUrl(QStringLiteral("qrc:/qml/CanaloPanel.qml")));
+    setMinimumSize(780, 480);
+    resize(1180, 740);
+}
+
+void CanaloPanel::showWindow()
+{
+    if (!isVisible()) {
+        const QByteArray geometry = settingsStore().value(QStringLiteral("Canalo/finestra")).toByteArray();
+        if (!geometry.isEmpty())
+            restoreGeometry(geometry);
+    }
+    show();
+    raise();
+    activateWindow();
+    refresh();
+}
+
+void CanaloPanel::closeEvent(QCloseEvent* event)
+{
+    settingsStore().setValue(QStringLiteral("Canalo/finestra"), saveGeometry());
+    QQuickWidget::closeEvent(event);
 }
 
 void CanaloPanel::setDrawing(DrawingWidget* drawing)
@@ -163,17 +223,16 @@ void CanaloPanel::refresh()
     if (db_.isEmpty())
         syncOwnCables();
     // La canalina degli oggetti selezionati; senza, resta l'ultima (se c'è ancora).
-    QString selected;
+    bool selected = false;
     if (drawing_) {
         const Document& doc = drawing_->document();
         for (EntityId id : drawing_->selection())
-            if (const Entity* e = doc.find(id); e && !e->canaloTray().empty() && doc.canaloTray(e->canaloTray())) {
-                selected = QString::fromStdString(e->canaloTray());
+            if (const Entity* e = doc.find(id); e && !e->canaloTray().empty() && doc.canaloTray(trayOf(e->canaloTray()).toStdString())) {
+                trayId_ = trayOf(e->canaloTray());
+                selected = true;
                 break;
             }
-        if (!selected.isEmpty())
-            trayId_ = selected;
-        else if (!trayId_.isEmpty() && !doc.canaloTray(trayId_.toStdString()))
+        if (!selected && !trayId_.isEmpty() && !doc.canaloTray(trayId_.toStdString()))
             trayId_.clear();
     } else {
         trayId_.clear();
@@ -182,11 +241,10 @@ void CanaloPanel::refresh()
     if (!drawing_)
         status_ = tr("Nessun disegno aperto.");
     else if (trayId_.isEmpty())
-        status_ = tr("Selezionare un oggetto di una canalina (sezione o percorso), oppure crearne una: Nuova canalina "
-                     "(con gli oggetti selezionati), Importa la sezione selezionata o un file DWG/DXF, o aggiungere i cavi "
-                     "dal database.");
-    else if (selected.isEmpty())
-        status_ = tr("Ultima canalina usata (non selezionata nel disegno).");
+        status_ = tr("Disegna la canalina (sezione L×H o percorso in pianta), selezionala e premi Usa selezione; oppure scegli "
+                     "subito i cavi dal database: la canalina nasce con la misura adatta.");
+    else if (!selected)
+        status_ = tr("Ultima canalina usata (nel disegno non è selezionata).");
     else
         status_.clear();
     emit changed();
@@ -202,16 +260,41 @@ QJsonObject CanaloPanel::state() const
     return CanaloEngine::instance().defaultState();
 }
 
-void CanaloPanel::store(const QJsonObject& st, const QString& what)
+bool CanaloPanel::autoSize() const
 {
-    if (!drawing_ || trayId_.isEmpty() || st.isEmpty()) {
-        if (st.isEmpty())
-            emit message(tr("CanaloCAD: %1").arg(CanaloEngine::instance().error()));
+    return hasTray() && state().value(QStringLiteral("cartesioAutoSize")).toBool(false);
+}
+
+double CanaloPanel::reserve() const
+{
+    return dv(state(), "cartesioReserve", 30.0);
+}
+
+bool CanaloPanel::sectionPlaced() const
+{
+    return hasTray() && state().contains(QStringLiteral("cartesioSection"));
+}
+
+void CanaloPanel::store(QJsonObject st, const QString& what)
+{
+    if (!drawing_ || trayId_.isEmpty())
+        return;
+    CanaloEngine& engine = CanaloEngine::instance();
+    // Misura scelta dai cavi (come Dimensiona di CanaloCAD) se la canalina non ha la misura del disegno.
+    if (st.value(QStringLiteral("cartesioAutoSize")).toBool(false) && !st.value(QStringLiteral("cables")).toArray().isEmpty())
+        st = engine.autoSize(st, dv(st, "cartesioReserve", 30.0));
+    else
+        st = engine.calculate(st);
+    if (st.isEmpty()) {
+        emit message(tr("CanaloCAD: %1").arg(engine.error()));
         return;
     }
     Document& doc = drawing_->document();
+    // La sezione già nel disegno si aggiorna nello stesso passo (un solo Annulla).
+    if (st.contains(QStringLiteral("cartesioSection")))
+        commitSection(st);
     doc.setCanaloTray(trayId_.toStdString(), compact(st).toStdString());
-    doc.checkpoint();   // annullabile, insieme agli oggetti cambiati nello stesso comando
+    doc.checkpoint();
     drawing_->notifyChanged();
     updateSummary();
     if (!what.isEmpty())
@@ -219,31 +302,40 @@ void CanaloPanel::store(const QJsonObject& st, const QString& what)
     emit changed();
 }
 
-QString CanaloPanel::createTray(const QJsonObject& initial, bool linkSelected)
+QString CanaloPanel::createTray(QJsonObject st)
 {
     if (!drawing_)
         return {};
     Document& doc = drawing_->document();
     const QString id = QString::fromStdString(doc.nextCanaloTrayId());
-    QJsonObject st = initial.isEmpty() ? CanaloEngine::instance().defaultState() : initial;
-    st.insert(QStringLiteral("title"), tr("CANALINA %1 - L=%2mm H=%3mm").arg(id, num(dv(st, "width", 200), 0), num(dv(st, "height", 75), 0)));
-    st = CanaloEngine::instance().calculate(st);
-    if (linkSelected) {
-        std::vector<std::unique_ptr<Entity>> tagged;
-        std::vector<EntityId> replaced;
-        for (EntityId eid : drawing_->selection())
-            if (const Entity* e = doc.find(eid)) {
-                auto copy = e->clone();
-                copy->setCanaloTray(id.toStdString());
-                tagged.push_back(std::move(copy));
-                replaced.push_back(eid);
-            }
-        if (!tagged.empty())
-            doc.commit(std::move(tagged), replaced);
+    if (st.isEmpty()) {
+        st = CanaloEngine::instance().defaultState();
+        st.insert(QStringLiteral("cartesioAutoSize"), true);   // dal database: la misura la danno i cavi
     }
+    if (!st.contains(QStringLiteral("cartesioReserve")))
+        st.insert(QStringLiteral("cartesioReserve"), 30.0);
+    st.insert(QStringLiteral("title"), tr("CANALINA %1 - L=%2mm H=%3mm").arg(id, num(dv(st, "width", 200), 0), num(dv(st, "height", 75), 0)));
     trayId_ = id;
     store(st, tr("Canalina %1 creata.").arg(id));
     return id;
+}
+
+void CanaloPanel::tag(const std::vector<EntityId>& ids, const QString& role)
+{
+    if (!drawing_ || ids.empty())
+        return;
+    Document& doc = drawing_->document();
+    std::vector<std::unique_ptr<Entity>> tagged;
+    std::vector<EntityId> replaced;
+    for (EntityId eid : ids)
+        if (const Entity* e = doc.find(eid)) {
+            auto copy = e->clone();
+            copy->setCanaloTray((trayId_ + role).toStdString());
+            tagged.push_back(std::move(copy));
+            replaced.push_back(eid);
+        }
+    doc.commit(std::move(tagged), replaced);
+    drawing_->notifyChanged();
 }
 
 void CanaloPanel::syncOwnCables()
@@ -251,13 +343,11 @@ void CanaloPanel::syncOwnCables()
     CanaloEngine& engine = CanaloEngine::instance();
     engine.setOwnCables(ownCablesJson());
     db_ = engine.database().value(QStringLiteral("cables")).toArray();
-    // Il filtro della categoria e della ricerca.
     dbFiltered_.clear();
     const QString needle = search_.trimmed().toLower();
     for (int i = 0; i < db_.size(); ++i) {
         const QJsonObject c = db_[i].toObject();
-        const QString cat = c.value(QStringLiteral("cat")).toString();
-        if (!category_.isEmpty() && cat != category_)
+        if (!category_.isEmpty() && c.value(QStringLiteral("cat")).toString() != category_)
             continue;
         if (!needle.isEmpty()) {
             const QString hay = (sv(c, "code") + u' ' + sv(c, "type") + u' ' + sv(c, "form") + u' ' + sv(c, "desc")).toLower();
@@ -292,24 +382,15 @@ QJsonObject CanaloPanel::dbItem(int row) const
     return db_[dbFiltered_[static_cast<std::size_t>(row)]].toObject();
 }
 
-std::vector<EntityId> CanaloPanel::trayEntities(const QString& id, bool sectionOnly) const
+std::vector<EntityId> CanaloPanel::sectionEntities() const
 {
     std::vector<EntityId> out;
-    if (!drawing_)
+    if (!drawing_ || trayId_.isEmpty())
         return out;
-    const Document& doc = drawing_->document();
-    for (const auto& e : doc.entities()) {
-        if (e->canaloTray() != id.toStdString())
-            continue;
-        if (sectionOnly) {
-            const int li = e->layer();
-            const auto& layers = doc.layers();
-            const std::string name = li >= 0 && li < static_cast<int>(layers.size()) ? layers[static_cast<std::size_t>(li)].name : "";
-            if (!sectionLayers().count(name))
-                continue;
-        }
-        out.push_back(e->id());
-    }
+    const std::string tag = (trayId_ + QLatin1String(kSectionRole)).toStdString();
+    for (const auto& e : drawing_->document().entities())
+        if (e->canaloTray() == tag)
+            out.push_back(e->id());
     return out;
 }
 
@@ -320,6 +401,64 @@ double CanaloPanel::drawingUnit() const
     const Document& doc = drawing_->document();
     const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
     return unitsFactor(4, units);
+}
+
+int CanaloPanel::minimumWidth(const QJsonObject& st) const
+{
+    if (st.value(QStringLiteral("cables")).toArray().isEmpty())
+        return 0;
+    const QJsonObject sized = CanaloEngine::instance().autoSize(st, dv(st, "cartesioReserve", 30.0));
+    const double need = dv(sized, "width");
+    return need > dv(st, "width") + 0.5 ? static_cast<int>(need) : 0;
+}
+
+std::vector<EntityId> CanaloPanel::commitSection(const QJsonObject& st)
+{
+    std::vector<EntityId> ids;
+    if (!drawing_)
+        return ids;
+    CanaloEngine& engine = CanaloEngine::instance();
+    // La sezione della tavola di CanaloCAD al vero (scala 1:1): profilo, cavi, bandierine, quote, staffaggio.
+    QJsonObject real = st;
+    real.insert(QStringLiteral("scale"), QStringLiteral("1:1"));
+    const QString path = tempPath(QStringLiteral("CartesioCAD_%1_sezione.dxf").arg(trayId_));
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly))
+            return ids;
+        file.write(engine.dxfBytes(real, sv(st, "title")));
+    }
+    Document source;
+    QString error;
+    const bool read = DrawingWidget::readFile(path, source, &error);
+    QFile::remove(path);
+    if (!read) {
+        emit message(tr("CANALINA: %1").arg(error));
+        return ids;
+    }
+    Document& doc = drawing_->document();
+    const QJsonObject where = st.value(QStringLiteral("cartesioSection")).toObject();
+    const Affine place = Affine::translation({dv(where, "x"), dv(where, "y")}) * Affine::scaling({0.0, 0.0}, drawingUnit());
+    const ImportSource src = ImportSource::from(source);
+    Importer importer(doc, src);
+    std::vector<std::unique_ptr<Entity>> added;
+    std::vector<const Entity*> raw;
+    const std::string tagName = (trayId_ + QLatin1String(kSectionRole)).toStdString();
+    for (const auto& e : source.entities()) {
+        const int li = e->layer();
+        const std::string layer = li >= 0 && li < static_cast<int>(source.layers().size()) ? source.layers()[static_cast<std::size_t>(li)].name : "";
+        if (!sectionLayers().count(layer) || e->space() != 0)
+            continue;
+        auto copy = importer.copy(*e);
+        copy->transform(place);
+        copy->setCanaloTray(tagName);
+        raw.push_back(copy.get());
+        added.push_back(std::move(copy));
+    }
+    doc.commit(std::move(added), sectionEntities());
+    for (const Entity* e : raw)
+        ids.push_back(e->id());
+    return ids;
 }
 
 void CanaloPanel::updateSummary()
@@ -334,6 +473,8 @@ void CanaloPanel::updateSummary()
     if (key == metricsFor_)
         return;
     CanaloEngine::instance().calculate(st, &metrics_);
+    // Canalina con la misura del disegno: quella che servirebbe per questi cavi, se è più larga.
+    metrics_.insert(QStringLiteral("cartesioMinWidth"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false) ? 0 : minimumWidth(st));
     metricsFor_ = key;
 }
 
@@ -347,6 +488,27 @@ QString CanaloPanel::trayTitle() const
     return QStringLiteral("%1 — %2 %3 × %4 mm — %5")
         .arg(trayId_, trayTypeName(sv(st, "trayType")), num(dv(st, "width"), 0), num(dv(st, "height"), 0))
         .arg(tr("%n cavi", nullptr, static_cast<int>(st.value(QStringLiteral("cables")).toArray().size())));
+}
+
+QString CanaloPanel::quickSummary() const
+{
+    if (trayId_.isEmpty() || metrics_.isEmpty())
+        return {};
+    const QJsonObject st = state();
+    QStringList parts{tr("%1 × %2 mm").arg(num(dv(st, "width"), 0), num(dv(st, "height"), 0)),
+                      tr("riempimento %1%").arg(num(dv(metrics_, "fillPct"))), tr("Kr %1").arg(num(dv(metrics_, "kr"), 2)),
+                      metrics_.value(QStringLiteral("segConform")).toBool(true) ? tr("segregazione conforme") : tr("segregazione NON CONFORME")};
+    if (const int need = metrics_.value(QStringLiteral("cartesioMinWidth")).toInt(); need > 0)
+        parts << tr("piccola: serve L ≥ %1 mm").arg(need);
+    return parts.join(QStringLiteral("  ·  "));
+}
+
+int CanaloPanel::quickLevel() const
+{
+    for (const QVariant& v : summary())
+        if (v.toMap().value(QStringLiteral("level")).toInt() == 2)
+            return 2;
+    return 0;
 }
 
 QVariantList CanaloPanel::categories() const
@@ -406,8 +568,16 @@ QVariantList CanaloPanel::summary() const
     auto row = [&](const QString& label, const QString& value, int level = 0) {
         out.append(QVariantMap{{QStringLiteral("label"), label}, {QStringLiteral("value"), value}, {QStringLiteral("level"), level}});
     };
-    row(tr("Canalina"), tr("%1 %2 × %3 mm, sp. %4 mm").arg(trayTypeName(sv(st, "trayType")), num(dv(st, "width"), 0), num(dv(st, "height"), 0),
-                                                           num(dv(st, "thk"))));
+    row(tr("Canalina"), tr("%1 %2 × %3 mm, sp. %4 mm%5").arg(trayTypeName(sv(st, "trayType")), num(dv(st, "width"), 0), num(dv(st, "height"), 0),
+                                                             num(dv(st, "thk")),
+                                                             st.value(QStringLiteral("cartesioAutoSize")).toBool(false)
+                                                                 ? tr(" (misura dai cavi, riserva %1%)").arg(num(dv(st, "cartesioReserve", 30), 0))
+                                                                 : QString()));
+    if (const int need = m.value(QStringLiteral("cartesioMinWidth")).toInt(); need > 0)
+        row(tr("Misura"), tr("Piccola per questi cavi: con la riserva del %1% serve una larghezza di almeno %2 mm")
+                              .arg(num(dv(st, "cartesioReserve", 30), 0))
+                              .arg(need),
+            2);
     row(tr("Riempimento"), tr("%1% (riserva +%2%)").arg(num(dv(m, "fillPct")), num(dv(m, "sparePct"))));
     row(tr("Riduzione portata"), tr("Kr = %1 (fascio %2 × strati %3 [%4] × posa %5)")
                                      .arg(num(dv(m, "kr"), 2), num(dv(m, "kFascio"), 2), num(dv(m, "kStrati"), 2))
@@ -417,7 +587,7 @@ QVariantList CanaloPanel::summary() const
     row(tr("Segregazione 528.1"), (seg ? tr("CONFORME") : tr("NON CONFORME")) + QStringLiteral(" — ") + sv(m, "segDetail"), seg ? 1 : 2);
     row(tr("Peso"), tr("%1 kg/m").arg(num(dv(m, "totalKgM"), 2)));
     if (sv(st, "support") == QLatin1String("none") || sv(st, "support").isEmpty()) {
-        row(tr("Staffaggio"), tr("Nessun supporto: nessuna verifica di carico"));
+        row(tr("Staffaggio"), tr("Nessun supporto: nessuna verifica di carico (Dati canalina)"));
     } else {
         const double load = dv(m, "loadPct");
         row(tr("Staffaggio"), tr("%1 kg / %2 kg (%3%) %4 — passo %5 m").arg(num(dv(m, "pointLoad")), num(dv(m, "maxPoint"), 0), num(load),
@@ -458,180 +628,96 @@ QStringList CanaloPanel::reportLines() const
     return out;
 }
 
-// ---------------------------------------------------------------- database
+// ---------------------------------------------------------------- selezione e canaline
 
-void CanaloPanel::setCategory(const QString& key)
+void CanaloPanel::useSelection()
 {
-    category_ = key;
-    dbSelected_ = -1;
-    syncOwnCables();
-}
-
-void CanaloPanel::setSearch(const QString& text)
-{
-    search_ = text;
-    dbSelected_ = -1;
-    syncOwnCables();
-}
-
-void CanaloPanel::selectDb(int row)
-{
-    dbSelected_ = row;
-    emit dbChanged();
-}
-
-void CanaloPanel::addFromDb(int row, int quantity, bool trefoil)
-{
-    const QJsonObject item = dbItem(row);
-    if (item.isEmpty() || !drawing_) {
-        emit message(tr("CANALINA: scegliere un cavo nel database."));
+    if (!drawing_ || drawing_->selection().empty()) {
+        emit message(tr("CANALINA: seleziona nel disegno la canalina (la sezione L×H, anche con i cavi, o il percorso in pianta)."));
+        return;
+    }
+    const Document& doc = drawing_->document();
+    for (EntityId id : drawing_->selection())
+        if (const Entity* e = doc.find(id); e && !e->canaloTray().empty() && doc.canaloTray(trayOf(e->canaloTray()).toStdString())) {
+            trayId_ = trayOf(e->canaloTray());
+            refresh();
+            emit message(tr("Canalina %1.").arg(trayId_));
+            return;
+        }
+    // Una sezione (cerchi dei cavi, o un profilo di misure da sezione) o un percorso in pianta.
+    const canalo::Drawn drawn = drawnForCanalo(doc, drawing_->selection());
+    BBox box;
+    for (const auto& s : drawn.segments) {
+        box.expand(s.a);
+        box.expand(s.b);
+    }
+    const bool section = !drawn.circles.empty() || (box.isValid() && box.max.x - box.min.x <= 1250 && box.max.y - box.min.y <= 450);
+    if (section) {
+        trayId_.clear();
+        importSelection();
         return;
     }
     if (trayId_.isEmpty())
-        createTray({}, false);
-    const QJsonObject st = CanaloEngine::instance().addCable(state(), sv(item, "id"), std::clamp(quantity, 1, 30), trefoil);
-    store(st, tr("%1: aggiunto %2 × %3 %4.").arg(trayId_).arg(std::clamp(quantity, 1, 30)).arg(sv(item, "type"), sv(item, "form")));
+        createTray({});
+    tag(drawing_->selection(), QString());
+    emit message(tr("Percorso collegato alla canalina %1: selezionandolo si vede il suo riepilogo.").arg(trayId_));
+    refresh();
 }
-
-// ---------------------------------------------------------------- cavi della canalina
-
-void CanaloPanel::selectCable(int row)
-{
-    cableSelected_ = row;
-    emit changed();
-}
-
-void CanaloPanel::editCable(int row)
-{
-    QJsonObject st = state();
-    QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
-    if (row < 0 || row >= cables.size())
-        return;
-    QJsonObject c = cables[row].toObject();
-    QString code = sv(c, "code"), desc = sv(c, "desc");
-    double ib = dv(c, "ib");
-    FormDialog dialog(tr("Cavo #%1").arg(row + 1), FormDialog::Ok | FormDialog::Cancel, this);
-    dialog.note(tr("%1 %2 — Ø %3 mm").arg(sv(c, "type"), sv(c, "form"), num(dv(c, "d"))));
-    dialog.text(tr("Sigla"), code);
-    dialog.text(tr("Descrizione utenza"), desc);
-    dialog.number(tr("Corrente d'impiego Ib"), 0, 5000, 1, ib, QStringLiteral(" A"));
-    dialog.setSize(420, 260);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    c.insert(QStringLiteral("code"), code.trimmed());
-    c.insert(QStringLiteral("desc"), desc);
-    c.insert(QStringLiteral("ib"), ib);
-    cables[row] = c;
-    st.insert(QStringLiteral("cables"), cables);
-    store(CanaloEngine::instance().calculate(st), tr("%1: cavo %2 modificato.").arg(trayId_, code));
-}
-
-void CanaloPanel::removeCable(int row)
-{
-    QJsonObject st = state();
-    QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
-    if (row < 0 || row >= cables.size())
-        return;
-    const QString code = sv(cables[row].toObject(), "code");
-    cables.removeAt(row);
-    st.insert(QStringLiteral("cables"), cables);
-    cableSelected_ = std::min(cableSelected_, static_cast<int>(cables.size()) - 1);
-    store(CanaloEngine::instance().calculate(st), tr("%1: tolto il cavo %2.").arg(trayId_, code));
-}
-
-void CanaloPanel::clearCables()
-{
-    if (trayId_.isEmpty())
-        return;
-    QJsonObject st = state();
-    st.insert(QStringLiteral("cables"), QJsonArray());
-    cableSelected_ = -1;
-    store(CanaloEngine::instance().calculate(st), tr("%1: tolti tutti i cavi.").arg(trayId_));
-}
-
-// ---------------------------------------------------------------- canaline e disegno
 
 void CanaloPanel::newTray()
 {
-    if (!drawing_)
-        return;
-    // Una sezione disegnata selezionata (cerchi dei cavi o un profilo di misura da sezione): misure e cavi con
-    // l'importazione di CanaloCAD. Altrimenti (percorso in pianta, niente) solo il collegamento.
-    if (!drawing_->selection().empty()) {
-        const canalo::Drawn drawn = drawnForCanalo(drawing_->document(), drawing_->selection());
-        BBox box;
-        for (const auto& s : drawn.segments) {
-            box.expand(s.a);
-            box.expand(s.b);
-        }
-        const bool sectionLike = !drawn.circles.empty() || (box.isValid() && box.max.x - box.min.x <= 1250 && box.max.y - box.min.y <= 450);
-        if (sectionLike) {
-            trayId_.clear();
-            importSelection();
-            return;
-        }
-    }
-    createTray({}, true);
-}
-
-void CanaloPanel::linkSelection()
-{
-    if (!drawing_ || trayId_.isEmpty() || drawing_->selection().empty()) {
-        emit message(tr("CANALINA: scegliere una canalina e selezionare gli oggetti da collegare (sezione o percorso in pianta)."));
-        return;
-    }
-    Document& doc = drawing_->document();
-    std::vector<std::unique_ptr<Entity>> tagged;
-    std::vector<EntityId> replaced;
-    for (EntityId eid : drawing_->selection())
-        if (const Entity* e = doc.find(eid)) {
-            auto copy = e->clone();
-            copy->setCanaloTray(trayId_.toStdString());
-            tagged.push_back(std::move(copy));
-            replaced.push_back(eid);
-        }
-    doc.commit(std::move(tagged), replaced);
-    drawing_->notifyChanged();
-    emit message(tr("%n oggetti collegati alla canalina %1.", nullptr, static_cast<int>(replaced.size())).arg(trayId_));
-    refresh();
+    trayId_.clear();
+    createTray({});
 }
 
 bool CanaloPanel::importSelection()
 {
     if (!drawing_ || drawing_->selection().empty()) {
-        emit message(tr("CANALINA: selezionare la sezione disegnata (cerchi dei cavi, bordo della canalina, sigle)."));
+        emit message(tr("CANALINA: selezionare la sezione disegnata (profilo della canalina, cerchi dei cavi, sigle)."));
         return false;
     }
+    const std::vector<EntityId> selection = drawing_->selection();
     const QString path = tempPath(QStringLiteral("CartesioCAD_sezione.dxf"));
     QString error;
-    if (!exportForCanalo(drawing_->document(), drawing_->selection(), path, &error)) {
+    if (!exportForCanalo(drawing_->document(), selection, path, &error)) {
         emit message(tr("CANALINA: %1").arg(error));
         return false;
     }
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        emit message(tr("CANALINA: file temporaneo non leggibile."));
+    if (!file.open(QIODevice::ReadOnly))
         return false;
-    }
     const QString text = QString::fromUtf8(file.readAll());
     file.close();
     QFile::remove(path);
-    const QString name = QFileInfo(drawing_->displayName()).fileName();
-    const QJsonObject base = trayId_.isEmpty() ? CanaloEngine::instance().defaultState() : state();
-    const QJsonObject st = CanaloEngine::instance().importDxf(base, text, name);
+    // Cavi e sigle con l'importazione di CanaloCAD.
+    QJsonObject st = CanaloEngine::instance().importDxf(CanaloEngine::instance().defaultState(), text,
+                                                        QFileInfo(drawing_->displayName()).fileName());
     if (st.isEmpty()) {
         emit message(tr("CANALINA: %1").arg(CanaloEngine::instance().error()));
         return false;
     }
-    if (trayId_.isEmpty()) {
-        createTray(st, true);
-    } else {
-        // Gli oggetti della sezione entrano nella canalina corrente, che prende misure e cavi letti.
-        linkSelection();
-        store(st, tr("%1: sezione importata dal disegno.").arg(trayId_));
+    // Le misure sono quelle disegnate (CanaloCAD le arrotonda alle misure di catalogo): il profilo orizzontale e
+    // verticale, al millimetro; la sezione di CanaloCAD andrà al suo posto.
+    const BBox outline = outlineBox(drawing_->document(), selection);
+    const double unit = drawingUnit();
+    if (outline.isValid()) {
+        const double w = std::round((outline.max.x - outline.min.x) / unit), h = std::round((outline.max.y - outline.min.y) / unit);
+        if (w >= 30 && w <= 1250 && h >= 20 && h <= 450) {
+            st.insert(QStringLiteral("width"), w);
+            st.insert(QStringLiteral("height"), h);
+        }
+        st.insert(QStringLiteral("cartesioSection"), QJsonObject{{QStringLiteral("x"), outline.min.x}, {QStringLiteral("y"), outline.min.y}});
     }
-    emit message(tr("%1: letti %n cavi, canalina %2 × %3 mm.", nullptr, static_cast<int>(st.value(QStringLiteral("cables")).toArray().size()))
-                     .arg(trayId_, num(dv(st, "width"), 0), num(dv(st, "height"), 0)));
+    st.insert(QStringLiteral("cartesioAutoSize"), false);   // la misura è quella disegnata
+    // Gli oggetti disegnati diventano la sezione della canalina: CanaloCAD la ridisegna al loro posto.
+    trayId_ = QString::fromStdString(drawing_->document().nextCanaloTrayId());
+    tag(selection, QLatin1String(kSectionRole));
+    trayId_.clear();
+    const QString id = QString::fromStdString(drawing_->document().nextCanaloTrayId());
+    createTray(st);
+    emit message(tr("%1: canalina %2 × %3 mm dal disegno, %n cavi letti; la sezione di CanaloCAD è al suo posto (Ctrl+Z torna al disegno).",
+                    nullptr, static_cast<int>(st.value(QStringLiteral("cables")).toArray().size()))
+                     .arg(id, num(dv(st, "width"), 0), num(dv(st, "height"), 0)));
     return true;
 }
 
@@ -666,19 +752,129 @@ void CanaloPanel::importFile(const QString& given)
     const QString text = QString::fromUtf8(file.readAll());
     file.close();
     QFile::remove(dxfPath);
-    const QJsonObject base = trayId_.isEmpty() ? CanaloEngine::instance().defaultState() : state();
-    const QJsonObject st = CanaloEngine::instance().importDxf(base, text, QFileInfo(path).fileName());
+    QJsonObject st = CanaloEngine::instance().importDxf(CanaloEngine::instance().defaultState(), text, QFileInfo(path).fileName());
     if (st.isEmpty()) {
         emit message(tr("CANALINA: %1").arg(CanaloEngine::instance().error()));
         return;
     }
-    if (trayId_.isEmpty())
-        createTray(st, false);
-    else
-        store(st, QString());
+    st.insert(QStringLiteral("cartesioAutoSize"), false);
+    trayId_.clear();
+    createTray(st);
     emit message(tr("%1: importati %n cavi da %2 (canalina %3 × %4 mm). Disegna sezione la mette nel disegno.", nullptr,
                     static_cast<int>(st.value(QStringLiteral("cables")).toArray().size()))
                      .arg(trayId_, QFileInfo(path).fileName(), num(dv(st, "width"), 0), num(dv(st, "height"), 0)));
+}
+
+// ---------------------------------------------------------------- database
+
+void CanaloPanel::setCategory(const QString& key)
+{
+    category_ = key;
+    dbSelected_ = -1;
+    syncOwnCables();
+}
+
+void CanaloPanel::setSearch(const QString& text)
+{
+    search_ = text;
+    dbSelected_ = -1;
+    syncOwnCables();
+}
+
+void CanaloPanel::selectDb(int row)
+{
+    dbSelected_ = row;
+    emit dbChanged();
+}
+
+void CanaloPanel::addFromDb(int row, int quantity, bool trefoil)
+{
+    const QJsonObject item = dbItem(row);
+    if (item.isEmpty() || !drawing_) {
+        emit message(tr("CANALINA: scegliere un cavo nel database."));
+        return;
+    }
+    if (trayId_.isEmpty())
+        createTray({});
+    const int qty = std::clamp(quantity, 1, 30);
+    const QJsonObject st = CanaloEngine::instance().addCable(state(), sv(item, "id"), qty, trefoil);
+    store(st, tr("%1: aggiunto %2 × %3 %4.").arg(trayId_).arg(qty).arg(sv(item, "type"), sv(item, "form")));
+}
+
+// ---------------------------------------------------------------- cavi della canalina
+
+void CanaloPanel::selectCable(int row)
+{
+    cableSelected_ = row;
+    emit changed();
+}
+
+void CanaloPanel::editCable(int row)
+{
+    QJsonObject st = state();
+    QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
+    if (row < 0 || row >= cables.size())
+        return;
+    QJsonObject c = cables[row].toObject();
+    QString code = sv(c, "code"), desc = sv(c, "desc");
+    double ib = dv(c, "ib");
+    FormDialog dialog(tr("Cavo #%1").arg(row + 1), FormDialog::Ok | FormDialog::Cancel, this);
+    dialog.note(tr("%1 %2 — Ø %3 mm").arg(sv(c, "type"), sv(c, "form"), num(dv(c, "d"))));
+    dialog.text(tr("Sigla"), code);
+    dialog.text(tr("Descrizione utenza"), desc);
+    dialog.number(tr("Corrente d'impiego Ib"), 0, 5000, 1, ib, QStringLiteral(" A"));
+    dialog.setSize(420, 260);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    c.insert(QStringLiteral("code"), code.trimmed());
+    c.insert(QStringLiteral("desc"), desc);
+    c.insert(QStringLiteral("ib"), ib);
+    cables[row] = c;
+    st.insert(QStringLiteral("cables"), cables);
+    store(st, tr("%1: cavo %2 modificato.").arg(trayId_, code));
+}
+
+void CanaloPanel::removeCable(int row)
+{
+    QJsonObject st = state();
+    QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
+    if (row < 0 || row >= cables.size())
+        return;
+    const QString code = sv(cables[row].toObject(), "code");
+    cables.removeAt(row);
+    st.insert(QStringLiteral("cables"), cables);
+    cableSelected_ = std::min(cableSelected_, static_cast<int>(cables.size()) - 1);
+    store(st, tr("%1: tolto il cavo %2.").arg(trayId_, code));
+}
+
+void CanaloPanel::clearCables()
+{
+    if (trayId_.isEmpty())
+        return;
+    QJsonObject st = state();
+    st.insert(QStringLiteral("cables"), QJsonArray());
+    cableSelected_ = -1;
+    store(st, tr("%1: tolti tutti i cavi.").arg(trayId_));
+}
+
+void CanaloPanel::setAutoSize(bool on)
+{
+    if (trayId_.isEmpty())
+        return;
+    QJsonObject st = state();
+    st.insert(QStringLiteral("cartesioAutoSize"), on);
+    store(st, on ? tr("%1: misura dai cavi.").arg(trayId_) : tr("%1: misura fissa (Dati canalina).").arg(trayId_));
+}
+
+void CanaloPanel::setReserve(double percent)
+{
+    if (trayId_.isEmpty())
+        return;
+    QJsonObject st = state();
+    if (std::abs(dv(st, "cartesioReserve", 30) - percent) < 0.01)
+        return;
+    st.insert(QStringLiteral("cartesioReserve"), std::clamp(percent, 0.0, 80.0));
+    store(st, QString());
 }
 
 void CanaloPanel::editTray()
@@ -686,12 +882,13 @@ void CanaloPanel::editTray()
     if (!drawing_)
         return;
     if (trayId_.isEmpty())
-        createTray({}, false);
+        createTray({});
     QJsonObject st = state();
     QJsonObject tb = st.value(QStringLiteral("tb")).toObject();
     auto str = [&](const char* k) { return sv(st, k); };
     QString title = str("title"), planTag = str("planTag");
-    double width = dv(st, "width", 200), height = dv(st, "height", 75), length = dv(st, "lengthM", 30), span = dv(st, "spanM", 1.5);
+    const double oldWidth = dv(st, "width", 200), oldHeight = dv(st, "height", 75);
+    double width = oldWidth, height = oldHeight, length = dv(st, "lengthM", 30), span = dv(st, "spanM", 1.5);
     int bends = static_cast<int>(dv(st, "bends90")), tees = static_cast<int>(dv(st, "tees")), reducers = static_cast<int>(dv(st, "reducers"));
     int rei = static_cast<int>(dv(st, "reiCount")), septums = static_cast<int>(dv(st, "septums"));
     QVariant thk = dv(st, "thk", 1.5), trayType = str("trayType"), material = str("material"), cover = str("cover"), earth = str("earth");
@@ -711,6 +908,7 @@ void CanaloPanel::editTray()
     dialog.page(tr("Canalina"));
     dialog.group(tr("Sezione"));
     dialog.text(tr("Titolo"), title);
+    dialog.note(tr("Cambiando larghezza o altezza la misura non segue più i cavi (si rimette con Misura automatica)."));
     dialog.number(tr("Larghezza"), 30, 1200, 0, width, QStringLiteral(" mm"));
     dialog.number(tr("Altezza"), 20, 300, 0, height, QStringLiteral(" mm"));
     dialog.choice(tr("Spessore"), {{QStringLiteral("1,5 mm"), 1.5}, {QStringLiteral("2,0 mm"), 2.0}, {QStringLiteral("2,5 mm"), 2.5}}, thk, set(thk));
@@ -787,6 +985,8 @@ void CanaloPanel::editTray()
     st.insert(QStringLiteral("planTag"), planTag);
     st.insert(QStringLiteral("width"), width);
     st.insert(QStringLiteral("height"), height);
+    if (std::abs(width - oldWidth) > 0.01 || std::abs(height - oldHeight) > 0.01)
+        st.insert(QStringLiteral("cartesioAutoSize"), false);   // misura scelta a mano
     st.insert(QStringLiteral("thk"), thk.toDouble());
     st.insert(QStringLiteral("trayType"), trayType.toString());
     st.insert(QStringLiteral("material"), material.toString());
@@ -827,96 +1027,26 @@ void CanaloPanel::editTray()
     store(st, tr("%1: dati della canalina aggiornati.").arg(trayId_));
 }
 
-void CanaloPanel::autoSize()
-{
-    if (trayId_.isEmpty() || state().value(QStringLiteral("cables")).toArray().isEmpty()) {
-        emit message(tr("CANALINA: prima scegliere i cavi."));
-        return;
-    }
-    double reserve = 30.0;
-    FormDialog dialog(tr("Dimensiona la canalina"), FormDialog::Ok | FormDialog::Cancel, this);
-    dialog.note(tr("Larghezza più stretta (50, 100, 150, 200, 300, 400, 500, 600, 800, 1000 mm) con l'altezza attuale che lascia la "
-                   "riserva di spazio indicata, come Dimensiona di CanaloCAD."));
-    dialog.number(tr("Riserva"), 0, 80, 0, reserve, QStringLiteral(" %"));
-    dialog.setSize(420, 220);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    const QJsonObject st = CanaloEngine::instance().autoSize(state(), reserve);
-    store(st, tr("%1: larghezza %2 mm (riserva %3%).").arg(trayId_, num(dv(st, "width"), 0), num(reserve, 0)));
-}
+// ---------------------------------------------------------------- sezione e tavola
 
 void CanaloPanel::drawSection()
 {
-    if (!drawing_)
+    if (!drawing_ || trayId_.isEmpty())
         return;
-    if (trayId_.isEmpty() || state().value(QStringLiteral("cables")).toArray().isEmpty()) {
-        emit message(tr("CANALINA: prima scegliere i cavi della canalina."));
-        return;
-    }
-    CanaloEngine& engine = CanaloEngine::instance();
     QJsonObject st = state();
-    // La sezione della tavola di CanaloCAD al vero (scala 1:1): profilo, cavi, bandierine, quote, staffaggio.
-    QJsonObject real = st;
-    real.insert(QStringLiteral("scale"), QStringLiteral("1:1"));
-    const QString path = tempPath(QStringLiteral("CartesioCAD_%1_sezione.dxf").arg(trayId_));
-    {
-        QFile file(path);
-        if (!file.open(QIODevice::WriteOnly)) {
-            emit message(tr("CANALINA: file temporaneo non scrivibile."));
-            return;
-        }
-        file.write(engine.dxfBytes(real, sv(st, "title")));
+    const bool first = !st.contains(QStringLiteral("cartesioSection"));
+    if (first) {   // a destra di quello che c'è nel disegno
+        const BBox existing = drawing_->document().extents();
+        const Vec2 at = existing.isValid() ? Vec2{existing.max.x + 300.0 * drawingUnit(), existing.min.y} : Vec2{0.0, 0.0};
+        st.insert(QStringLiteral("cartesioSection"), QJsonObject{{QStringLiteral("x"), at.x}, {QStringLiteral("y"), at.y}});
     }
-    Document source;
-    QString error;
-    const bool read = DrawingWidget::readFile(path, source, &error);
-    QFile::remove(path);
-    if (!read) {
-        emit message(tr("CANALINA: %1").arg(error));
-        return;
-    }
-    Document& doc = drawing_->document();
-    const double unit = drawingUnit();
-    // Dove: al posto della sezione di prima (stesso punto), altrimenti a destra del disegno.
-    const std::vector<EntityId> old = trayEntities(trayId_, true);
-    const QJsonObject where = st.value(QStringLiteral("cartesioSection")).toObject();
-    Vec2 origin;
-    if (!old.empty() && where.contains(QStringLiteral("x"))) {
-        origin = {dv(where, "x"), dv(where, "y")};
-    } else {
-        const BBox existing = doc.extents();
-        origin = existing.isValid() ? Vec2{existing.max.x + 300.0 * unit, existing.min.y} : Vec2{0.0, 0.0};
-    }
-    const Affine place = Affine::translation(origin) * Affine::scaling({0.0, 0.0}, unit);
-    const ImportSource src = ImportSource::from(source);
-    Importer importer(doc, src);
-    std::vector<std::unique_ptr<Entity>> added;
-    std::vector<const Entity*> raw;
-    for (const auto& e : source.entities()) {
-        const int li = e->layer();
-        const std::string layer = li >= 0 && li < static_cast<int>(source.layers().size()) ? source.layers()[static_cast<std::size_t>(li)].name : "";
-        if (!sectionLayers().count(layer) || e->space() != 0)
-            continue;
-        auto copy = importer.copy(*e);
-        copy->transform(place);
-        copy->setCanaloTray(trayId_.toStdString());
-        raw.push_back(copy.get());
-        added.push_back(std::move(copy));
-    }
-    if (added.empty()) {
-        emit message(tr("CANALINA: la tavola di CanaloCAD non ha la sezione."));
-        return;
-    }
-    doc.commit(std::move(added), old);
-    st.insert(QStringLiteral("cartesioSection"), QJsonObject{{QStringLiteral("x"), origin.x}, {QStringLiteral("y"), origin.y}});
-    std::vector<EntityId> ids;
+    store(st, first ? tr("%1: sezione disegnata al vero; si aggiorna da sola a ogni cambio (si sposta con MOVE).").arg(trayId_)
+                    : tr("%1: sezione aggiornata.").arg(trayId_));
+    const std::vector<EntityId> ids = sectionEntities();
     BBox box;
-    for (const Entity* e : raw) {
-        ids.push_back(e->id());
-        box.expand(e->bounds());
-    }
-    store(st, old.empty() ? tr("%1: sezione disegnata al vero (si sposta con MOVE; Ctrl+Z la toglie).").arg(trayId_)
-                          : tr("%1: sezione ridisegnata con i dati attuali.").arg(trayId_));
+    for (EntityId id : ids)
+        if (const Entity* e = drawing_->document().find(id))
+            box.expand(e->bounds());
     drawing_->setSelection(ids);
     if (box.isValid()) {
         const double mx = (box.max.x - box.min.x) * 0.15, my = (box.max.y - box.min.y) * 0.25;
@@ -937,11 +1067,12 @@ void CanaloPanel::insertSheet()
     // Se il blocco c'è già si aggiorna (anche le tavole già inserite).
     const QString name = QStringLiteral("Tavola_%1").arg(trayId_);
     const QString path = tempPath(name + QStringLiteral(".dxf"));
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly))
-        return;
-    file.write(CanaloEngine::instance().dxfBytes(state(), sv(state(), "title")));
-    file.close();
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly))
+            return;
+        file.write(CanaloEngine::instance().dxfBytes(state(), sv(state(), "title")));
+    }
     Document& doc = drawing_->document();
     if (doc.findBlock(name.toStdString())) {
         Document source;
@@ -961,8 +1092,10 @@ void CanaloPanel::insertSheet()
     if (!drawing_->insertFile(path, &error))
         emit message(tr("CANALINA: %1").arg(error));
     else
-        emit message(tr("Tavola di CanaloCAD (%1): indicare il punto d'inserimento.").arg(name));
+        emit message(tr("Tavola di CanaloCAD (%1): indicare nel disegno il punto d'inserimento.").arg(name));
     QFile::remove(path);
+    if (isActiveWindow())
+        drawing_->window()->activateWindow();   // il punto si sceglie nel disegno
 }
 
 void CanaloPanel::insertSheetAt(Vec2 at)
@@ -1000,8 +1133,7 @@ void CanaloPanel::saveSheet()
 {
     if (trayId_.isEmpty())
         return;
-    const QString title = sv(state(), "title");
-    QString name = title;
+    QString name = sv(state(), "title");
     name.replace(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|]+")), QStringLiteral("_"));
     const QString start = drawing_ && !drawing_->filePath().isEmpty() ? QFileInfo(drawing_->filePath()).absolutePath() : QString();
     const QString path = QFileDialog::getSaveFileName(this, tr("Salva la tavola DXF"), QDir(start).filePath(name + QStringLiteral(".dxf")),
@@ -1053,8 +1185,7 @@ void CanaloPanel::newOwnCable()
 
 void CanaloPanel::editOwnCable()
 {
-    const QJsonObject base = dbItem(dbSelected_);
-    const QString id = sv(base, "id");
+    const QString id = sv(dbItem(dbSelected_), "id");
     if (!id.startsWith(QStringLiteral("USR_"))) {
         emit message(tr("CANALINA: si modificano solo i cavi personali (per uno del database: Nuovo cavo, che parte dai suoi dati)."));
         return;
@@ -1106,7 +1237,7 @@ bool CanaloPanel::composeFromIds(const QString& list, QString* error)
     QJsonObject st = engine.defaultState();
     for (const QString& item : list.split(u',', Qt::SkipEmptyParts)) {
         const QStringList parts = item.trimmed().split(u'*');
-        QString id = parts.value(0).trimmed();
+        const QString id = parts.value(0).trimmed();
         const int qty = parts.size() > 1 ? std::max(1, parts.value(1).toInt()) : 1;
         const int before = static_cast<int>(st.value(QStringLiteral("cables")).toArray().size());
         QJsonObject next = engine.addCable(st, id, qty, false);
@@ -1119,9 +1250,9 @@ bool CanaloPanel::composeFromIds(const QString& list, QString* error)
         }
         st = next;
     }
-    st = engine.autoSize(st, 30.0);
+    st.insert(QStringLiteral("cartesioAutoSize"), true);
     trayId_.clear();
-    createTray(st, false);
+    createTray(st);
     drawSection();
     return true;
 }

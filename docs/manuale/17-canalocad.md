@@ -6,33 +6,33 @@ Il database contiene solo tipologie, senza costruttori: per i cavi le designazio
 
 ## Canalina (`CANALINA`, `CANALINE`, `CABLETRAY`)
 
-**Dove:** Plugin > CanaloCAD > Canalina. La tavolozza resta aperta di fianco al disegno.
+**Dove:** Plugin > CanaloCAD > Canalina. Si apre una finestra a sé, che si sposta e si allarga (anche su un altro schermo) e resta aperta mentre si lavora nel disegno.
 
-1. **Disegnare la canalina**: la sezione (un rettangolo o un profilo a U di L×H mm, anche con i cerchi dei cavi e le sigle) e/o il percorso in pianta (linee, polilinee).
-2. **Collegarla**: selezionare gli oggetti e premere **Nuova canalina**. Se è una sezione, misure e cavi si leggono dal disegno con l'importazione di CanaloCAD (cerchi = cavi, bordo = canalina, testi = sigle; misure anche dai testi come `L=300 H=75`, `CANALINA 75x300`). **Collega selezione** aggiunge altri oggetti a una canalina già creata, per esempio il percorso in pianta della sua sezione. Ogni canalina ha un codice (CN1, CN2...).
-3. **Scegliere i cavi** dal **database**, sempre visibile in alto: categorie (BT multipolari e unipolari, fuoco e sicurezza, segnale e bus, dati e fibra, cavi propri, tutti) e ricerca. Si indica la quantità (con più cavi la sigla prende le fasi L1, L2, L3, N, PE) e **Terna a trifoglio** per gli unipolari, poi **Aggiungi** o doppio clic. Senza una canalina scelta, ne nasce una nuova.
-   In alternativa **Importa selezione** (la sezione selezionata) o **Importa DWG/DXF...** (un file, come Importa DWG/DXF di CanaloCAD).
-4. **Selezionando un oggetto della canalina** (sezione, percorso, tavola) la tavolozza mostra i suoi **cavi** e il **riepilogo** dei calcoli di CanaloCAD: riempimento e riserva, coefficiente di riduzione della portata Kr (fascio, strati, posa), segregazione CEI 64-8 art. 528.1, peso, carico e freccia dello staffaggio, tiro di posa, raggio di curvatura, portata (con le correnti d'impiego) e distinta dei materiali. In rosso quello che CanaloCAD segnala (segregazione, sovraccarico, tiro, portata).
+1. **Disegnare la canalina**: la sezione (un rettangolo o un profilo a U di L×H, anche con i cerchi dei cavi e le sigle) e/o il percorso in pianta (linee, polilinee).
+2. **Selezionarla e premere Usa selezione.** Una sezione diventa una canalina con **le misure disegnate** (al millimetro: un rettangolo di 320×80 dà una canalina di 320×80) e i cavi letti dal disegno con l'importazione di CanaloCAD (cerchi = cavi, testi = sigle); al posto degli oggetti disegnati CanaloCAD ridisegna la sezione al vero: profilo, cavi con i conduttori, bandierine, quote, staffaggio (Ctrl+Z torna al disegno di prima). Un percorso in pianta si collega alla canalina scelta; un oggetto di una canalina la mostra. Ogni canalina ha un codice (CN1, CN2...).
+   Si può anche partire senza disegnare: **Nuova**, o direttamente un cavo dal database.
+3. **Scheda Cavi**: a sinistra il **database** (categorie: BT multipolari e unipolari, fuoco e sicurezza, segnale e bus, dati e fibra, cavi propri, tutti; ricerca), a destra i **cavi della canalina**. Quantità (con più cavi la sigla prende le fasi L1, L2, L3, N, PE), **Terna a trifoglio** per gli unipolari, poi **Aggiungi** o doppio clic. **Modifica...** (o doppio clic) cambia sigla, descrizione e corrente d'impiego Ib; **Togli**, **Svuota**. La sezione nel disegno si aggiorna a ogni cambio.
+   **Misura automatica dai cavi** (con la **riserva** in %): la larghezza è la più stretta, non meno dell'altezza, che lascia la riserva e tiene i cavi dentro l'altezza, come Dimensiona di CanaloCAD. È attiva per le canaline nate dal database; per quelle disegnate la misura è quella del disegno, e se è piccola per i cavi il riepilogo lo dice in rosso con la larghezza che servirebbe.
+   In basso, sempre visibili: misura, riempimento, Kr, segregazione.
+4. **Scheda Riepilogo e tavola**: i calcoli di CanaloCAD (riempimento e riserva, coefficiente di riduzione della portata Kr con fascio, strati e posa, segregazione CEI 64-8 art. 528.1, peso, carico e freccia dello staffaggio, tiro di posa, raggio di curvatura, portata con le correnti d'impiego) e la distinta dei materiali. In rosso quello che CanaloCAD segnala. **Disegna sezione** mette la sezione di una canalina nata dal database a destra del disegno (poi si aggiorna da sola; **Mostra la sezione** la inquadra). **Inserisci tavola** inserisce la tavola completa come blocco `Tavola_CN1` (si sceglie il punto); se c'è già, la aggiorna insieme alle copie inserite. **Salva tavola DXF...** salva il file della tavola, lo stesso che esporta CanaloCAD.
 
-Nella tabella dei cavi: **Modifica...** (o doppio clic) cambia sigla, descrizione e corrente d'impiego Ib; **Togli** e **Svuota**. **Dimensiona...** sceglie la larghezza per la riserva voluta, come Dimensiona di CanaloCAD.
+Selezionando nel disegno un oggetto di una canalina (sezione, percorso, tavola) la finestra passa a quella canalina.
 
-**Dati canalina...**: titolo, misure, spessore, tipo di profilo, materiale e finitura, coperchio, setti, disposizione dei cavi (per gravità o come disegnati), conduttore PE, paraspigoli, fascette, distanza dal soffitto; tratto (lunghezza, curve, derivazioni, riduzioni, attraversamenti EI120); staffaggio e passo, antisismico; per la tavola scala, dimensione dei testi, impaginazione, vista 3D, curva di carico, distinta, cartiglio, descrizione delle utenze, bandierine, cartellino in pianta e i dati del cartiglio.
-
-**Disegna sezione** mette nel disegno la sezione di CanaloCAD al vero (profilo, cavi con i conduttori, bandierine e sigle, quote, staffaggio), con i layer di CanaloCAD, a destra del disegno; si sposta con `MOVE` e, ridisegnandola dopo una modifica, si aggiorna al suo posto. **Inserisci tavola** inserisce la tavola completa come blocco `Tavola_CN1` (si sceglie il punto); se c'è già, la aggiorna insieme alle copie inserite. **Salva tavola DXF...** salva il file della tavola, lo stesso che esporta CanaloCAD.
+**Dati canalina...**: titolo, misure, spessore, tipo di profilo, materiale e finitura, coperchio, setti, disposizione dei cavi (per gravità o come disegnati), conduttore PE, paraspigoli, fascette, distanza dal soffitto; tratto (lunghezza, curve, derivazioni, riduzioni, attraversamenti EI120); staffaggio e passo, antisismico; per la tavola scala, dimensione dei testi, impaginazione, vista 3D, curva di carico, distinta, cartiglio, descrizione delle utenze, bandierine, cartellino in pianta e i dati del cartiglio. Cambiando a mano larghezza o altezza la misura non segue più i cavi. **Importa DWG/DXF...** crea una canalina dalla sezione di un file, come Importa DWG/DXF di CanaloCAD.
 
 Le canaline (dati e cavi) si salvano nel disegno (DWG/DXF) e ogni modifica si annulla con Ctrl+Z.
 
-**Cavi propri.** Un cavo che non c'è nel database si crea con **Nuovo cavo...** (parte dai dati del cavo scelto): codice, tipo, formazione, descrizione, diametro esterno, peso (0 = stimato dal diametro), sezione, portata di riferimento e sistema (energia, sicurezza, segnale: conta per la segregazione). Va nella **libreria personale**, salvata nelle impostazioni del programma e valida per tutti i disegni; **Modifica...** ed **Elimina** valgono per i cavi personali. Nella categoria *Cavi propri* ci sono anche i cavi propri del progetto dell'impianto aperto (tavolozza Impianto).
+**Cavi propri.** Un cavo che non c'è nel database si crea con **Nuovo cavo...** (parte dai dati del cavo scelto): codice, tipo, formazione, descrizione, diametro esterno, peso (0 = stimato dal diametro), sezione, portata di riferimento e sistema (energia, sicurezza, segnale: conta per la segregazione). Va nella **libreria personale**, salvata nelle impostazioni del programma e valida per tutti i disegni; **Modifica...** ed **Elimina** compaiono scegliendo un cavo personale. Nella categoria *Cavi propri* ci sono anche i cavi propri del progetto dell'impianto aperto (tavolozza Impianto).
 
 ## Verifica sezione (`CANALOVERIFICA`, `CANALOCHECK`)
 
-**Dove:** Plugin > CanaloCAD > Verifica sezione. Apre la tavolozza Canalina con la canalina degli oggetti selezionati; una sezione disegnata non ancora collegata diventa una canalina nuova, con misure e cavi letti dal disegno.
+**Dove:** Plugin > CanaloCAD > Verifica sezione. Apre la finestra Canalina con la canalina degli oggetti selezionati; una sezione disegnata non ancora collegata diventa una canalina nuova, come con Usa selezione.
 
 Negli script: `-CANALOVERIFICA` (risultati nella riga di comando) e `-CANALOTAVOLA` (anche la tavola di CanaloCAD accanto alla sezione).
 
 ## Sezione dal database (`CANALOSEZIONE`, `CANALOCAVI`)
 
-Apre la tavolozza Canalina. Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4` (codici del database, i cavi personali come `USR_codice`, la quantità dopo `*`, senza spazi) crea una canalina con quei cavi, la dimensiona (riserva 30%) e ne disegna la sezione.
+Apre la finestra Canalina. Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,DATA_CAT6*4` (codici del database, i cavi personali come `USR_codice`, la quantità dopo `*`, senza spazi) crea una canalina con quei cavi, la dimensiona (misura automatica, riserva 30%) e ne disegna la sezione.
 
 ## Apri CanaloCAD (`CANALOCAD`, `CANALO`)
 

@@ -1,25 +1,24 @@
 #pragma once
 
-// Tavolozza Canalina (comando CANALINA), disegnata in QML (qml/CanaloPanel.qml): le canaline portacavi del disegno
-// con i calcoli e la tavola di CanaloCAD (app/CanaloEngine, il codice della pagina).
+// Finestra Canalina (comando CANALINA), disegnata in QML (qml/CanaloPanel.qml): le canaline portacavi del disegno con
+// i calcoli e la tavola di CanaloCAD (app/CanaloEngine, il codice della pagina). Una finestra a sé, grande e
+// spostabile (anche su un altro schermo), con due schede: Cavi (database e cavi della canalina) e Riepilogo.
 //
-// Flusso: si disegna la canalina (la sezione L×H e/o il percorso in pianta) e la si collega, oppure se ne crea una
-// nuova; si scelgono i cavi dal database (sempre visibile: categorie, ricerca, quantità, terna) o si importano da
-// una sezione disegnata o da un file DWG/DXF; selezionando un oggetto della canalina si vede il riepilogo dei
-// calcoli. La sezione si può disegnare dai cavi scelti, e la tavola che si inserisce è quella di CanaloCAD.
+// Flusso: si disegna la canalina (la sezione L×H, anche con i cavi, e/o il percorso in pianta), la si seleziona e
+// Usa selezione la collega: le misure della sezione sono quelle disegnate e la sezione di CanaloCAD si disegna al
+// suo posto, aggiornata a ogni cambio. Oppure si sceglie direttamente dal database: la canalina nasce dalla lista
+// dei cavi con la misura scelta in automatico (riserva voluta).
 //
-// Lo stato di ogni canalina (il JSON della pagina) è nel documento (Document::canaloTrays), gli oggetti hanno il
-// codice (Entity::canaloTray): si salva nel DWG/DXF e si annulla con Ctrl+Z.
+// Lo stato di ogni canalina (il JSON della pagina, più i dati di CartesioCAD "cartesio...") è nel documento
+// (Document::canaloTrays); gli oggetti hanno il codice (Entity::canaloTray: "CN1" per il percorso, "CN1/sezione" per
+// la sezione). Si salva nel DWG/DXF e si annulla con Ctrl+Z.
 
-#include "core/Canalo.h"
 #include "core/Entity.h"
 
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QQuickWidget>
 #include <QVariant>
-
-#include <map>
 
 namespace cartesio {
 
@@ -31,15 +30,19 @@ class CanaloPanel : public QQuickWidget {
     Q_PROPERTY(bool hasTray READ hasTray NOTIFY changed)
     Q_PROPERTY(QString trayTitle READ trayTitle NOTIFY changed)
     Q_PROPERTY(QString statusText READ statusText NOTIFY changed)
+    Q_PROPERTY(QString quickSummary READ quickSummary NOTIFY changed)
+    Q_PROPERTY(int quickLevel READ quickLevel NOTIFY changed)
+    Q_PROPERTY(bool autoSize READ autoSize NOTIFY changed)
+    Q_PROPERTY(double reserve READ reserve NOTIFY changed)
+    Q_PROPERTY(bool sectionPlaced READ sectionPlaced NOTIFY changed)
     Q_PROPERTY(QVariantList categories READ categories CONSTANT)
     Q_PROPERTY(QString category READ category NOTIFY dbChanged)
-    Q_PROPERTY(QString search READ search NOTIFY dbChanged)
     Q_PROPERTY(QVariantList dbRows READ dbRows NOTIFY dbChanged)
     Q_PROPERTY(int dbSelected READ dbSelected NOTIFY dbChanged)
+    Q_PROPERTY(bool ownSelected READ ownSelected NOTIFY dbChanged)
     Q_PROPERTY(QVariantList cableRows READ cableRows NOTIFY changed)
     Q_PROPERTY(int cableSelected READ cableSelected NOTIFY changed)
     Q_PROPERTY(QVariantList summary READ summary NOTIFY changed)
-    Q_PROPERTY(bool ownSelected READ ownSelected NOTIFY dbChanged)
 
 public:
     explicit CanaloPanel(QWidget* parent = nullptr);
@@ -48,25 +51,35 @@ public:
     void setPlant(PlantPanel* plant) { plant_ = plant; }
     // Selezione o disegno cambiati: la canalina degli oggetti selezionati.
     void refresh();
+    // Apre (o porta davanti) la finestra.
+    void showWindow();
 
     bool hasTray() const { return !trayId_.isEmpty(); }
-    QString trayId() const { return trayId_; }
     QString trayTitle() const;
     QString statusText() const { return status_; }
+    QString quickSummary() const;
+    int quickLevel() const;
+    bool autoSize() const;
+    double reserve() const;
+    bool sectionPlaced() const;
     QVariantList categories() const;
     QString category() const { return category_; }
-    QString search() const { return search_; }
     QVariantList dbRows() const;
     int dbSelected() const { return dbSelected_; }
+    bool ownSelected() const;
     QVariantList cableRows() const;
     int cableSelected() const { return cableSelected_; }
     QVariantList summary() const;
-    bool ownSelected() const;
 
     // Risultati della canalina corrente come righe di testo (riga di comando, script).
     QStringList reportLines() const;
 
     // Dal QML (e dai comandi).
+    // Gli oggetti selezionati: una canalina già collegata si mostra; una sezione disegnata (profilo, cerchi, sigle)
+    // diventa una canalina nuova con le sue misure; un percorso in pianta si collega alla canalina corrente (o a una
+    // nuova).
+    Q_INVOKABLE void useSelection();
+    Q_INVOKABLE void newTray();
     Q_INVOKABLE void setCategory(const QString& key);
     Q_INVOKABLE void setSearch(const QString& text);
     Q_INVOKABLE void selectDb(int row);
@@ -76,17 +89,13 @@ public:
     Q_INVOKABLE void editCable(int row);
     Q_INVOKABLE void removeCable(int row);
     Q_INVOKABLE void clearCables();
-    // Canalina nuova, collegata agli oggetti selezionati (la sezione o il percorso in pianta, se ci sono).
-    Q_INVOKABLE void newTray();
-    // Gli oggetti selezionati entrano nella canalina corrente (es. il percorso in pianta).
-    Q_INVOKABLE void linkSelection();
-    // Cavi e misure dalla sezione selezionata (cerchi, bordo, sigle), con l'importazione di CanaloCAD.
-    Q_INVOKABLE bool importSelection();
-    // Da un file DWG o DXF (come "Importa DWG/DXF" di CanaloCAD).
+    Q_INVOKABLE void setAutoSize(bool on);
+    Q_INVOKABLE void setReserve(double percent);
+    // Sezione dalla selezione (anche già collegata); da un file DWG o DXF (come Importa DWG/DXF di CanaloCAD).
+    bool importSelection();
     Q_INVOKABLE void importFile(const QString& path = {});
     Q_INVOKABLE void editTray();
-    Q_INVOKABLE void autoSize();
-    // Sezione al vero nel disegno (profilo, cavi, bandierine, quote di CanaloCAD): sostituisce quella di prima.
+    // Sezione di CanaloCAD al vero nel disegno: sulla sezione disegnata, o a destra del disegno.
     Q_INVOKABLE void drawSection();
     // Tavola di CanaloCAD inserita come blocco (si sceglie il punto); `at` già dato negli script.
     Q_INVOKABLE void insertSheet();
@@ -107,16 +116,24 @@ signals:
     void message(const QString& text);
     void guideRequested();
 
+protected:
+    void closeEvent(QCloseEvent* event) override;
+
 private:
-    QJsonObject state() const;            // della canalina corrente (o quello iniziale)
-    void store(const QJsonObject& state, const QString& what);   // nel documento, annullabile
-    QString createTray(const QJsonObject& state, bool linkSelected);
+    QJsonObject state() const;   // della canalina corrente (o quello iniziale)
+    // Nel documento, annullabile in un passo: misura automatica, poi la sezione disegnata (se c'è) aggiornata.
+    void store(QJsonObject state, const QString& what);
+    QString createTray(QJsonObject state);
+    void tag(const std::vector<EntityId>& ids, const QString& role);
     void syncOwnCables();
     QJsonArray ownCablesJson() const;
     QJsonObject dbItem(int row) const;
-    std::vector<EntityId> trayEntities(const QString& id, bool sectionOnly) const;
+    std::vector<EntityId> sectionEntities() const;
+    // La sezione di CanaloCAD al punto `cartesioSection` (unità del disegno), al posto di quella di prima.
+    std::vector<EntityId> commitSection(const QJsonObject& state);
     void updateSummary();
-    double drawingUnit() const;           // unità di disegno per millimetro
+    double drawingUnit() const;   // unità di disegno per millimetro
+    int minimumWidth(const QJsonObject& state) const;   // per i cavi, con la riserva (0 se ci stanno)
 
     DrawingWidget* drawing_ = nullptr;
     PlantPanel* plant_ = nullptr;
@@ -126,10 +143,10 @@ private:
     QString search_;
     int dbSelected_ = -1;
     int cableSelected_ = -1;
-    QJsonArray db_;                       // catalogo della pagina più i cavi propri
+    QJsonArray db_;   // catalogo della pagina più i cavi propri
     std::vector<int> dbFiltered_;
-    QJsonObject metrics_;                 // risultati della canalina corrente
-    QString metricsFor_;                  // stato a cui si riferiscono
+    QJsonObject metrics_;   // risultati della canalina corrente
+    QString metricsFor_;    // stato a cui si riferiscono
 };
 
 } // namespace cartesio

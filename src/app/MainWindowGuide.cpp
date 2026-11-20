@@ -3,6 +3,7 @@
 #include "app/MainWindow.h"
 #include "app/MainView.h"
 
+#include "app/CanaloPanel.h"
 #include "app/CircuitsPanel.h"
 #include "app/DrawingWidget.h"
 #include "app/GuidePanel.h"
@@ -134,10 +135,10 @@ void MainWindow::guideCheckStep()
         ok = ribbon_->currentTabTitle() == done.value(QStringLiteral("name")).toString();
     } else if (type == QLatin1String("panel")) {
         static const QStringList names = {QStringLiteral("Properties"), QStringLiteral("Layers"), QStringLiteral("Circuits"),
-                                          QStringLiteral("Library"), QStringLiteral("Plant"), QStringLiteral("Guide"),
-                                          QStringLiteral("Canalo")};
+                                          QStringLiteral("Library"), QStringLiteral("Plant"), QStringLiteral("Guide")};
         const int index = names.indexOf(done.value(QStringLiteral("name")).toString());
-        ok = index >= 0 && panelShown(index);
+        // La Canalina è una finestra a sé.
+        ok = done.value(QStringLiteral("name")).toString() == QLatin1String("Canalo") ? canalo_->isVisible() : index >= 0 && panelShown(index);
     } else if (type == QLatin1String("plantProject")) {
         ok = plant_->hasProject();
     } else if (type == QLatin1String("plantCircuits")) {
