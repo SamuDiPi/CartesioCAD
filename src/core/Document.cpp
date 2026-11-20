@@ -770,7 +770,8 @@ std::shared_ptr<BlockDef> cloneBlock(const BlockDef& b)
 Document::TableState Document::currentTables() const
 {
     return {layers_,         currentLayer_,       blocks_,      textStyles_,     currentTextStyle_, dimStyles_,
-            currentDimStyle_, mleaderStyles_, currentMLeaderStyle_, annoScales_, annotationScale_, annoAllVisible_};
+            currentDimStyle_, mleaderStyles_, currentMLeaderStyle_, annoScales_, annotationScale_, annoAllVisible_,
+            canaloTrays_};
 }
 
 void Document::restoreTables(const TableState& state)
@@ -790,6 +791,7 @@ void Document::restoreTables(const TableState& state)
     annoScales_ = state.annoScales;
     annotationScale_ = state.annotationScale;
     annoAllVisible_ = state.annoAllVisible;
+    canaloTrays_ = state.canaloTrays;
     ++revision_;
 }
 

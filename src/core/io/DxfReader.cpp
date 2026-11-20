@@ -443,7 +443,8 @@ void Reader::add(std::unique_ptr<Entity> e, const Record& r, bool ocs)
                 app = value;
             } else if (app == "CARTESIOCAD_IMPIANTO" && code == 1000) {
                 e->setPlantRun(value);
-                break;
+            } else if (app == "CARTESIOCAD_CANALO" && code == 1000) {
+                e->setCanaloTray(value);
             }
         }
     }
@@ -644,6 +645,25 @@ void Reader::process(const Record& r, const std::string& section)
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_IMPIANTO") {
             if (const auto path = r.text(1); path)
                 doc_.setPlantFile(*path);
+        }
+        // Canaline portacavi: 2 codice, poi i pezzi (1) dello stato JSON.
+        if (r.type == "XRECORD" && dictionaryNames_.count(r.text(5).value_or(""))
+            && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_CANALO") {
+            std::string id, json;
+            auto flush = [&] {
+                if (!id.empty() && !json.empty())
+                    doc_.setCanaloTray(id, json);
+                json.clear();
+            };
+            for (const auto& [code, value] : r.values) {
+                if (code == 2) {
+                    flush();
+                    id = value;
+                } else if (code == 1) {
+                    json += value;
+                }
+            }
+            flush();
         }
         if (r.type == "XRECORD" && dictionaryNames_.count(r.text(5).value_or(""))
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_LAYOUTGROUPS") {

@@ -80,6 +80,18 @@ if(CARTESIO_BUILD_APP)
     find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets PrintSupport Qml Quick QuickWidgets GuiPrivate)
     qt_standard_project_setup()
 
+    # Motore di CanaloCAD: il codice della pagina (plugins/CanaloCAD/engine, da scripts/update-canalo.sh)
+    # eseguito con il motore JavaScript di Qt; incorporato nell'eseguibile.
+    qt_add_library(cartesio_canalo_engine STATIC src/app/CanaloEngine.h src/app/CanaloEngine.cpp)
+    qt_add_resources(cartesio_canalo_engine "canalo_engine" PREFIX "/canalo" BASE plugins/CanaloCAD/engine
+        FILES plugins/CanaloCAD/engine/host.js plugins/CanaloCAD/engine/canalo-engine.js
+              plugins/CanaloCAD/engine/cartesio-api.js)
+    target_include_directories(cartesio_canalo_engine PUBLIC src)
+    # HarfBuzz: larghezza dei testi come il browser (crenatura e unità esatte del font).
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(HARFBUZZ REQUIRED IMPORTED_TARGET harfbuzz)
+    target_link_libraries(cartesio_canalo_engine PUBLIC Qt6::Gui Qt6::Qml PRIVATE PkgConfig::HARFBUZZ)
+
     qt_add_executable(CartesioCAD WIN32 MACOSX_BUNDLE
         src/app/main.cpp
         src/app/MainWindow.h
@@ -184,7 +196,7 @@ if(CARTESIO_BUILD_APP)
               src/app/qml/PlotDialog.qml src/app/qml/MainView.qml
               src/app/qml/PlotPreview.qml src/app/qml/StyleEditor.qml src/app/qml/UiCheckBox.qml src/app/qml/UiComboBox.qml
               src/app/qml/UiSpinBox.qml src/app/qml/UiPushButton.qml src/app/qml/UiLineEdit.qml src/app/qml/UiBox.qml)
-    target_link_libraries(CartesioCAD PRIVATE cartesio_core Qt6::Widgets Qt6::PrintSupport Qt6::Qml Qt6::Quick Qt6::QuickWidgets
+    target_link_libraries(CartesioCAD PRIVATE cartesio_core cartesio_canalo_engine Qt6::Widgets Qt6::PrintSupport Qt6::Qml Qt6::Quick Qt6::QuickWidgets
                           Qt6::GuiPrivate)
     if(WIN32)
         target_link_libraries(CartesioCAD PRIVATE gdi32 ole32)   # metafile degli oggetti OLE, correttore ortografico
@@ -282,6 +294,14 @@ if(CARTESIO_BUILD_TESTS)
     target_link_libraries(cartesio_core_tests PRIVATE cartesio_core)
     target_compile_definitions(cartesio_core_tests PRIVATE CARTESIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME core_tests COMMAND cartesio_core_tests)
+
+    # Motore di CanaloCAD: tavola DXF identica a quella della pagina (tests/canalo_dxf).
+    if(TARGET cartesio_canalo_engine)
+        add_executable(cartesio_canalo_engine_tests tests/canalo_engine_tests.cpp)
+        target_link_libraries(cartesio_canalo_engine_tests PRIVATE cartesio_canalo_engine)
+        target_compile_definitions(cartesio_canalo_engine_tests PRIVATE CARTESIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+        add_test(NAME canalo_engine_tests COMMAND cartesio_canalo_engine_tests)
+    endif()
 
     add_executable(cartesio_dxfinfo tests/dxf_info.cpp)
     target_link_libraries(cartesio_dxfinfo PRIVATE cartesio_core)

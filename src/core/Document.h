@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -334,6 +335,32 @@ public:
         plantFile_ = std::move(path);
         ++revision_;
     }
+    // Canaline portacavi del disegno: codice (CN1, CN2...) -> stato della sezione di CanaloCAD in JSON (misure,
+    // tipologia, staffaggio, cavi...). Gli oggetti della canalina hanno il codice (Entity::canaloTray). Le modifiche
+    // si annullano come quelle dei layer: dopo il cambio, checkpoint().
+    const std::map<std::string, std::string>& canaloTrays() const { return canaloTrays_; }
+    const std::string* canaloTray(const std::string& id) const
+    {
+        const auto it = canaloTrays_.find(id);
+        return it == canaloTrays_.end() ? nullptr : &it->second;
+    }
+    void setCanaloTray(const std::string& id, std::string json)
+    {
+        canaloTrays_[id] = std::move(json);
+        ++revision_;
+    }
+    void removeCanaloTray(const std::string& id)
+    {
+        if (canaloTrays_.erase(id))
+            ++revision_;
+    }
+    // Prossimo codice libero ("CN1", "CN2"...).
+    std::string nextCanaloTrayId() const
+    {
+        for (int n = 1;; ++n)
+            if (!canaloTrays_.count("CN" + std::to_string(n)))
+                return "CN" + std::to_string(n);
+    }
     int insUnits() const { return insUnits_; }
     void setInsUnits(int units) { insUnits_ = units; }
     // Limiti del disegno nello spazio modello ($LIMMIN, $LIMMAX).
@@ -444,13 +471,15 @@ private:
         std::vector<AnnoScale> annoScales;
         std::string annotationScale;
         bool annoAllVisible = true;
+        std::map<std::string, std::string> canaloTrays;
         // Stili e scale uguali (i layer e i blocchi si confrontano a parte).
         bool sameStyles(const TableState& o) const
         {
             return textStyles == o.textStyles && currentTextStyle == o.currentTextStyle && dimStyles == o.dimStyles
                    && currentDimStyle == o.currentDimStyle && mleaderStyles == o.mleaderStyles
                    && currentMLeaderStyle == o.currentMLeaderStyle && annoScales == o.annoScales
-                   && annotationScale == o.annotationScale && annoAllVisible == o.annoAllVisible;
+                   && annotationScale == o.annotationScale && annoAllVisible == o.annoAllVisible
+                   && canaloTrays == o.canaloTrays;
         }
     };
     struct Step {
@@ -511,6 +540,7 @@ private:
     EntityId nextId_ = 1;
     std::uint64_t revision_ = 0;
     std::string plantFile_;
+    std::map<std::string, std::string> canaloTrays_;
     // Ingombri delle entità, ricalcolati quando cambia la revisione.
     // Ingombri degli oggetti, allineati a entities_, con il serial dell'oggetto di cui sono l'ingombro.
     struct CachedBounds {
