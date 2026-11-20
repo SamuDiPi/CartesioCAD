@@ -1697,7 +1697,12 @@ bool MainWindow::runScript(const QString& path)
                     rootItem->setProperty("tab", tab);
                 for (int k = 0; k < 5; ++k)
                     QCoreApplication::processEvents();
-                canalo_->grab().save(target);
+                QElapsedTimer grabTimer;
+                grabTimer.start();
+                const QPixmap shot = canalo_->grab();
+                const qint64 grabMs = grabTimer.elapsed();
+                shot.save(target);
+                print(QStringLiteral("-CANALINAPNG: disegno %1 ms").arg(grabMs));
                 continue;
             }
             if (word == QLatin1String("-CIRCUITIPNG")) {

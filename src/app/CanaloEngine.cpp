@@ -223,6 +223,11 @@ QJsonObject CanaloEngine::importFileBytes(const QJsonObject& state, const QByteA
     return stateCall(QStringLiteral("importFileBytes"), {compact(state), QString::fromLatin1(bytes), fileName}, metrics);
 }
 
+QJsonObject CanaloEngine::sectionEntities(const QJsonObject& state, const QStringList& layers)
+{
+    return QJsonDocument::fromJson(call(QStringLiteral("sectionEntities"), {compact(state), QString::fromUtf8(QJsonDocument(QJsonArray::fromStringList(layers)).toJson(QJsonDocument::Compact))}).toUtf8()).object();
+}
+
 QString CanaloEngine::dxf(const QJsonObject& state, const QString& title)
 {
     return call(QStringLiteral("dxf"), {compact(state), title});
