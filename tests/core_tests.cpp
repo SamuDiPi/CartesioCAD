@@ -3699,6 +3699,93 @@ void testPlant()
               approx(box.max.y, 2297.0, 1e-6));
     }
 
+    // Sezione composta dal catalogo: disegnata e riletta come una sezione del disegno (misure, cavi, sigle).
+    {
+        canalo::Tray t;
+        t.height = 75.0;
+        const char* ids[] = {"FG16_4G10", "FG16_5G6", "FG16_3G2.5", "FG16_3G2.5", "FTG18_3G2.5", "DATA_CAT6", "FO_12_OS2", "IRAI_LOOP"};
+        int n = 0;
+        for (const char* id : ids)
+            t.cables.push_back(canalo::cableFrom(*canalo::catalogItem(id), "QE1 C-" + std::to_string(++n)));
+        // Pochi cavi: la canalina consigliata non è mai più stretta che alta.
+        CHECK(canalo::suggestedWidth(t) == 75.0);
+        // Molti cavi: la più stretta col riempimento entro il 50%; quella prima lo supera.
+        canalo::Tray full = t;
+        for (int i = 0; i < 12; ++i)
+            full.cables.push_back(canalo::cableFrom(*canalo::catalogItem("FG16_4G10")));
+        const double w = canalo::suggestedWidth(full);
+        canalo::Tray narrower = full;
+        narrower.width = w == 150.0 ? 100.0 : w == 200.0 ? 150.0 : w == 250.0 ? 200.0 : 0.0;
+        full.width = w;
+        CHECK(narrower.width > 0.0 && canalo::recalculate(full).fillPct <= 50.0 && canalo::recalculate(narrower).fillPct > 50.0);
+
+        t.width = canalo::suggestedWidth(t);
+        canalo::recalculate(t);   // posizioni dei cavi (per gravità)
+        CHECK(canalo::sectionLabel(t.cables[2]) == "QE1 C-3 (FG16OM16 3G2,5)");
+        CHECK(canalo::sectionLabel(t.cables[5]) == "QE1 C-6 (U/UTP Cat.6 4x2x24AWG)");
+
+        const std::vector<std::string> layerNames = {"0", "CANALO-CANALINA", "CAVI", "BANDIERINE", "TESTI-CAVI"};
+        canalo::SectionLayers layers{1, 2, 3, 4};
+        const Vec2 origin{5000, 300};
+        const auto ents = canalo::drawSection(t, origin, 1.0, layers);
+        canalo::Drawn drawn;
+        for (const auto& e : ents) {
+            const std::string& lay = layerNames[static_cast<std::size_t>(e->layer())];
+            if (const auto* l = dynamic_cast<const LineEntity*>(e.get()))
+                drawn.segments.push_back({l->start, l->end, lay});
+            else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e.get()))
+                for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
+                    drawn.segments.push_back({pl->vertices[i].point, pl->vertices[i + 1].point, lay});
+            else if (const auto* c = dynamic_cast<const CircleEntity*>(e.get()))
+                drawn.circles.push_back({c->center, c->radius, lay});
+            else if (const auto* tx = dynamic_cast<const TextEntity*>(e.get()))
+                drawn.texts.push_back({tx->displayText(), tx->position, lay});
+        }
+        CHECK(drawn.circles.size() == t.cables.size());
+        Vec2 at;
+        canalo::Tray back = canalo::readSection(drawn, &at);
+        CHECK(back.width == t.width && back.height == 75.0);
+        CHECK(approx(at.x, origin.x, 1e-6) && approx(at.y, origin.y, 1e-6));
+        CHECK(back.cables.size() == t.cables.size());
+        // Dal solo diametro i cavi dati sembrano di energia (segregazione falsamente conforme): con il catalogo no.
+        CHECK(canalo::matchCatalog(back, drawn) == static_cast<int>(t.cables.size()));
+        for (const canalo::Cable& b : back.cables) {
+            // Ogni cavo riletto ritrova sigla, tipo, formazione, sistema, peso e diametro del catalogo.
+            const auto it = std::find_if(t.cables.begin(), t.cables.end(), [&](const canalo::Cable& c) { return c.code == b.code; });
+            CHECK(it != t.cables.end() && it->type == b.type && it->form == b.form && it->sys == b.sys && it->w == b.w && it->d == b.d);
+        }
+        canalo::Tray original = t;
+        CHECK(canalo::recalculate(back).segConform == canalo::recalculate(original).segConform);
+        CHECK(!canalo::recalculate(original).segConform);   // dati e fibra con l'energia senza setto
+
+        // Più cavi con la stessa sigla (QE1 C-9/1, /2...): readSection legge "QE1 C-9", la sigla completa torna.
+        canalo::Tray uni;
+        uni.width = 150.0;
+        for (int i = 1; i <= 4; ++i)
+            uni.cables.push_back(canalo::cableFrom(*canalo::catalogItem("FG16_1X95"), "QE1 C-9/" + std::to_string(i)));
+        canalo::recalculate(uni);
+        canalo::Drawn d2;
+        for (const auto& e : canalo::drawSection(uni, {0, 0}, 1.0, layers)) {
+            const std::string& lay = layerNames[static_cast<std::size_t>(e->layer())];
+            if (const auto* l = dynamic_cast<const LineEntity*>(e.get()))
+                d2.segments.push_back({l->start, l->end, lay});
+            else if (const auto* pl = dynamic_cast<const PolylineEntity*>(e.get()))
+                for (std::size_t i = 0; i + 1 < pl->vertices.size(); ++i)
+                    d2.segments.push_back({pl->vertices[i].point, pl->vertices[i + 1].point, lay});
+            else if (const auto* c = dynamic_cast<const CircleEntity*>(e.get()))
+                d2.circles.push_back({c->center, c->radius, lay});
+            else if (const auto* tx = dynamic_cast<const TextEntity*>(e.get()))
+                d2.texts.push_back({tx->displayText(), tx->position, lay});
+        }
+        canalo::Tray uniBack = canalo::readSection(d2);
+        CHECK(canalo::matchCatalog(uniBack, d2) == 4);
+        std::vector<std::string> codes;
+        for (const canalo::Cable& c : uniBack.cables)
+            codes.push_back(c.code);
+        std::sort(codes.begin(), codes.end());
+        CHECK(codes == std::vector<std::string>({"QE1 C-9/1", "QE1 C-9/2", "QE1 C-9/3", "QE1 C-9/4"}));
+    }
+
     // DXF: il file di progetto collegato e il codice della tratta sulle linee restano.
     Document doc;
     doc.setPlantFile("Impianto.cdb");
