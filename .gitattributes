@@ -1,2 +1,4 @@
 * text=auto eol=lf
 *.bat text eol=crlf
+# Tavole DXF di riferimento di CanaloCAD: byte per byte come le esporta la pagina (righe CRLF).
+tests/canalo_dxf/*.dxf -text
