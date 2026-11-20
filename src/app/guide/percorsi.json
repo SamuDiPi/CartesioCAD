@@ -67,11 +67,11 @@
       "passi": [
         { "testo": "Serve un disegno aperto (Nuovo).", "fatto": { "tipo": "drawing" } },
         { "testo": "Disegna la sezione della canalina: Rettangolo, un clic per il primo angolo, poi scrivi @300,75 e Invio (canalina 300×75 mm). Va bene anche il percorso in pianta, con linee o polilinee.", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
-        { "testo": "Plugin > Canalina: si apre la tavolozza con il database dei cavi.", "pulsante": "Canalina", "fatto": { "tipo": "panel", "name": "Canalo" } },
-        { "testo": "Seleziona il rettangolo e premi Nuova canalina nella tavolozza: le misure si leggono dal disegno.", "fatto": { "tipo": "canalo", "cables": 0 } },
-        { "testo": "Scegli i cavi nel database (categorie e ricerca in alto): quantità, Terna a trifoglio per gli unipolari, poi Aggiungi o doppio clic. Aggiungine almeno tre.", "fatto": { "tipo": "canalo", "cables": 3 } },
-        { "testo": "Nel riepilogo: riempimento, Kr, segregazione, staffaggio, tiro e distinta di CanaloCAD (in rosso quello che non va). Dati canalina... cambia misure, tipologia e staffaggio; Dimensiona... sceglie la larghezza. Poi Avanti.", "fatto": { "tipo": "next" } },
-        { "testo": "Disegna sezione mette nel disegno la sezione di CanaloCAD al vero; Inserisci tavola la tavola completa (la stessa che esporta CanaloCAD). Selezionando un oggetto della canalina si torna al suo riepilogo. Poi Avanti.", "fatto": { "tipo": "next" } }
+        { "testo": "Plugin > Canalina: si apre la finestra Canalina (si può spostare e allargare, anche su un altro schermo).", "pulsante": "Canalina", "fatto": { "tipo": "panel", "name": "Canalo" } },
+        { "testo": "Seleziona il rettangolo nel disegno e premi Usa selezione nella finestra: la canalina prende le misure disegnate e CanaloCAD ridisegna la sezione al suo posto.", "fatto": { "tipo": "canalo", "cables": 0 } },
+        { "testo": "Scheda Cavi: scegli i cavi nel database a sinistra (categorie e ricerca), quantità, Terna a trifoglio per gli unipolari, poi Aggiungi o doppio clic. Aggiungine almeno tre: la sezione nel disegno si aggiorna a ogni cavo.", "fatto": { "tipo": "canalo", "cables": 3 } },
+        { "testo": "In basso riempimento, Kr e segregazione; la scheda Riepilogo e tavola ha tutti i calcoli e la distinta di CanaloCAD (in rosso quello che non va, anche una canalina troppo piccola). Dati canalina... cambia misure, tipologia e staffaggio. Poi Avanti.", "fatto": { "tipo": "next" } },
+        { "testo": "Inserisci tavola mette nel disegno la tavola completa (la stessa che esporta CanaloCAD). Senza disegnare niente si può anche partire dal database: la canalina nasce con la misura adatta ai cavi. Poi Avanti.", "fatto": { "tipo": "next" } }
       ]
     },
     {

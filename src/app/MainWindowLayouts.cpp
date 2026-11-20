@@ -1,9 +1,11 @@
 // Parte della finestra principale dedicata a layout, stampa su PDF, script (.scr) e variabili di sistema.
 #include "app/MainWindow.h"
+#include "app/CanaloPanel.h"
 #include "app/PlantPanel.h"
 #include "app/GuidePanel.h"
 #include "app/Ribbon.h"
 #include <map>
+#include <QQuickItem>
 #include <QCursor>
 #include "app/MainView.h"
 #include "app/FormDialog.h"
@@ -1667,6 +1669,19 @@ bool MainWindow::runScript(const QString& path)
                 const QString code = text.mid(i, end - i).trimmed();
                 i = end + 1;
                 print(tr("-CIRCUITIASSEGNA: %1 punti").arg(circuits_->assignToSelection(code)));
+                continue;
+            }
+            // Diagnosi (non documentato): immagine della finestra Canalina, con la scheda indicata (0 Cavi, 1 Riepilogo).
+            if (word == QLatin1String("-CANALINAPNG")) {
+                const QString target = resolve(nextToken());
+                const int tab = nextToken().toInt();
+                canalo_->showWindow();
+                canalo_->resize(1180, 740);
+                if (QQuickItem* rootItem = canalo_->rootObject())
+                    rootItem->setProperty("tab", tab);
+                for (int k = 0; k < 5; ++k)
+                    QCoreApplication::processEvents();
+                canalo_->grab().save(target);
                 continue;
             }
             if (word == QLatin1String("-CIRCUITIPNG")) {

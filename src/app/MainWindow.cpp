@@ -187,7 +187,6 @@ MainWindow::MainWindow(QWidget* parent)
                                   {QStringLiteral("layers"), layerManager_},
                                   {QStringLiteral("panel"), circuits_},
                                   {QStringLiteral("plant"), plant_},
-                                  {QStringLiteral("canalo"), canalo_},
                                   {QStringLiteral("guide"), guide_},
                                   {QStringLiteral("library"), library_},
                                   {QStringLiteral("start"), startPage_}},
@@ -200,8 +199,6 @@ MainWindow::MainWindow(QWidget* parent)
                 library_->refresh();
             if (panel == MainView::Circuits && on)
                 circuits_->refresh();
-            if (panel == MainView::Canalo && on)
-                canalo_->refresh();
             if (panel == MainView::Plant && on)
                 plant_->refresh();
         });
@@ -906,7 +903,6 @@ void MainWindow::showPanel(int panel, bool on)
                         : panel == MainView::Library  ? libraryDock_
                         : panel == MainView::Plant    ? plantDock_
                         : panel == MainView::Guide    ? guideDock_
-                        : panel == MainView::Canalo   ? canaloDock_
                                                       : circuitsDock_;
     dock->setVisible(on);
     if (on)
@@ -922,7 +918,6 @@ bool MainWindow::panelShown(int panel) const
                               : panel == MainView::Library  ? libraryDock_
                               : panel == MainView::Plant    ? plantDock_
                               : panel == MainView::Guide    ? guideDock_
-                              : panel == MainView::Canalo   ? canaloDock_
                                                             : circuitsDock_;
     return dock && dock->isVisible();
 }
@@ -1066,17 +1061,7 @@ void MainWindow::buildPalettes()
     });
 
     canalo_ = new CanaloPanel(this);
-    canaloDock_ = new QDockWidget(tr("Canalina"), this);
-    canaloDock_->setObjectName("CanaloDock");
-    canaloDock_->setWidget(canalo_);
-    canaloDock_->setMinimumWidth(420);
-    addDockWidget(Qt::RightDockWidgetArea, canaloDock_);
-    canaloDock_->hide();
     wireCanalo();
-    connect(canaloDock_, &QDockWidget::visibilityChanged, this, [this](bool on) {
-        if (on)
-            canalo_->refresh();
-    });
 
     guide_ = new GuidePanel(this);
     guideDock_ = new QDockWidget(tr("Guida"), this);
@@ -2194,7 +2179,7 @@ bool MainWindow::handleUiCommand(const QString& word)
     } else if (is({"CANALOCAD", "CANALO"}))
         later([this] { canaloOpen(); });
     else if (is({"CANALINA", "CANALINE", "CABLETRAY"})) {
-        showPanel(MainView::Canalo);
+        canalo_->showWindow();
         canalo_->refresh();
     } else if (is({"CANALOSEZIONE", "CANALOCAVI"}))
         later([this] { canaloCompose(); });
@@ -2714,7 +2699,7 @@ void MainWindow::updateUiState()
     updateLinetypeCombos();
     properties_->refresh();
     circuits_->refresh();
-    if (panelShown(MainView::Canalo))
+    if (canalo_ && canalo_->isVisible())
         canalo_->refresh();
     if (panelShown(MainView::Plant))
         plant_->refresh();

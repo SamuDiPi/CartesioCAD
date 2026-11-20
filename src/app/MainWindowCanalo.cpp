@@ -50,14 +50,17 @@ void MainWindow::setupCanalo(Ribbon* ribbon)
     connect(insert, &QAction::triggered, this, [this] { canaloInsert(); });
     connect(latest, &QAction::triggered, this, &MainWindow::canaloInsertLatest);
     auto* trays = makeAction(tr("Canalina"), glyphIcon(QStringLiteral("Ø"), true), {},
-                             tr("Tavolozza Canalina: database dei cavi, cavi e riepilogo dei calcoli di CanaloCAD della canalina "
+                             tr("Finestra Canalina: database dei cavi, cavi e riepilogo dei calcoli di CanaloCAD della canalina "
                                 "selezionata; sezione e tavola di CanaloCAD nel disegno\nComando: CANALINA"));
     connect(trays, &QAction::triggered, this, [this] {
-        showPanel(MainView::Canalo, !panelShown(MainView::Canalo));
+        if (canalo_->isVisible())
+            canalo_->hide();
+        else
+            canalo_->showWindow();
         canalo_->refresh();
     });
     auto* check = makeAction(tr("Verifica\nsezione"), glyphIcon(QStringLiteral("✓"), true), {},
-                             tr("La sezione selezionata nella tavolozza Canalina: misure e cavi letti dal disegno (cerchi = cavi, "
+                             tr("La sezione selezionata nella finestra Canalina: misure e cavi letti dal disegno (cerchi = cavi, "
                                 "linee = canalina, testi = sigle) e calcoli di CanaloCAD\nComando: CANALOVERIFICA"));
     connect(check, &QAction::triggered, this, [this] { canaloCheck(true); });
     drawingActions_ << send << insert << latest << check << trays;
@@ -145,7 +148,7 @@ void MainWindow::wireCanalo()
     });
 }
 
-// CANALOVERIFICA: la tavolozza Canalina con la canalina selezionata; una sezione disegnata non ancora collegata si
+// CANALOVERIFICA: la finestra Canalina con la canalina selezionata; una sezione disegnata non ancora collegata si
 // importa (misure e cavi letti dal disegno con l'importazione di CanaloCAD). Negli script (-CANALOVERIFICA,
 // -CANALOTAVOLA) senza finestre: i risultati nella riga di comando, con la tavola a destra della sezione.
 void MainWindow::canaloCheck(bool askData, bool sheet)
@@ -154,7 +157,7 @@ void MainWindow::canaloCheck(bool askData, bool sheet)
     if (!d)
         return;
     if (askData)
-        showPanel(MainView::Canalo);
+        canalo_->showWindow();
     canalo_->setDrawing(d);
     bool linked = false;
     for (EntityId id : d->selection())
@@ -187,7 +190,7 @@ void MainWindow::canaloCheck(bool askData, bool sheet)
     }
 }
 
-// CANALOSEZIONE: la tavolozza Canalina (database dei cavi). Negli script -CANALOSEZIONE FG16_4G10*2,DATA_CAT6*4: canalina
+// CANALOSEZIONE: la finestra Canalina (database dei cavi). Negli script -CANALOSEZIONE FG16_4G10*2,DATA_CAT6*4: canalina
 // nuova con quei cavi, dimensionata (riserva 30%) e disegnata.
 void MainWindow::canaloCompose(const QString& scriptCables)
 {
@@ -196,7 +199,7 @@ void MainWindow::canaloCompose(const QString& scriptCables)
         return;
     canalo_->setDrawing(d);
     if (scriptCables.isEmpty()) {
-        showPanel(MainView::Canalo);
+        canalo_->showWindow();
         canalo_->refresh();
         return;
     }
