@@ -152,6 +152,22 @@ struct SheetOptions {
 };
 std::vector<std::unique_ptr<Entity>> drawSheet(const Tray& tray, const Metrics& metrics, const SheetOptions& options);
 
+// Sezione composta con i cavi del catalogo, disegnata al vero (`unit` = unità di disegno per mm) come la legge
+// readSection: bordo della canalina, cerchi dei cavi nelle posizioni di `tray` (già calcolata), bandierine verso
+// una colonna di sigle a destra e il testo "CANALINA LxH" sotto. Così la sezione si può riverificare.
+struct SectionLayers {
+    int tray = -1, cables = -1, leaders = -1, texts = -1;
+};
+std::vector<std::unique_ptr<Entity>> drawSection(const Tray& tray, Vec2 origin, double unit, const SectionLayers& layers);
+// Etichetta di un cavo nella sezione: sigla e, tra parentesi, tipo e formazione (es. "QE1 C-3 (FG16OM16 3G2,5)").
+std::string sectionLabel(const Cable& cable);
+// Dopo readSection: i cavi con un'etichetta come quelle di drawSection riprendono dal catalogo tipo, sistema
+// (energia, sicurezza, segnale), peso e portata, invece di quelli dedotti dal diametro, e la sigla completa.
+// Restituisce quanti cavi sono stati riconosciuti.
+int matchCatalog(Tray& tray, const Drawn& drawn);
+// Larghezza commerciale più piccola, con l'altezza di `tray`, in cui i cavi stanno con riempimento ≤ maxFillPct.
+double suggestedWidth(const Tray& tray, double maxFillPct = 50.0);
+
 // Numeri formattati come JavaScript (toFixed e String(numero)), per descrizioni identiche alla pagina.
 double fixed(double v, int decimals);
 std::string jsNumber(double v);

@@ -266,6 +266,9 @@ private:
     bool canaloSend(const QString& target = {});
     // Calcoli di CanaloCAD sulla sezione selezionata (riempimento, portata, segregazione, staffaggio, distinta).
     void canaloCheck(bool askData, bool sheet = false);
+    // Sezione composta con i cavi del catalogo: disegnata al vero e verificata (CANALOSEZIONE).
+    // Negli script `scriptCables` sono i codici del catalogo (FG16_4G10*2,DATA_CAT6...): niente finestra.
+    void canaloCompose(const QString& scriptCables = {});
     // Impianto: tavolozza, nuova tratta dalla selezione, verifica di tutte le tratte.
     void plantNewRun();
     void plantCheck();

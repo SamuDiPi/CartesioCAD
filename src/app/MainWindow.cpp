@@ -142,7 +142,7 @@ const QStringList kUiCommands = {
     QStringLiteral("LIBRERIA"), QStringLiteral("SIMBOLI"), QStringLiteral("ADC"), QStringLiteral("ADCENTER"),
     QStringLiteral("CANALOCAD"), QStringLiteral("CANALO"), QStringLiteral("CANALOINVIA"), QStringLiteral("CANALOSEND"),
     QStringLiteral("CANALOINS"), QStringLiteral("CANALOINSERISCI"), QStringLiteral("CANALOULTIMA"), QStringLiteral("CANALOLAST"),
-    QStringLiteral("CANALOVERIFICA"), QStringLiteral("CANALOCHECK"), QStringLiteral("IMPIANTO"), QStringLiteral("TRATTA"),
+    QStringLiteral("CANALOVERIFICA"), QStringLiteral("CANALOCHECK"), QStringLiteral("CANALOSEZIONE"), QStringLiteral("CANALOCAVI"), QStringLiteral("IMPIANTO"), QStringLiteral("TRATTA"),
     QStringLiteral("VERIFICAIMPIANTO"), QStringLiteral("GUIDA"), QStringLiteral("GUIDE"), QStringLiteral("ETICHETTETRATTE"), QStringLiteral("SEZIONETRATTA"),
     QStringLiteral("DISTINTAIMPIANTO"),
     QStringLiteral("OPTIONS"), QStringLiteral("OPZIONI"), QStringLiteral("OP"), QStringLiteral("PREFERENCES"),
@@ -2169,6 +2169,8 @@ bool MainWindow::handleUiCommand(const QString& word)
         showPanel(MainView::Circuits);
     } else if (is({"CANALOCAD", "CANALO"}))
         later([this] { canaloOpen(); });
+    else if (is({"CANALOSEZIONE", "CANALOCAVI"}))
+        later([this] { canaloCompose(); });
     else if (is({"CANALOVERIFICA", "CANALOCHECK"}))
         later([this] { canaloCheck(true); });
     else if (is({"IMPIANTO"}))

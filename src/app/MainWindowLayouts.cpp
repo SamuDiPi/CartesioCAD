@@ -1631,6 +1631,10 @@ bool MainWindow::runScript(const QString& path)
                 canaloCheck(false);
                 continue;
             }
+            if (d && word == QLatin1String("-CANALOSEZIONE")) {   // sezione dal catalogo: FG16_4G10*2,DATA_CAT6...
+                canaloCompose(nextToken());
+                continue;
+            }
             if (d && word == QLatin1String("-CANALOTAVOLA")) {   // come -CANALOVERIFICA, con la tavola nel disegno
                 canaloCheck(false, true);
                 continue;
@@ -1791,6 +1795,10 @@ bool MainWindow::runScript(const QString& path)
                 else if (which == QLatin1String("MOTIVI")) {
                     FormDialog::grabNext(target);
                     chooseHatchPattern(this);
+                    continue;
+                } else if (which == QLatin1String("CANALOSEZIONE") && d) {
+                    FormDialog::grabNext(target);
+                    canaloCompose();
                     continue;
                 }
                 else if (which == QLatin1String("TROVA") && d) {

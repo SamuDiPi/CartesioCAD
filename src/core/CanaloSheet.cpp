@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <iterator>
 
 namespace cartesio::canalo {
 
@@ -161,6 +162,81 @@ std::vector<std::unique_ptr<Entity>> drawSheet(const Tray& tray, const Metrics& 
     text(333, 22, 2.5, o.date + "   sezione " + (s >= 1.0 ? num(s, 1) + ":1" : "1:" + num(scale, 0)));
     text(253, 15, 2.0, "CartesioCAD - calcoli CanaloCAD");
     return out;
+}
+
+std::string sectionLabel(const Cable& c)
+{
+    // Formazione senza il numero di cavi davanti ("1(3G2,5)" -> "3G2,5"): le parentesi annidate confonderebbero
+    // la lettura della sigla.
+    std::string form = c.form;
+    if (form.size() > 3 && form.compare(0, 2, "1(") == 0 && form.back() == ')')
+        form = form.substr(2, form.size() - 3);
+    std::string inner = c.type;
+    if (!form.empty())
+        inner += (inner.empty() ? "" : " ") + form;
+    return inner.empty() ? c.code : c.code + " (" + inner + ")";
+}
+
+std::vector<std::unique_ptr<Entity>> drawSection(const Tray& tray, Vec2 origin, double unit, const SectionLayers& layers)
+{
+    std::vector<std::unique_ptr<Entity>> out;
+    auto P = [&](double x, double y) { return Vec2{origin.x + x * unit, origin.y + y * unit}; };
+    auto keep = [&](std::unique_ptr<Entity> e, int layer, int color = -2) {
+        e->setLayer(layer);
+        if (color != -2)
+            e->setColor(color);
+        out.push_back(std::move(e));
+    };
+    const double W = tray.width, H = tray.height;
+
+    // Canalina: fondo e sponde (aperta in alto), coperchio e setti.
+    keep(std::make_unique<PolylineEntity>(std::vector<PolyVertex>{{P(0, H)}, {P(0, 0)}, {P(W, 0)}, {P(W, H)}}, false), layers.tray);
+    if (tray.cover != "none")
+        keep(std::make_unique<LineEntity>(P(0.0, H + 2.0), P(W, H + 2.0)), layers.tray);   // dentro la larghezza: non sposta lo spigolo letto
+    Tray copy = tray;
+    for (double x : septumX(copy))
+        keep(std::make_unique<LineEntity>(P(x, 0), P(x, H)), layers.tray);
+
+    // Cavi e sigle: una colonna a destra. Le sigle seguono l'angolo con cui si vedono i cavi dal centro della colonna:
+    // le bandierine quasi non si incrociano.
+    const double textH = 3.5, step = 6.0, labelX = W + 30.0;
+    std::vector<std::size_t> order(tray.cables.size());
+    for (std::size_t i = 0; i < order.size(); ++i)
+        order[i] = i;
+    const double top = H / 2.0 + (static_cast<double>(order.size()) - 1.0) * step / 2.0;
+    const double eyeX = labelX + W, eyeY = H / 2.0;
+    std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+        const Cable& ca = tray.cables[a];
+        const Cable& cb = tray.cables[b];
+        return std::atan2(ca.y - eyeY, eyeX - ca.x) > std::atan2(cb.y - eyeY, eyeX - cb.x);
+    });
+    for (std::size_t k = 0; k < order.size(); ++k) {
+        const Cable& c = tray.cables[order[k]];
+        const int color = c.sys == "BT_FIRE" ? 1 : c.sys == "SPECIAL_ELV" ? 5 : -2;
+        const double r = c.d / 2.0;
+        keep(std::make_unique<CircleEntity>(P(c.x, c.y), r * unit), layers.cables, color);
+        const double ly = top - static_cast<double>(k) * step;
+        // La bandierina parte dal centro del cavo: è sempre la più vicina al suo cerchio, anche fra cavi accostati.
+        keep(std::make_unique<LineEntity>(P(c.x, c.y), P(labelX, ly)), layers.leaders);
+        keep(std::make_unique<TextEntity>(P(labelX + 2.0, ly - textH / 2.0), textH * unit, sectionLabel(c)), layers.texts, color);
+    }
+    keep(std::make_unique<TextEntity>(P(0, -10.0), textH * unit, "CANALINA " + num(W, 0) + "x" + num(H, 0)), layers.texts);
+    return out;
+}
+
+double suggestedWidth(const Tray& tray, double maxFillPct)
+{
+    static const double widths[] = {50, 60, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000, 1200};
+    for (double w : widths) {
+        if (w < tray.height)   // canaline più larghe che alte (readSection scambia le misure altrimenti)
+            continue;
+        Tray t = tray;
+        t.width = w;
+        t.septumPositions.clear();
+        if (recalculate(t).fillPct <= maxFillPct)
+            return w;
+    }
+    return widths[std::size(widths) - 1];
 }
 
 } // namespace cartesio::canalo
