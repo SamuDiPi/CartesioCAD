@@ -142,6 +142,8 @@ Le icone sono disegnate appositamente: CartesioCAD non usa marchi, icone o altri
 | `PURGE` | `PU` | Elimina blocchi, layer, tipi di linea e stili di quota inutilizzati. |
 | `AUDIT` | `CONTROLLA` | Controlla il disegno (geometrie non valide, layer, tipi di linea e stili inesistenti, blocchi mancanti, gruppi, identificativi doppi) e, con `Sì`, corregge (si annulla con `U`). |
 | `RECOVER` | `RECUPERA` | Apre un file danneggiato e lo corregge con AUDIT. |
+| `AGGIORNAMENTI` | `AGGIORNA` | Cerca su GitHub una versione più recente e la installa sul posto, solo se il pacchetto è firmato dall'autore (Ed25519) e ha l'impronta SHA-256 del manifesto; conferma esplicita per le versioni major; la versione attuale resta in `versione-precedente`. Controllo all'avvio facoltativo nelle Opzioni, spento di default. |
+| `VERSIONEPRECEDENTE` | | Torna alla versione installata prima dell'ultimo aggiornamento. |
 | `ETRANSMIT` | `ARCHIVIA` | Archivio ZIP da mandare a terzi: il disegno (DXF 2000) con riferimenti esterni e immagini in sottocartelle (percorsi riscritti), tabelle stili e un rapporto di quello che manca; i font non si includono, il rapporto li elenca. |
 | `SELECTSIMILAR` | | Seleziona gli oggetti dello stesso tipo e layer. |
 | `PAN` | `P` | Manina: trascinare con il tasto sinistro (anche dal pulsante nella barra di navigazione); Esc, Invio o tasto destro per uscire. |
@@ -221,6 +223,15 @@ Opzioni: `SPAZIO` (MODELLO o nome del layout), `IMPOSTAZIONE` (impostazione di p
 `TRASPARENZA`, `TIMBRO`, `DPI`, `COPIE`, `STAMPANTE`, `FILE`, `SALVA` (salva le impostazioni nel disegno).
 
 Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`, `SCRIPT`, `CANALOINVIA`, `CANALOINS`, `-CANALOVERIFICA` (senza finestra) e `LOGFILEON` (copia dei messaggi in un file) seguiti dal nome del file, e le variabili `CLAYER`, `CECOLOR`, `TEXTSIZE`, `OSMODE`, `ORTHOMODE`, `GRIDMODE`, `SNAPMODE`, `DYNMODE`, `TILEMODE`, `ATTREQ`, `FILEDIA`, `CMDECHO`, `LTSCALE`, `INSUNITS`, `CELTYPE`, `CELWEIGHT`, `LWDISPLAY`, `CVPORT`.
+
+## Pubblicare una versione
+
+1. Aggiornare `VERSION` in `CMakeLists.txt`, fare il commit, compilare e `cmake --install build --prefix dist/CartesioCAD`.
+2. Creare `CartesioCAD-X.Y.Z-win64.zip` con la cartella `CartesioCAD` dentro, e l'archivio dei sorgenti di terze parti (`scripts/collect-licenses.sh dist/CartesioCAD --sorgenti <cartella>`).
+3. Firmare: `scripts/sign-release.sh CartesioCAD-X.Y.Z-win64.zip <chiave privata .pem> [--major]`. Scrive `CartesioCAD-X.Y.Z-aggiornamento.json` e la sua firma `.json.sig`.
+4. Pubblicare la versione su GitHub (tag `vX.Y.Z`) allegando i quattro file: archivio, sorgenti di terze parti, manifesto e firma. Senza manifesto e firma la versione non si installa dal programma.
+
+La chiave privata non va mai nel repository (`.gitignore` esclude `*.pem`): senza di lei non si possono pubblicare aggiornamenti installabili dal programma, quindi va conservata con una copia di sicurezza. Se andasse persa o fosse compromessa, serve una versione con una chiave pubblica nuova, da scaricare a mano.
 
 ## Compilazione (Windows)
 
@@ -309,7 +320,8 @@ src/
 
 ## Privacy e sicurezza
 
-- **Nessun dato raccolto.** CartesioCAD lavora solo sul computer: niente account, statistiche, telemetria o controllo degli aggiornamenti, e non si collega a internet da solo (apre un sito solo se lo si chiede, per esempio *Sorgenti* nella finestra Informazioni). Disegni, schemi e progetti non vengono inviati a nessuno.
+- **Nessun dato raccolto.** CartesioCAD lavora solo sul computer: niente account, statistiche o telemetria. Disegni, schemi e progetti non vengono inviati a nessuno.
+- **Collegamenti a internet solo su richiesta.** Il programma si collega a GitHub solo quando si cercano gli aggiornamenti (menu dell'applicazione > *Controlla aggiornamenti*, comando `AGGIORNAMENTI`) o se si accende nelle Opzioni il controllo all'avvio (spento di default; al massimo una volta al giorno). GitHub vede l'indirizzo IP del computer; non viene mandato nient'altro. Apre un sito nel browser solo se lo si chiede (per esempio *Sorgenti* nella finestra Informazioni).
 - **Cosa resta sul computer:** le opzioni e l'elenco dei file recenti (nel registro di Windows, chiave `HKEY_CURRENT_USER\Software\CartesioCAD`), le copie del salvataggio automatico e i file che si salvano. I dati nei disegni (per esempio i nomi nei cartigli) li tratta chi usa il programma.
 - **File da fonti affidabili.** DWG, DXF, PDF e script `.scr` vanno aperti solo se vengono da fonti di cui ci si fida. I DWG si leggono con GNU LibreDWG 0.14 in un programma separato (`libredwg/dwg2dxf.exe`): per questa versione sono state pubblicate vulnerabilità che un DWG costruito apposta potrebbe sfruttare. Il plugin CanaloCAD legge i PDF con pdf.js 6.5.438, nel browser.
 - **Segnalare una vulnerabilità:** vedi [SECURITY.md](SECURITY.md).

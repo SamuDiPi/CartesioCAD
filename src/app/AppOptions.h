@@ -57,6 +57,9 @@ struct AppOptions {
     int textRendering = 0;
     // Interfaccia: 0 finestra unica in QML, 1 classica a widget con i dock (vale al riavvio).
     int uiMode = 0;
+    // Controllo degli aggiornamenti all'avvio (al massimo una volta al giorno): spento di default, perché collega il
+    // programma a GitHub senza un'azione dell'utente.
+    bool checkUpdatesAtStart = false;
     QString fontFolders;               // cartelle dei font SHX e TTF (separate da ;), oltre a "fonts" accanto al programma e a Windows
     // Cerca i font SHX anche nelle cartelle Fonts degli altri programmi installati: spento di default, perché
     // quei font appartengono a chi li ha prodotti e la loro licenza può non permetterne l'uso altrove.

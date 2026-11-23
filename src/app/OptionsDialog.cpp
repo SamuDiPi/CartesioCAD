@@ -115,6 +115,13 @@ void OptionsDialog::openSaveTab()
     note(tr("Le copie automatiche dei disegni modificati vanno in %1")
              .arg(QDir::toNativeSeparators(QDir::tempPath() + QStringLiteral("/CartesioCAD"))));
 
+    group(tr("Aggiornamenti"));
+    check(tr("Controlla gli aggiornamenti all'avvio (al massimo una volta al giorno)"), options_.checkUpdatesAtStart);
+    note(tr("Spento, CartesioCAD non si collega mai a internet da solo: gli aggiornamenti si cercano dal menu "
+            "dell'applicazione (Controlla aggiornamenti) o con il comando AGGIORNAMENTI. Il controllo legge l'elenco delle "
+            "versioni su GitHub, che vede l'indirizzo IP del computer. Si installano solo pacchetti firmati dall'autore; "
+            "la versione precedente resta disponibile (Torna alla versione precedente)."));
+
     group(tr("Apertura file"));
     integer(tr("Numero di file usati di recente:"), 0, 50, options_.recentFiles);
     check(tr("All'avvio mostra la pagina Inizia (altrimenti un disegno nuovo vuoto)"), options_.startPageAtLaunch);

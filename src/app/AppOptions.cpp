@@ -84,6 +84,7 @@ AppOptions AppOptions::load()
     o.plotStylesFolder = str("plotStylesFolder", o.plotStylesFolder);
     o.templatesFolder = str("templatesFolder", o.templatesFolder);
     o.fontFolders = str("fontFolders", o.fontFolders);
+    o.checkUpdatesAtStart = b("checkUpdatesAtStart", o.checkUpdatesAtStart);
     o.fontsOfInstalledPrograms = b("fontsOfInstalledPrograms", o.fontsOfInstalledPrograms);
     o.refPathType = i("refPathType", o.refPathType);
     o.textRendering = i("textRendering", o.textRendering);
@@ -166,6 +167,7 @@ void AppOptions::save() const
     s.setValue(QStringLiteral("plotStylesFolder"), plotStylesFolder);
     s.setValue(QStringLiteral("templatesFolder"), templatesFolder);
     s.setValue(QStringLiteral("fontFolders"), fontFolders);
+    s.setValue(QStringLiteral("checkUpdatesAtStart"), checkUpdatesAtStart);
     s.setValue(QStringLiteral("fontsOfInstalledPrograms"), fontsOfInstalledPrograms);
     s.setValue(QStringLiteral("refPathType"), refPathType);
     s.setValue(QStringLiteral("textRendering"), textRendering);

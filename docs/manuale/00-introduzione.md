@@ -20,7 +20,8 @@ Per imparare facendo ci sono i **percorsi guidati** (scheda *Percorsi* della Gui
 
 ## Privacy e sicurezza
 
-- **Nessun dato raccolto.** CartesioCAD lavora solo sul computer: niente account, statistiche, telemetria o controllo degli aggiornamenti, e non si collega a internet da solo (apre un sito solo se lo si chiede, per esempio *Sorgenti* nella finestra Informazioni). Disegni, schemi e progetti non vengono inviati a nessuno.
+- **Nessun dato raccolto.** CartesioCAD lavora solo sul computer: niente account, statistiche o telemetria. Disegni, schemi e progetti non vengono inviati a nessuno.
+- **Collegamenti a internet solo su richiesta.** Il programma si collega a GitHub solo quando si cercano gli aggiornamenti (menu dell'applicazione > *Controlla aggiornamenti*, comando `AGGIORNAMENTI`) o se si accende nelle Opzioni il controllo all'avvio (spento di default; al massimo una volta al giorno). GitHub vede l'indirizzo IP del computer; non viene mandato nient'altro. Apre un sito nel browser solo se lo si chiede (per esempio *Sorgenti* nella finestra Informazioni).
 - **Cosa resta sul computer:** le opzioni e l'elenco dei file recenti (nel registro di Windows, chiave `HKEY_CURRENT_USER\Software\CartesioCAD`), le copie del salvataggio automatico e i file che si salvano. I dati nei disegni (per esempio i nomi nei cartigli) li tratta chi usa il programma.
 - **File da fonti affidabili.** DWG, DXF, PDF e script `.scr` vanno aperti solo se vengono da fonti di cui ci si fida. I DWG si leggono con GNU LibreDWG 0.14 in un programma separato (`libredwg/dwg2dxf.exe`): per questa versione sono state pubblicate vulnerabilità che un DWG costruito apposta potrebbe sfruttare. Il plugin CanaloCAD legge i PDF con pdf.js 6.5.438, nel browser.
 - **Segnalare una vulnerabilità:** vedi il file SECURITY.md nel repository.

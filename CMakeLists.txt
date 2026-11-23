@@ -31,6 +31,7 @@ add_library(cartesio_core STATIC
     src/core/Geometry.cpp
     src/core/Osnap.cpp
     src/core/TitleBlock.cpp
+    src/core/Version.cpp
     src/core/Plot.cpp
     src/core/SingleLine.cpp
     src/core/CircuitTags.cpp
@@ -76,7 +77,8 @@ endif()
 if(CARTESIO_BUILD_APP)
     # Qt Quick: il disegno su GPU (scene graph con Direct3D/Vulkan/OpenGL tramite RHI).
     set(QT_NO_PRIVATE_MODULE_WARNING ON)   # QtGui privato: il triangolatore dei riempimenti
-    find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets PrintSupport Qml Quick QuickWidgets GuiPrivate)
+    find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets PrintSupport Qml Quick QuickWidgets GuiPrivate Network)
+    find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
     qt_standard_project_setup()
 
     # Motore di CanaloCAD: il codice della pagina (plugins/CanaloCAD/engine, da scripts/update-canalo.sh)
@@ -120,6 +122,8 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowDiag.cpp
         src/app/MainWindowConvert.cpp
         src/app/MainWindowTransmit.cpp
+        src/app/MainWindowUpdate.cpp
+        src/app/Updater.cpp
         src/app/MainWindowTextEditor.cpp
         src/app/MainWindowRibbonTabs.cpp
         src/app/MainWindowCompare.cpp
@@ -198,7 +202,7 @@ if(CARTESIO_BUILD_APP)
               src/app/qml/PlotPreview.qml src/app/qml/StyleEditor.qml src/app/qml/UiCheckBox.qml src/app/qml/UiComboBox.qml
               src/app/qml/UiSpinBox.qml src/app/qml/UiPushButton.qml src/app/qml/UiLineEdit.qml src/app/qml/UiBox.qml)
     target_link_libraries(CartesioCAD PRIVATE cartesio_core cartesio_canalo_engine Qt6::Widgets Qt6::PrintSupport Qt6::Qml Qt6::Quick Qt6::QuickWidgets
-                          Qt6::GuiPrivate)
+                          Qt6::GuiPrivate Qt6::Network OpenSSL::Crypto)
     if(WIN32)
         target_link_libraries(CartesioCAD PRIVATE gdi32 ole32)   # metafile degli oggetti OLE, correttore ortografico
     endif()
@@ -262,6 +266,7 @@ if(CARTESIO_BUILD_APP)
         get_filename_component(compiler_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
         set(deploy_args
             -DPLATFORM_PLUGIN=$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>
+            "-DTLS_PLUGIN=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/../tls/qschannelbackend.dll"
             "-DSEARCH_DIRS=$<TARGET_FILE_DIR:Qt6::Core>$<SEMICOLON>${compiler_bin}"
             -DOBJDUMP=${CMAKE_OBJDUMP}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployWindows.cmake)
@@ -275,6 +280,7 @@ if(CARTESIO_BUILD_APP)
         install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\"
             \"-DEXE=\${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:CartesioCAD>\"
             \"-DPLATFORM_PLUGIN=$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>\"
+            \"-DTLS_PLUGIN=$<TARGET_FILE_DIR:Qt6::QWindowsIntegrationPlugin>/../tls/qschannelbackend.dll\"
             \"-DSEARCH_DIRS=$<TARGET_FILE_DIR:Qt6::Core>;${compiler_bin}\"
             \"-DOBJDUMP=${CMAKE_OBJDUMP}\"
             -P \"${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployWindows.cmake\"

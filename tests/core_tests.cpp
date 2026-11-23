@@ -9,6 +9,7 @@
 #include "core/QuickSelect.h"
 #include "core/Osnap.h"
 #include "core/Plot.h"
+#include "core/Version.h"
 #include "core/SingleLine.h"
 #include "core/CircuitTags.h"
 #include "core/PointLegend.h"
@@ -3728,6 +3729,21 @@ void testPlant()
 }
 
 // Manuale: ogni comando registrato ha la sua voce (il nome tra apici inversi in docs/manuale).
+// Versioni degli aggiornamenti: lettura, confronto, major.
+void testVersions()
+{
+    const auto v = Version::parse("v0.1.1");
+    CHECK(v && v->major == 0 && v->minor == 1 && v->patch == 1 && v->text() == "0.1.1");
+    CHECK(Version::parse("1.2") && Version::parse("1.2")->patch == 0);
+    CHECK(!Version::parse("") && !Version::parse("1") && !Version::parse("1.2.3.4") && !Version::parse("1.x.3"));
+    CHECK(!Version::parse("1..2") && !Version::parse("-1.2") && !Version::parse("1.2.3-beta") && !Version::parse("9999999.1"));
+    CHECK(*Version::parse("0.1.1") < *Version::parse("0.1.2") && *Version::parse("0.1.9") < *Version::parse("0.2.0"));
+    CHECK(*Version::parse("0.9.9") < *Version::parse("1.0.0") && !(*Version::parse("0.1.1") < *Version::parse("0.1.1")));
+    CHECK(!isMajorUpdate(*Version::parse("0.1.1"), *Version::parse("0.2.0"), false));
+    CHECK(isMajorUpdate(*Version::parse("0.1.1"), *Version::parse("0.2.0"), true));
+    CHECK(isMajorUpdate(*Version::parse("0.9.0"), *Version::parse("1.0.0"), false));
+}
+
 void testManualCoversCommands()
 {
 #ifdef CARTESIO_SOURCE_DIR
@@ -3830,6 +3846,7 @@ int main()
     testCanaloSections();
     testPlant();
     testManualCoversCommands();
+    testVersions();
 
     if (failures == 0)
         std::printf("Tutti i test superati.\n");

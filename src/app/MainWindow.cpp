@@ -127,6 +127,7 @@ const QStringList kUiCommands = {
     QStringLiteral("STYLE"), QStringLiteral("ST"), QStringLiteral("STILE"), QStringLiteral("MLEADERSTYLE"),
     QStringLiteral("MLS"), QStringLiteral("STILEDIRETTRICE"), QStringLiteral("RECOVER"), QStringLiteral("RECUPERA"),
     QStringLiteral("ETRANSMIT"), QStringLiteral("ARCHIVIA"),
+    QStringLiteral("AGGIORNAMENTI"), QStringLiteral("AGGIORNA"), QStringLiteral("VERSIONEPRECEDENTE"),
     QStringLiteral("LAYERSTATE"), QStringLiteral("LAS"), QStringLiteral("STATILAYER"),
     QStringLiteral("DWGCONVERT"), QStringLiteral("CONVERTI"), QStringLiteral("CONVERSIONE"),
     QStringLiteral("BEDIT"), QStringLiteral("BE"), QStringLiteral("EDITBLOCCO"), QStringLiteral("BSAVE"), QStringLiteral("BS"),
@@ -236,6 +237,7 @@ MainWindow::MainWindow(QWidget* parent)
     else
         onTabChanged(0);
     applyOptions();
+    startupUpdates();
 }
 
 // ======================================================================= azioni
@@ -468,6 +470,13 @@ QWidget* MainWindow::buildTopArea()
     appMenu->addSeparator();
     appMenu->addAction(tr("Opzioni..."), this, [this] { showOptions(); });
     appMenu->addAction(guideAct_);
+    updateAct_ = appMenu->addAction(tr("Controlla aggiornamenti..."), this, [this] {
+        if (pendingUpdate_)
+            showUpdateOffer(*pendingUpdate_);
+        else
+            checkForUpdates(true);
+    });
+    appMenu->addAction(tr("Torna alla versione precedente..."), this, [this] { rollbackUpdate(); });
     appMenu->addAction(tr("Informazioni su CartesioCAD..."), this, [this] { showAbout(); });
     appMenu->addSeparator();
     appMenu->addAction(closeAct_);
@@ -2304,6 +2313,10 @@ bool MainWindow::handleUiCommand(const QString& word)
         later([this] { recoverFile(); });
     else if (is({"ETRANSMIT", "ARCHIVIA"}))
         later([this] { etransmit(); });
+    else if (is({"AGGIORNAMENTI", "AGGIORNA"}))
+        later([this] { checkForUpdates(true); });
+    else if (is({"VERSIONEPRECEDENTE"}))
+        later([this] { rollbackUpdate(); });
     else if (is({"DIMSTYLE", "D", "DST", "STILEQUOTA"})) {
         if (DrawingWidget* d = current())
             later([this, d] {
@@ -2365,7 +2378,7 @@ void MainWindow::showHelp()
     print(tr("Utilità:  DIST (DI)  AREA (AA)  ID  LIST (LI)  COPYCLIP (Ctrl+C)  PASTECLIP (Ctrl+V)"));
     print(tr("          MEASUREGEOM (MEA, misura rapida)  COPYBASE (Ctrl+Maiusc+C)  ADDSELECTED"));
     print(tr("Stili:    STYLE (ST)  MLEADERSTYLE (MLS)  DIMSTYLE   Quote: DIMTEDIT  DIMEDIT   Disegno: SPLINE (SPL)"));
-    print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)"));
+    print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE"));
     print(tr("Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS"));
     print(tr("          Tutto/Ultimo/Precedente/Rimuovi nelle richieste  ISOLATEOBJECTS  HIDEOBJECTS  UNISOLATEOBJECTS"));
     print(tr("Script:   SCRIPT (SCR)  SETVAR  -LAYER  COLOR  OSMODE  ORTHOMODE  TILEMODE  ATTREQ ..."));

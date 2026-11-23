@@ -21,4 +21,11 @@ CartesioCAD usa librerie di altri progetti (elenco completo in `LICENZE-TERZE-PA
 ## Cose da sapere
 
 - Gli script `.scr` eseguono comandi di CartesioCAD (non comandi di sistema), ma possono salvare e sovrascrivere file: eseguire solo script di cui si conosce il contenuto.
-- CartesioCAD non si collega a internet da solo.
+- CartesioCAD si collega a internet solo per cercare gli aggiornamenti: a richiesta, o all'avvio se l'opzione è accesa (spenta di default).
+
+## Aggiornamenti dal programma
+
+- Ogni versione pubblicata ha un manifesto con dimensione e impronta SHA-256 dell'archivio, firmato con Ed25519 dalla chiave privata dell'autore, che non è nel repository. CartesioCAD contiene la chiave pubblica e installa solo archivi che corrispondono a un manifesto con firma valida.
+- Collegamenti solo HTTPS verso GitHub (anche dopo i reindirizzamenti), con il TLS di Windows (Schannel); dimensioni massime per ogni risposta; percorsi dell'archivio controllati (niente file fuori dalla cartella del programma).
+- La versione precedente resta in `versione-precedente` e si ripristina dal menu dell'applicazione.
+- Una vulnerabilità nell'aggiornatore (per esempio un modo per far accettare un pacchetto non firmato) va segnalata in privato come le altre.

@@ -26,6 +26,25 @@ La guida si apre solo quando la si chiede.
 
 Scrive nella riga di comando l'elenco dei comandi principali con gli alias e i tasti funzione.
 
+## Aggiornamenti (`AGGIORNAMENTI`, `AGGIORNA`)
+
+**Dove:** pulsante dell'applicazione > Controlla aggiornamenti (diventa *Aggiornamento disponibile* quando ce n'è uno).
+
+Cerca su GitHub la versione più recente di CartesioCAD (anteprime comprese) e, se è più nuova di quella in uso, la propone con le sue note: *Scarica e installa*, *Pagina della versione* o *Più tardi*.
+
+- **Sicurezza:** ogni versione pubblicata ha un manifesto firmato dall'autore (firma Ed25519) con dimensione e impronta SHA-256 dell'archivio. CartesioCAD contiene la chiave pubblica e installa l'archivio solo se firma, dimensione e impronta corrispondono; i collegamenti sono solo HTTPS verso GitHub.
+- **Versioni major** (cambia il primo numero, o la versione è dichiarata tale): prima di installare chiede una conferma esplicita.
+- **Installazione sul posto:** i file nuovi prendono il posto di quelli della cartella del programma, i vecchi vanno in `versione-precedente`. Niente cartelle con tante versioni. I file che l'aggiornamento non contiene (per esempio la cartella `fonts` con i propri font) restano. Se qualcosa va storto a metà, tutto torna com'era.
+- **Riavvio:** a installazione finita propone di riavviare (prima chiede di salvare i disegni modificati). Altrimenti la versione nuova parte al prossimo avvio.
+- Se la cartella del programma non è scrivibile (per esempio in *Programmi* senza permessi), lo dice: si scarica l'archivio dalla pagina della versione e si scompatta a mano.
+- **Controllo all'avvio:** Opzioni > Apri e salva > *Controlla gli aggiornamenti all'avvio*, spento di default. Acceso, controlla al massimo una volta al giorno e, se c'è una versione nuova, lo scrive nella riga di comando, senza aprire finestre.
+
+## Torna alla versione precedente (`VERSIONEPRECEDENTE`)
+
+**Dove:** pulsante dell'applicazione > Torna alla versione precedente.
+
+Rimette la versione installata prima dell'ultimo aggiornamento (quella in `versione-precedente`) e propone il riavvio.
+
 ## Informazioni su CartesioCAD (`ABOUT`, `INFORMAZIONI`)
 
 **Dove:** pulsante dell'applicazione > Informazioni su CartesioCAD.

@@ -22,13 +22,22 @@ file(MAKE_DIRECTORY "${dest}/platforms")
 file(COPY "${PLATFORM_PLUGIN}" DESTINATION "${dest}/platforms")
 get_filename_component(plugin_name "${PLATFORM_PLUGIN}" NAME)
 
+# Plugin TLS di Windows (Schannel) per gli aggiornamenti in HTTPS: Qt lo cerca in <cartella dell'exe>/tls.
+set(tls_module "")
+if(TLS_PLUGIN AND EXISTS "${TLS_PLUGIN}")
+    file(MAKE_DIRECTORY "${dest}/tls")
+    file(COPY "${TLS_PLUGIN}" DESTINATION "${dest}/tls")
+    get_filename_component(tls_name "${TLS_PLUGIN}" NAME)
+    set(tls_module "${dest}/tls/${tls_name}")
+endif()
+
 set(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM "windows+pe")
 set(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL "objdump")
 set(CMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND "${OBJDUMP}")
 
 file(GET_RUNTIME_DEPENDENCIES
     EXECUTABLES "${EXE}"
-    MODULES "${dest}/platforms/${plugin_name}"
+    MODULES "${dest}/platforms/${plugin_name}" ${tls_module}
     RESOLVED_DEPENDENCIES_VAR deps
     UNRESOLVED_DEPENDENCIES_VAR unresolved
     CONFLICTING_DEPENDENCIES_PREFIX conflict

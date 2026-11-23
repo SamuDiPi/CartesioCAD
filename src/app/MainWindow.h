@@ -3,6 +3,7 @@
 #include "app/AppOptions.h"
 #include "app/DraftSettings.h"
 #include "app/PlotDialog.h"
+#include "app/Updater.h"
 #include "core/Entity.h"
 #include "core/Vec2.h"
 
@@ -14,6 +15,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 class QAction;
@@ -220,6 +222,17 @@ private:
     void auditAfterOpen(const QString& path);
     // ETRANSMIT: archivio ZIP con il disegno e i file collegati (riferimenti, immagini, font, tabelle stili).
     bool etransmit(const QString& target = {});
+    // Aggiornamenti (MainWindowUpdate.cpp): controllo, download firmato e installazione sul posto, ritorno indietro.
+    Updater* updater();
+    void startupUpdates();
+    void checkForUpdates(bool interactive);
+    void showUpdateOffer(const UpdateOffer& offer);
+    void downloadAndInstall(const UpdateOffer& offer);
+    void rollbackUpdate();
+    void askRestart(const QString& question);
+    void scriptUpdateCheck();
+    void scriptUpdateLocal(const QString& manifest, const QString& archive, const QString& folder);
+    void scriptUpdateRollback(const QString& folder);
     // Plugin CanaloCAD (MainWindowCanalo.cpp).
     void setupCanalo(Ribbon* ribbon);
     // Scheda contestuale "Editor di testo" (MainWindowTextEditor.cpp) e il suo aggiornamento dallo stato dell'editor.
@@ -402,6 +415,10 @@ private:
     CanaloPanel* canalo_ = nullptr;   // finestra Canalina (CanaloPanel.h)
     GuidePanel* guide_ = nullptr;
     QAction* guideAct_ = nullptr;
+    QAction* updateAct_ = nullptr;
+    Updater* updater_ = nullptr;
+    std::optional<UpdateOffer> pendingUpdate_;
+    bool updateBusy_ = false;
     QTimer* guideTimer_ = nullptr;
     int canaloChecks_ = 0;
     // Stato all'inizio del passo del percorso guidato.

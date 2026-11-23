@@ -23,3 +23,7 @@ dist/
 
 # LibreDWG scaricata da scripts/fetch-libredwg.sh
 third_party/
+
+# Chiavi (quella privata per firmare gli aggiornamenti non va mai nel repository)
+*.pem
+*.key

@@ -1133,6 +1133,22 @@ bool MainWindow::runScript(const QString& path)
                 continue;
             }
             // Diagnosi: -CARTELLE = dove si cercano font e tabelle stili.
+            // Diagnosi: aggiornamenti. -AGGIORNAMENTICONTROLLA (GitHub), -AGGIORNAMENTOLOCALE manifesto archivio cartella
+            // (verifica la firma e installa in quella cartella), -VERSIONEPRECEDENTE cartella.
+            if (word == QLatin1String("-AGGIORNAMENTICONTROLLA")) {
+                scriptUpdateCheck();
+                continue;
+            }
+            if (word == QLatin1String("-AGGIORNAMENTOLOCALE")) {
+                const QString manifest = resolve(nextToken());
+                const QString archive = resolve(nextToken());
+                scriptUpdateLocal(manifest, archive, resolve(nextToken()));
+                continue;
+            }
+            if (word == QLatin1String("-VERSIONEPRECEDENTE")) {
+                scriptUpdateRollback(resolve(nextToken()));
+                continue;
+            }
             if (word == QLatin1String("-CARTELLE")) {
                 for (const QString& f : FontLibrary::instance().searchFolders())
                     print(tr("  font: %1").arg(QDir::toNativeSeparators(f)));
