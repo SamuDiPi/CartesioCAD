@@ -22,6 +22,7 @@
 #include "core/commands/CommandManager.h"
 #include "core/io/Dxf.h"
 
+#include <zlib.h>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
@@ -3796,6 +3797,95 @@ void testRunImport()
     CHECK(dorsal == 1 && branch == 1 && labelled == 1);
 }
 
+// File malformati trovati dalle prove a caso (tests/fuzz.cpp): si leggono senza fermare il programma.
+DxfReadResult readDxfText(const std::string& text, Document& doc)
+{
+    const auto path = std::filesystem::temp_directory_path() / "cartesio_malformato.dxf";
+    {
+        std::ofstream out(path, std::ios::binary);
+        out << text;
+    }
+    const DxfReadResult r = readDxf(path, doc);
+    std::filesystem::remove(path);
+    return r;
+}
+
+void testMalformedFiles()
+{
+    const auto dxf = [](const std::string& tables, const std::string& entities) {
+        return "0\nSECTION\n2\nTABLES\n" + tables + "0\nENDSEC\n0\nSECTION\n2\nENTITIES\n" + entities
+            + "0\nENDSEC\n0\nEOF\n";
+    };
+    {   // colore del layer -2147483648: il suo valore assoluto non esiste in un int
+        Document doc;
+        CHECK(readDxfText(dxf("0\nTABLE\n2\nLAYER\n0\nLAYER\n2\nMuri\n62\n-2147483648\n0\nLAYER\n2\nPorte\n62\n99999\n0\nENDTAB\n", ""), doc).ok);
+        const int muri = doc.findLayer("Muri"), porte = doc.findLayer("Porte");
+        CHECK(muri >= 0 && doc.layers()[static_cast<std::size_t>(muri)].color == 7);
+        CHECK(porte >= 0 && doc.layers()[static_cast<std::size_t>(porte)].color == 7);
+    }
+    {   // tratteggio che dichiara due miliardi di vertici e ne ha tre; multilinea con conteggi enormi
+        Document doc;
+        const std::string hatch = "0\nHATCH\n8\n0\n2\nSOLID\n70\n1\n91\n1\n92\n2\n72\n0\n73\n1\n93\n2000000000\n"
+                                  "10\n0\n20\n0\n10\n10\n20\n0\n10\n10\n20\n10\n97\n2147483647\n75\n1e300\n76\nnan\n";
+        const std::string mline = "0\nMLINE\n8\n0\n72\n2147483647\n73\n2000000000\n10\n0\n20\n0\n11\n1\n21\n1\n";
+        CHECK(readDxfText(dxf("", hatch + mline), doc).ok);
+        CHECK(!doc.entities().empty() && doc.entities().front()->type() == EntityType::Hatch);
+    }
+    {   // freccia in più che punta a un'altra freccia in più, e due direttrici con lo stesso testo: ogni oggetto
+        // si toglie una volta sola e non si usa dopo averlo tolto.
+        const auto leader = [](const std::string& handle, double y, const std::string& extra) {
+            return "0\nLEADER\n5\n" + handle + "\n8\n0\n10\n0\n20\n" + std::to_string(y) + "\n10\n5\n20\n"
+                + std::to_string(y + 5) + "\n" + extra;
+        };
+        const auto leg = [](const std::string& main) { return "1001\nCARTESIOCAD\n1000\nMLEADERLEG\n1000\n" + main + "\n"; };
+        const std::string text = "73\n0\n340\nT1\n";
+        const std::string entities = leader("A1", 0, text) + leader("B1", 10, leg("A1")) + leader("C1", 20, leg("B1"))
+            + leader("D1", 30, text) + "0\nMTEXT\n5\nT1\n8\n0\n10\n5\n20\n5\n40\n2.5\n1\nNota\n";
+        Document doc;
+        CHECK(readDxfText(dxf("", entities), doc).ok);
+        int leaders = 0, texts = 0;
+        for (const auto& e : doc.entities()) {
+            leaders += e->type() == EntityType::Leader ? 1 : 0;
+            texts += e->type() == EntityType::MText ? 1 : 0;
+        }
+        CHECK(leaders == 3 && texts == 0);   // B1 unita ad A1; C1 resta da sola (la sua principale non c'è più)
+    }
+    {   // stesso layout due volte, con il blocco dello spazio carta ripetuto
+        const std::string blocks = "0\nSECTION\n2\nBLOCKS\n"
+                                   "0\nBLOCK\n2\n*Paper_Space0\n0\nLINE\n5\nE1\n8\n0\n10\n0\n20\n0\n11\n1\n21\n1\n0\nENDBLK\n"
+                                   "0\nBLOCK\n2\n*Paper_Space0\n0\nLINE\n5\nE2\n8\n0\n10\n0\n20\n0\n11\n2\n21\n2\n0\nENDBLK\n"
+                                   "0\nENDSEC\n";
+        const std::string tables = "0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nBLOCK_RECORD\n"
+                                   "0\nBLOCK_RECORD\n5\nR1\n2\n*Paper_Space0\n0\nENDTAB\n0\nENDSEC\n";
+        const std::string objects = "0\nSECTION\n2\nOBJECTS\n"
+                                    "0\nLAYOUT\n5\nL1\n100\nAcDbLayout\n1\nUno\n71\n1\n330\nR1\n"
+                                    "0\nLAYOUT\n5\nL2\n100\nAcDbLayout\n1\nDue\n71\n2\n330\nR1\n"
+                                    "0\nENDSEC\n";
+        Document doc;
+        const DxfReadResult r = readDxfText(tables + blocks + objects + "0\nEOF\n", doc);
+        CHECK(r.ok && r.imported == 1);   // il secondo blocco sostituisce il primo; il secondo layout non ripete gli oggetti
+    }
+    {   // .ctb che si espande oltre il tetto (8 MB di zeri in pochi kB) e .ctb troncato
+        const std::string zeros(8u << 20, '\0');
+        uLongf size = compressBound(static_cast<uLong>(zeros.size()));
+        std::string packed(size, '\0');
+        CHECK(compress(reinterpret_cast<Bytef*>(packed.data()), &size, reinterpret_cast<const Bytef*>(zeros.data()),
+                       static_cast<uLong>(zeros.size())) == Z_OK);
+        packed.resize(size);
+        std::string error;
+        CHECK(!ctbText(ctbFileBytes(packed, 100), &error) && !error.empty());
+        CHECK(!ctbText(ctbFileBytes(packed.substr(0, packed.size() / 2), 100), &error));
+        const std::string table = builtinPlotStyleTable("Nero.ctb")->toText();
+        size = compressBound(static_cast<uLong>(table.size()));
+        packed.assign(size, '\0');
+        compress(reinterpret_cast<Bytef*>(packed.data()), &size, reinterpret_cast<const Bytef*>(table.data()),
+                 static_cast<uLong>(table.size()));
+        packed.resize(size);
+        const auto text = ctbText(ctbFileBytes(packed, table.size()));
+        CHECK(text && *text == table && PlotStyleTable::fromText(*text));
+    }
+}
+
 // Percorsi automatici: derivazione a T, incrocio senza contatto, tratte in fila, punti fuori portata.
 void testRouting()
 {
@@ -3950,6 +4040,7 @@ int main()
     testVersions();
     testRouting();
     testRunImport();
+    testMalformedFiles();
 
     if (failures == 0)
         std::printf("Tutti i test superati.\n");

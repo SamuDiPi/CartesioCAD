@@ -213,6 +213,8 @@ struct CtbPayload {
     std::size_t textLength = 0;
 };
 std::optional<CtbPayload> ctbPayload(std::string_view fileBytes, std::string* error = nullptr);
+// Testo della tabella dentro un file .ctb (decompresso, al massimo 4 MB), oppure nullopt se non è leggibile.
+std::optional<std::string> ctbText(std::string_view fileBytes, std::string* error = nullptr);
 
 // --- Timbro di stampa
 

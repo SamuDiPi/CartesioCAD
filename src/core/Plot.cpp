@@ -1,4 +1,5 @@
 #include "core/Plot.h"
+#include <zlib.h>
 
 #include <algorithm>
 #include <cctype>
@@ -775,6 +776,47 @@ std::optional<CtbPayload> ctbPayload(std::string_view bytes, std::string* error)
     const std::size_t compressed = getU32(bytes, 56);
     p.zlibData = bytes.substr(60, std::min(compressed, bytes.size() - 60));
     return p;
+}
+
+std::optional<std::string> ctbText(std::string_view bytes, std::string* error)
+{
+    const auto payload = ctbPayload(bytes, error);
+    if (!payload)
+        return std::nullopt;
+    // Si decomprime a pezzi con un tetto: una tabella vera è sotto i 100 kB, mentre un file costruito apposta
+    // (pochi kB che si espandono in gigabyte) non deve poter riempire la memoria.
+    constexpr std::size_t kMaxText = 4u << 20;
+    const auto damaged = [error]() -> std::optional<std::string> {
+        if (error)
+            *error = "Il file .ctb è danneggiato (dati compressi non validi).";
+        return std::nullopt;
+    };
+    z_stream z{};
+    if (inflateInit(&z) != Z_OK)
+        return damaged();
+    std::string text;
+    char buffer[16384];
+    z.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(payload->zlibData.data()));
+    z.avail_in = static_cast<uInt>(payload->zlibData.size());
+    int status = Z_OK;
+    while (status == Z_OK) {
+        z.next_out = reinterpret_cast<Bytef*>(buffer);
+        z.avail_out = sizeof buffer;
+        status = inflate(&z, Z_NO_FLUSH);
+        if (status != Z_OK && status != Z_STREAM_END)
+            break;
+        text.append(buffer, sizeof buffer - z.avail_out);
+        if (text.size() > kMaxText) {
+            status = Z_MEM_ERROR;
+            break;
+        }
+        if (status == Z_OK && z.avail_in == 0 && z.avail_out != 0)
+            break;   // dati finiti prima della fine del flusso
+    }
+    inflateEnd(&z);
+    if (status != Z_STREAM_END)
+        return damaged();
+    return text;
 }
 
 // ---------------------------------------------------------------------- timbro

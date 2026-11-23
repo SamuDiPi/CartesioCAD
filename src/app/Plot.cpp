@@ -312,27 +312,13 @@ std::optional<PlotStyleTable> readCtbFile(const QString& path, QString* error)
     }
     const QByteArray bytes = file.readAll();
     std::string message;
-    const auto payload = ctbPayload(std::string_view(bytes.constData(), static_cast<std::size_t>(bytes.size())), &message);
-    if (!payload) {
+    const auto text = ctbText(std::string_view(bytes.constData(), static_cast<std::size_t>(bytes.size())), &message);
+    if (!text) {
         if (error)
             *error = QString::fromStdString(message);
         return std::nullopt;
     }
-    // qUncompress vuole davanti la lunghezza attesa (4 byte, big endian).
-    const quint32 expected = static_cast<quint32>(std::max<std::size_t>(payload->textLength, payload->zlibData.size() * 8));
-    QByteArray packed;
-    packed.append(static_cast<char>((expected >> 24) & 0xFF));
-    packed.append(static_cast<char>((expected >> 16) & 0xFF));
-    packed.append(static_cast<char>((expected >> 8) & 0xFF));
-    packed.append(static_cast<char>(expected & 0xFF));
-    packed.append(payload->zlibData.data(), static_cast<qsizetype>(payload->zlibData.size()));
-    const QByteArray text = qUncompress(packed);
-    if (text.isEmpty()) {
-        if (error)
-            *error = QObject::tr("Il file %1 è danneggiato (dati compressi non validi).").arg(QFileInfo(path).fileName());
-        return std::nullopt;
-    }
-    auto table = PlotStyleTable::fromText(std::string_view(text.constData(), static_cast<std::size_t>(text.size())), &message);
+    auto table = PlotStyleTable::fromText(*text, &message);
     if (!table && error)
         *error = QString::fromStdString(message);
     return table;

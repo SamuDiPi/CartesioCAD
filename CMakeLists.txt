@@ -63,6 +63,9 @@ add_library(cartesio_core STATIC
     src/core/io/DxfReader.cpp
 )
 target_include_directories(cartesio_core PUBLIC src)
+# zlib (licenza Zlib, già distribuita con Qt): decompressione delle tabelle di stampa .ctb con un tetto.
+find_package(ZLIB REQUIRED)
+target_link_libraries(cartesio_core PRIVATE ZLIB::ZLIB)
 
 # --- Poppler (facoltativo): lettura dei PDF degli schemi unifilari (poppler-cpp, GPL-2.0-or-later) ---
 find_package(PkgConfig QUIET)
@@ -304,7 +307,7 @@ endif()
 if(CARTESIO_BUILD_TESTS)
     enable_testing()
     add_executable(cartesio_core_tests tests/core_tests.cpp)
-    target_link_libraries(cartesio_core_tests PRIVATE cartesio_core)
+    target_link_libraries(cartesio_core_tests PRIVATE cartesio_core ZLIB::ZLIB)
     target_compile_definitions(cartesio_core_tests PRIVATE CARTESIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME core_tests COMMAND cartesio_core_tests)
 
@@ -314,6 +317,14 @@ if(CARTESIO_BUILD_TESTS)
         target_link_libraries(cartesio_canalo_engine_tests PRIVATE cartesio_canalo_engine)
         target_compile_definitions(cartesio_canalo_engine_tests PRIVATE CARTESIO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
         add_test(NAME canalo_engine_tests COMMAND cartesio_canalo_engine_tests)
+    endif()
+
+    # Prove con file malformati (tests/fuzz.cpp): da compilare a parte, con i controlli dei limiti, in una cartella
+    # di compilazione apposta (cmake -DCARTESIO_FUZZ=ON -DCMAKE_CXX_FLAGS="-D_GLIBCXX_ASSERTIONS ...").
+    option(CARTESIO_FUZZ "Programma di prova con file malformati" OFF)
+    if(CARTESIO_FUZZ)
+        add_executable(cartesio_fuzz tests/fuzz.cpp)
+        target_link_libraries(cartesio_fuzz PRIVATE cartesio_core)
     endif()
 
     add_executable(cartesio_dxfinfo tests/dxf_info.cpp)

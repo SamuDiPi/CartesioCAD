@@ -43,6 +43,15 @@ std::optional<double> toNumber(const std::string& s)
     return value;
 }
 
+// Numero intero da un valore del file: un valore enorme (2147483648, 1e300) non si può convertire in int senza
+// comportamento indefinito, quindi si ferma ai limiti; un valore assente o non numerico dà `fallback`.
+int toInt(std::optional<double> v, int fallback)
+{
+    if (!v)
+        return fallback;
+    return static_cast<int>(std::clamp(*v, -2147483648.0, 2147483647.0));
+}
+
 bool validUtf8(const std::string& s)
 {
     std::size_t i = 0;
@@ -132,7 +141,7 @@ struct Record {
     }
 
     double num(int code, double fallback) const { return number(code).value_or(fallback); }
-    int integer(int code, int fallback) const { return static_cast<int>(number(code).value_or(fallback)); }
+    int integer(int code, int fallback) const { return toInt(number(code), fallback); }
 
     std::optional<Vec2> point(int code) const
     {
@@ -169,6 +178,16 @@ public:
     }
 
     bool done() const { return i_ >= v_.size(); }
+
+    int integer(int code, int fallback) { return toInt(next(code), fallback); }
+
+    // Numero di elementi che seguono: ognuno occupa almeno una coppia, quindi non può superare le coppie rimaste
+    // (un file rovinato che dichiara due miliardi di vertici non fa riempire la memoria).
+    int count(int code)
+    {
+        const int n = integer(code, 0);
+        return std::clamp(n, 0, static_cast<int>(std::min<std::size_t>(v_.size() - std::min(i_, v_.size()), 2147483647)));
+    }
 
 private:
     const std::vector<Pair>& v_;
@@ -307,6 +326,19 @@ private:
     void resolveAnnotations();
     std::vector<std::pair<std::string, std::string>> layoutGroups_;   // layout -> gruppo (CARTESIO_LAYOUTGROUPS)
     std::vector<std::pair<LeaderEntity*, std::string>> leaderLegs_;   // frecce in più -> handle della principale
+
+    // Le tabelle qui sopra tengono puntatori agli oggetti letti. In un file rovinato o costruito apposta un
+    // blocco può essere ridefinito o non chiuso, e due oggetti possono riferirsi allo stesso testo o contorno:
+    // gli oggetti restano quindi vivi fino alla fine della lettura e ognuno si toglie dal disegno una volta sola.
+    std::vector<std::shared_ptr<BlockDef>> keptBlocks_;
+    std::vector<std::unique_ptr<Entity>> keptEntities_;
+    std::set<const Entity*> erased_;
+    bool erased(const Entity* e) const { return erased_.count(e) != 0; }
+    void eraseOnce(const Entity* e)
+    {
+        if (e && e->id() != 0 && erased_.insert(e).second)
+            doc_.eraseLoaded(e->id());
+    }
 };
 
 // XDATA che segna un oggetto o uno stile annotativo: "AcadAnnotative" (1070 versione, 1070 1 = annotativo) o
@@ -321,7 +353,7 @@ bool annotativeXdata(const Record& r)
             continue;
         }
         if (app == "AcadAnnotative" && code == 1070)
-            flags.push_back(static_cast<int>(toNumber(value).value_or(0.0)));
+            flags.push_back(toInt(toNumber(value), 0));
         if (app == "CARTESIOCAD" && code == 1000 && value == "ANNOTATIVE")
             return true;
     }
@@ -488,7 +520,7 @@ void Reader::process(const Record& r, const std::string& section)
             if (variable == "$LTSCALE" && code == 40 && number)
                 doc_.setLtscale(*number);
             else if (variable == "$INSUNITS" && code == 70 && number)
-                doc_.setInsUnits(static_cast<int>(*number));
+                doc_.setInsUnits(toInt(number, 0));
             else if ((variable == "$LIMMIN" || variable == "$LIMMAX") && (code == 10 || code == 20) && number) {
                 Vec2 lo = doc_.limitsMin(), hi = doc_.limitsMax();
                 Vec2& p = variable == "$LIMMIN" ? lo : hi;
@@ -498,7 +530,7 @@ void Reader::process(const Record& r, const std::string& section)
             else if (variable == "$CELTYPE" && code == 6)
                 doc_.setCurrentLinetype(value);
             else if (variable == "$CELWEIGHT" && code == 370 && number)
-                doc_.setCurrentLineweight(static_cast<int>(*number));
+                doc_.setCurrentLineweight(toInt(number, 0));
             else if (variable == "$TEXTSTYLE" && code == 7)
                 doc_.setCurrentTextStyle(value);
             else if (variable == "$DIMSTYLE" && code == 2)
@@ -598,7 +630,8 @@ void Reader::process(const Record& r, const std::string& section)
             if (const auto handle = r.text(5); handle)
                 layerHandles_[*handle] = index;
             Layer& layer = doc_.layer(index);
-            layer.color = color == 0 ? 7 : std::abs(color);
+            // Colori fuori dall'intervallo 1-255 (anche -2147483648, il cui valore assoluto non esiste) -> bianco/nero.
+            layer.color = color != 0 && color > -256 && color < 256 ? std::abs(color) : 7;
             layer.visible = color >= 0;
             layer.frozen = (flags & 1) != 0;
             layer.linetype = r.text(6).value_or("Continuous");
@@ -754,7 +787,7 @@ void Reader::process(const Record& r, const std::string& section)
                         state.layers.push_back(l);
                     } else if (!state.layers.empty()) {
                         Layer& l = state.layers.back();
-                        const int v = static_cast<int>(toNumber(value).value_or(0.0));
+                        const int v = toInt(toNumber(value), 0);
                         if (code == 70) {
                             l.visible = (v & 1) == 0;
                             l.frozen = (v & 2) != 0;
@@ -811,6 +844,7 @@ void Reader::process(const Record& r, const std::string& section)
     // Definizioni di blocco.
     if (r.type == "BLOCK") {
         block_ = std::make_shared<BlockDef>();
+        keptBlocks_.push_back(block_);
         block_->name = r.text(2).value_or("");
         block_->base = r.point(10).value_or(Vec2{});
         const int flags = r.integer(70, 0);
@@ -828,8 +862,12 @@ void Reader::process(const Record& r, const std::string& section)
     }
     if (r.type == "ENDBLK") {
         if (block_ && !skipBlock_) {
-            if (paperBlock_)
-                paperBlocks_[block_->name] = std::move(block_->entities);
+            if (paperBlock_) {
+                auto& content = paperBlocks_[block_->name];
+                for (auto& e : content)   // stesso blocco due volte: gli oggetti della prima restano vivi
+                    keptEntities_.push_back(std::move(e));
+                content = std::move(block_->entities);
+            }
             else
                 doc_.addBlock(block_);
         }
@@ -919,7 +957,7 @@ static PlotSettings readPlotSettings(const Record& r)
     bool sawStandardScale = false;
     const auto num = [](const std::string& v, double fallback) { return toNumber(v).value_or(fallback); };
     const auto integer = [](const std::string& v, int fallback) {
-        return static_cast<int>(toNumber(v).value_or(fallback));
+        return toInt(toNumber(v), fallback);
     };
     for (const auto& [code, value] : r.values) {
         if (code == 100) {
@@ -995,7 +1033,7 @@ void Reader::readLayout(const Record& r)
         else if (inLayout && code == 1)
             info.name = value;
         else if (inLayout && code == 71)
-            info.tabOrder = static_cast<int>(toNumber(value).value_or(0));
+            info.tabOrder = toInt(toNumber(value), 0);
         else if (inLayout && code == 330)
             info.recordHandle = value;
     }
@@ -1163,7 +1201,7 @@ std::unique_ptr<Entity> Reader::readMText(const Record& r)
             else if (app == "CARTESIOCAD" && code == 1000)
                 ours = value == "MTEXTCOLUMNS";
             else if (ours && code == 1070)
-                m->columns = std::clamp(static_cast<int>(toNumber(value).value_or(1.0)), 1, 20);
+                m->columns = std::clamp(toInt(toNumber(value), 1), 1, 20);
             else if (ours && code == 1040)
                 m->columnGutter = std::max(0.0, toNumber(value).value_or(0.0));
         }
@@ -1269,16 +1307,16 @@ std::unique_ptr<Entity> Reader::readHatch(const Record& r)
     hatch->solid = r.integer(70, 0) == 1 || hatch->pattern == "SOLID";
 
     Cursor c(r.values);
-    const int loops = static_cast<int>(c.next(91).value_or(0));
+    const int loops = c.count(91);
     std::vector<bool> textBoxes;   // contorno attorno a un testo (flag 8)
     for (int l = 0; l < loops && !c.done(); ++l) {
-        const int flags = static_cast<int>(c.next(92).value_or(0));
+        const int flags = c.integer(92, 0);
         std::vector<PolyVertex> loop;
 
         if (flags & 2) {   // contorno a polilinea
             const bool hasBulge = c.next(72).value_or(0) != 0;
             c.next(73);
-            const int n = static_cast<int>(c.next(93).value_or(0));
+            const int n = c.count(93);
             for (int i = 0; i < n; ++i) {
                 const double x = c.next(10).value_or(0.0);
                 const double y = c.next(20).value_or(0.0);
@@ -1286,9 +1324,9 @@ std::unique_ptr<Entity> Reader::readHatch(const Record& r)
                 loop.push_back({{x, y}, b});
             }
         } else {           // contorno a lati
-            const int edges = static_cast<int>(c.next(93).value_or(0));
+            const int edges = c.count(93);
             for (int e = 0; e < edges; ++e) {
-                const int type = static_cast<int>(c.next(72).value_or(1));
+                const int type = c.integer(72, 1);
                 if (type == 1) {           // segmento
                     const double x1 = c.next(10).value_or(0), y1 = c.next(20).value_or(0);
                     c.next(11);
@@ -1331,11 +1369,11 @@ std::unique_ptr<Entity> Reader::readHatch(const Record& r)
                         loop.push_back({el.pointAt(s0 + sweep * k / steps), 0.0});
                 } else if (type == 4) {    // spline
                     SplineEntity sp;
-                    sp.degree = static_cast<int>(c.next(94).value_or(3));
+                    sp.degree = c.integer(94, 3);
                     const bool rational = c.next(73).value_or(0) != 0;
                     c.next(74);
-                    const int nk = static_cast<int>(c.next(95).value_or(0));
-                    const int nc = static_cast<int>(c.next(96).value_or(0));
+                    const int nk = c.count(95);
+                    const int nc = c.count(96);
                     for (int k = 0; k < nk; ++k)
                         sp.knots.push_back(c.next(40).value_or(0));
                     for (int k = 0; k < nc; ++k) {
@@ -1353,7 +1391,7 @@ std::unique_ptr<Entity> Reader::readHatch(const Record& r)
             }
         }
         // Riferimenti agli oggetti di contorno (non usati).
-        const int refs = static_cast<int>(c.next(97).value_or(0));
+        const int refs = c.count(97);
         for (int k = 0; k < refs; ++k)
             c.next(330);
         if (loop.size() >= 2) {
@@ -1362,20 +1400,20 @@ std::unique_ptr<Entity> Reader::readHatch(const Record& r)
         }
     }
     dropOutsideTextBoxes(hatch->loops, textBoxes);
-    hatch->hatchStyle = static_cast<int>(c.next(75).value_or(0));
-    hatch->patternType = static_cast<int>(c.next(76).value_or(1));
+    hatch->hatchStyle = c.integer(75, 0);
+    hatch->patternType = c.integer(76, 1);
     if (!hatch->solid) {
         // Definizione del motivo: angolo, scala e famiglie di linee (come sono salvate nel file).
         hatch->patternAngle = degToRad(c.next(52).value_or(0.0));
         hatch->patternScale = c.next(41).value_or(1.0);
         hatch->patternDouble = c.next(77).value_or(0.0) != 0.0;
-        const int lines = static_cast<int>(c.next(78).value_or(0));
+        const int lines = c.count(78);
         for (int k = 0; k < lines && !c.done(); ++k) {
             HatchPatternLine line;
             line.angle = degToRad(c.next(53).value_or(0.0));
             line.base = {c.next(43).value_or(0.0), c.next(44).value_or(0.0)};
             line.offset = {c.next(45).value_or(0.0), c.next(46).value_or(0.0)};
-            const int dashes = static_cast<int>(c.next(79).value_or(0));
+            const int dashes = c.count(79);
             for (int d = 0; d < dashes; ++d)
                 line.dashes.push_back(c.next(49).value_or(0.0));
             hatch->patternLines.push_back(std::move(line));
@@ -1746,8 +1784,10 @@ std::unique_ptr<Entity> Reader::readMline(const Record& r)
     m->closed = (r.integer(71, 1) & 2) != 0;
     m->style = r.text(2).value_or("Standard");
     Cursor c(r.values);
-    const int vertices = r.integer(72, 0);   // 72 e 73 possono essere in qualsiasi ordine
-    const int elements = r.integer(73, 0);
+    // 72 e 73 possono essere in qualsiasi ordine; non più di quanti dati ci sono davvero nel file.
+    const int available = static_cast<int>(std::min<std::size_t>(r.values.size(), 1000000));
+    const int vertices = std::clamp(r.integer(72, 0), 0, available);
+    const int elements = std::clamp(r.integer(73, 0), 0, available);
     c.next(10);                               // punto iniziale: poi vengono i vertici
     m->offsets.assign(static_cast<std::size_t>(std::max(0, elements)), 0.0);
     for (int i = 0; i < vertices && !c.done(); ++i) {
@@ -1756,14 +1796,14 @@ std::unique_ptr<Entity> Reader::readMline(const Record& r)
         const Vec2 miter{c.next(13).value_or(0.0), c.next(23).value_or(1.0)};
         m->vertices.push_back(p);
         for (int e = 0; e < elements; ++e) {
-            const int params = static_cast<int>(c.next(74).value_or(0));
+            const int params = c.count(74);
             double first = 0.0;
             for (int k = 0; k < params; ++k) {
                 const double value = c.next(41).value_or(0.0);
                 if (k == 0)
                     first = value;
             }
-            const int fills = static_cast<int>(c.next(75).value_or(0));
+            const int fills = c.count(75);
             for (int k = 0; k < fills; ++k)
                 c.next(42);
             // Distanza perpendicolare dell'elemento, dal primo vertice.
@@ -1797,9 +1837,9 @@ std::unique_ptr<Entity> Reader::readTableXdata(const Record& r)
     number();   // z
     t->rotation = number();
     t->textHeight = number();
-    t->rows = static_cast<int>(number());
-    t->columns = static_cast<int>(number());
-    if (t->rows <= 0 || t->columns <= 0 || t->rows * t->columns > 1000000)
+    t->rows = toInt(number(), 0);
+    t->columns = toInt(number(), 0);
+    if (t->rows <= 0 || t->columns <= 0 || static_cast<long long>(t->rows) * t->columns > 1000000)
         return nullptr;
     for (int k = 0; k < t->columns; ++k)
         t->columnWidths.push_back(number());
@@ -1895,6 +1935,8 @@ void Reader::finish()
             if (content == paperBlocks_.end())
                 continue;
             for (auto& e : content->second) {
+                if (!e)
+                    continue;   // due layout con lo stesso blocco: gli oggetti sono già nel primo
                 e->setSpace(id);
                 doc_.insertLoaded(std::move(e));
                 ++result_.imported;
@@ -1960,10 +2002,11 @@ void Reader::finish()
     // Multidirettrici: le frecce in più tornano nella direttrice principale.
     for (auto& [leg, mainHandle] : leaderLegs_) {
         const auto it = entityHandles_.find(mainHandle);
-        if (it == entityHandles_.end() || it->second->type() != EntityType::Leader || leg->points.empty() || leg->id() == 0)
+        if (it == entityHandles_.end() || it->second == leg || erased(leg) || erased(it->second)
+            || it->second->type() != EntityType::Leader || leg->points.empty() || leg->id() == 0)
             continue;
         static_cast<LeaderEntity*>(it->second)->extraTips.push_back(leg->points.front());
-        doc_.eraseLoaded(leg->id());
+        eraseOnce(leg);
     }
     // Gruppi delle schede dei layout, per nome (i layout sono già letti).
     for (const auto& [name, group] : layoutGroups_)
@@ -1980,26 +2023,25 @@ void Reader::finish()
     // Testi delle direttrici: l'MTEXT collegato diventa il testo della direttrice.
     for (auto& [leader, handle] : pendingLeaderTexts_) {
         const auto it = mtextHandles_.find(handle);
-        if (it == mtextHandles_.end() || it->second->id() == 0)
+        if (it == mtextHandles_.end() || it->second->id() == 0 || erased(leader) || erased(it->second))
             continue;
         leader->text = it->second->text;
         leader->textHeight = it->second->height;
         if (!leaderStyled_.count(leader))
             leader->textStyle = it->second->style;
-        doc_.eraseLoaded(it->second->id());
+        eraseOnce(it->second);
     }
 
     // Contorni delle finestre non rettangolari: diventano parte della finestra (si ricreano al salvataggio).
     for (auto& [vp, handle] : pendingClips_) {
         const auto it = paperHandles_.find(handle);
-        if (it == paperHandles_.end())
+        if (it == paperHandles_.end() || erased(it->second))
             continue;
         const std::vector<Vec2> outline = closedOutline(*it->second, true);
         if (outline.size() < 3)
             continue;
         vp->setClip(outline);
-        if (it->second->id() != 0)
-            doc_.eraseLoaded(it->second->id());
+        eraseOnce(it->second);
     }
 
     // Blocchi dinamici: ogni stato salvato (*U...) sa di quale blocco dinamico è.
