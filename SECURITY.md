@@ -15,7 +15,8 @@ CartesioCAD è un progetto personale e gratuito: le segnalazioni si esaminano ap
 CartesioCAD usa librerie di altri progetti (elenco completo in `LICENZE-TERZE-PARTI.txt` della versione distribuita). Le loro vulnerabilità vanno segnalate anche ai rispettivi progetti; a ogni versione nuova CartesioCAD si ricompila con le librerie aggiornate.
 
 - **GNU LibreDWG 0.14** (lettura e scrittura DWG, programma separato `libredwg/dwg2dxf.exe`): per la 0.14 sono state pubblicate vulnerabilità nella lettura dei DWG; si aggiornerà alla prossima versione stabile. Aprire DWG solo da fonti affidabili.
-- **Poppler** (lettura degli schemi in PDF) e **Qt**: versioni di MSYS2 aggiornate al momento della compilazione.
+- **Poppler** (lettura degli schemi in PDF) e **Qt**: versioni di MSYS2 aggiornate al momento della compilazione. Poppler fino alla 26.11 ha una vulnerabilità nella verifica delle firme digitali con NSS (CVE-2026-131847): CartesioCAD legge solo il testo dei PDF e non verifica firme, quindi quella parte non viene usata.
+- **OpenSSL 4.1** (solo la verifica della firma Ed25519 degli aggiornamenti; l'HTTPS usa il TLS di Windows). La serie 3.6 non è più supportata dal 1° novembre 2026 e non si distribuisce più.
 - **pdf.js 6.5.438** nel plugin CanaloCAD, aperto con `isEvalSupported: false`.
 
 ## Cose da sapere
@@ -25,7 +26,8 @@ CartesioCAD usa librerie di altri progetti (elenco completo in `LICENZE-TERZE-PA
 
 ## Connettore per Claude Desktop
 
-- Spento di default; si accende dal comando `CLAUDE`. CartesioCAD apre una named pipe locale (`QLocalServer` con accesso limitato all'utente di Windows collegato), nessuna porta di rete. `cartesio-mcp.exe`, avviato da Claude Desktop, la usa per inoltrare le richieste; non legge né scrive file e non si collega a Internet.
+- Spento di default; si accende dall'Assistente IA (comando `ASSISTENTE`). CartesioCAD apre una named pipe locale (`QLocalServer` con accesso limitato all'utente di Windows collegato), nessuna porta di rete. `cartesio-mcp.exe`, avviato da Claude Desktop, la usa per inoltrare le richieste; non legge né scrive file e non si collega a Internet. CartesioCAD accetta solo collegamenti da `cartesio-mcp.exe` della propria cartella sullo stesso computer (verifica il programma che si collega) e rifiuta gli altri, scrivendolo nella riga di comando.
+- Ogni proposta o ricerca con filtro ha un tempo massimo di calcolo (15 secondi): un filtro o un'espressione regolare costruiti male non bloccano il programma.
 - Le richieste sono un elenco chiuso di strumenti e di operazioni, controllate una per una (oggetti esistenti, layer non bloccati, numeri finiti, limiti sul numero di operazioni e sulla dimensione dei messaggi). Nessuno script, nessun comando di sistema, nessun accesso ai file oltre al salvataggio di una nuova versione accanto al disegno aperto, con un nome nuovo (mai sovrascritto).
 - Le modifiche si applicano solo dopo la conferma dell'utente nella finestra di CartesioCAD. I testi presenti nei disegni sono dati: se contengono istruzioni rivolte all'assistente (prompt injection), non hanno effetto senza quella conferma.
 

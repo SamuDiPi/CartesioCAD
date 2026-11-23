@@ -1,17 +1,17 @@
-# Claude (connettore per Claude Desktop)
+# Assistente IA (connettore per Claude Desktop)
 
-## Claude (`CLAUDE`)
+## Assistente IA (`ASSISTENTE`)
 
-**Dove:** Strumenti > Assistente > Claude; pulsante dell'applicazione > Claude...; Guida > Percorsi > "Lavorare con Claude" per farsi accompagnare passo per passo.
+**Dove:** Strumenti > Assistente > Assistente IA; pulsante dell'applicazione > Assistente IA...; Guida > Percorsi > "Lavorare con un assistente IA" per farsi accompagnare passo per passo.
 
-Con il connettore si chiede a Claude, nell'app **Claude Desktop** con il proprio account, di leggere e modificare il disegno aperto in CartesioCAD. Si scrive nella chat di Claude Desktop, per esempio: *"porta tutti i testi delle stanze sul layer Nomi-Stanze"*. Claude legge il disegno, propone le modifiche e CartesioCAD le mostra; le modifiche si applicano solo con **OK**.
+Con il connettore si chiede a Claude, l'assistente IA di Anthropic, nell'app **Claude Desktop** con il proprio account, di leggere e modificare il disegno aperto in CartesioCAD. Si scrive nella chat di Claude Desktop, per esempio: *"porta tutti i testi delle stanze sul layer Nomi-Stanze"*. Claude legge il disegno, propone le modifiche e CartesioCAD le mostra; le modifiche si applicano solo con **OK**.
 
 CartesioCAD non chiede né conserva credenziali: l'accesso a Claude si fa in Claude Desktop, con l'account dell'utente e alle sue condizioni.
 
 ### Attivarlo (una volta sola)
 
 1. Installare Claude Desktop da claude.ai/download, accedere con il proprio account e chiuderlo.
-2. In CartesioCAD: Strumenti > Assistente > **Claude**, spuntare **Attiva il connettore**, chiudere del tutto Claude Desktop (anche dall'icona vicino all'orologio: aperto, può riscrivere il proprio file di configurazione) e premere **Configura Claude Desktop**. CartesioCAD aggiunge `cartesiocad` ai connettori di Claude Desktop (file `claude_desktop_config.json` nella cartella dei dati di Claude Desktop, anche per la versione dello Store di Microsoft; ne tiene una copia `.prima-di-cartesiocad`); gli altri connettori restano come sono.
+2. In CartesioCAD: Strumenti > Assistente > **Assistente IA**, spuntare **Attiva il connettore**, chiudere del tutto Claude Desktop (anche dall'icona vicino all'orologio: aperto, può riscrivere il proprio file di configurazione) e premere **Configura Claude Desktop**. CartesioCAD aggiunge `cartesiocad` ai connettori di Claude Desktop (file `claude_desktop_config.json` nella cartella dei dati di Claude Desktop, anche per la versione dello Store di Microsoft; ne tiene una copia `.prima-di-cartesiocad`); gli altri connettori restano come sono.
 3. Riaprire Claude Desktop: fra gli strumenti compare **cartesiocad**.
 
 Il connettore resta acceso ai prossimi avvii finché non si toglie la spunta. Se sono aperti due CartesioCAD, solo il primo riceve le richieste.

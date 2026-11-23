@@ -237,7 +237,7 @@ private:
     void scriptUpdateRollback(const QString& folder);
     void scriptUpdateDownload(const QString& folder);
     // Connettore per Claude Desktop (MainWindowClaude.cpp): canale locale, strumenti sul disegno aperto,
-    // conferma delle modifiche proposte, finestra CLAUDE.
+    // conferma delle modifiche proposte, finestra ASSISTENTE (Assistente IA).
     bool startClaude(QString* error);
     void stopClaude();
     void startupClaude();
@@ -453,7 +453,7 @@ private:
     std::map<QString, std::shared_ptr<DocSummary>> pendingSummaries_;   // riepiloghi dei DWG da verificare
     ClaudeLink* claude_ = nullptr;
     QPointer<QDialog> claudeProposal_;   // proposta di Claude in attesa della scelta dell'utente
-    bool claudeAutoApprove_ = false;     // solo script di prova: -CLAUDEATTIVA AUTO
+    bool claudeAutoApprove_ = false;     // solo script di prova: -ASSISTENTEATTIVA AUTO
     // Libreria simboli: inserisce un blocco (dal disegno o da un file libreria già letto).
     // `at`: rilasciato con il trascinamento in quel punto (scala 1, rotazione 0); altrimenti INSERT.
     void insertFromLibrary(const QString& source, const QString& name, std::optional<Vec2> at = {});

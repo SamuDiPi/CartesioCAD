@@ -35,14 +35,14 @@ rm -rf "$DEST/licenze"
 mkdir -p "$DEST/licenze/testi"
 cp "$ROOT/LICENSE" "$DEST/LICENSE.txt"
 
-# Pacchetti delle DLL e degli eseguibili (tranne CartesioCAD.exe e LibreDWG, trattati a parte).
+# Pacchetti delle DLL e degli eseguibili (tranne CartesioCAD.exe, cartesio-mcp.exe e LibreDWG, trattati a parte).
 declare -A seen=()
 declare -A files_of=()
 packages=()
 while IFS= read -r -d '' f; do
     rel="${f#"$DEST"/}"
     case "$rel" in
-        CartesioCAD.exe|libredwg/*) continue ;;
+        CartesioCAD.exe|cartesio-mcp.exe|libredwg/*) continue ;;
     esac
     name="$(basename "$f")"
     owner=""

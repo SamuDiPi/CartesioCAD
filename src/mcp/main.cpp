@@ -243,8 +243,8 @@ public:
             socket_.abort();
             socket_.connectToServer(claudeChannelName());
             if (!socket_.waitForConnected(3000))
-                return toolText(QStringLiteral("CartesioCAD non risponde: va aperto, con il connettore per Claude attivo "
-                                               "(comando CLAUDE nel programma)."),
+                return toolText(QStringLiteral("CartesioCAD non risponde: va aperto, con il connettore dell'assistente IA attivo "
+                                               "(Strumenti > Assistente > Assistente IA, comando ASSISTENTE)."),
                                 true);
         }
         const int id = ++counter_;

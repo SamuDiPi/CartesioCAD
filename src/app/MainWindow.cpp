@@ -127,7 +127,7 @@ const QStringList kUiCommands = {
     QStringLiteral("STYLE"), QStringLiteral("ST"), QStringLiteral("STILE"), QStringLiteral("MLEADERSTYLE"),
     QStringLiteral("MLS"), QStringLiteral("STILEDIRETTRICE"), QStringLiteral("RECOVER"), QStringLiteral("RECUPERA"),
     QStringLiteral("ETRANSMIT"), QStringLiteral("ARCHIVIA"),
-    QStringLiteral("AGGIORNAMENTI"), QStringLiteral("AGGIORNA"), QStringLiteral("VERSIONEPRECEDENTE"), QStringLiteral("CLAUDE"),
+    QStringLiteral("AGGIORNAMENTI"), QStringLiteral("AGGIORNA"), QStringLiteral("VERSIONEPRECEDENTE"), QStringLiteral("ASSISTENTE"),
     QStringLiteral("LAYERSTATE"), QStringLiteral("LAS"), QStringLiteral("STATILAYER"),
     QStringLiteral("DWGCONVERT"), QStringLiteral("CONVERTI"), QStringLiteral("CONVERSIONE"),
     QStringLiteral("BEDIT"), QStringLiteral("BE"), QStringLiteral("EDITBLOCCO"), QStringLiteral("BSAVE"), QStringLiteral("BS"),
@@ -478,7 +478,7 @@ QWidget* MainWindow::buildTopArea()
             checkForUpdates(true);
     });
     appMenu->addAction(tr("Torna alla versione precedente..."), this, [this] { rollbackUpdate(); });
-    appMenu->addAction(tr("Claude..."), this, [this] { showClaudeDialog(); });
+    appMenu->addAction(tr("Assistente IA..."), this, [this] { showClaudeDialog(); });
     appMenu->addAction(tr("Informazioni su CartesioCAD..."), this, [this] { showAbout(); });
     appMenu->addSeparator();
     appMenu->addAction(closeAct_);
@@ -2334,7 +2334,7 @@ bool MainWindow::handleUiCommand(const QString& word)
         later([this] { checkForUpdates(true); });
     else if (is({"VERSIONEPRECEDENTE"}))
         later([this] { rollbackUpdate(); });
-    else if (is({"CLAUDE"}))
+    else if (is({"ASSISTENTE"}))
         later([this] { showClaudeDialog(); });
     else if (is({"DIMSTYLE", "D", "DST", "STILEQUOTA"})) {
         if (DrawingWidget* d = current())
@@ -2397,7 +2397,7 @@ void MainWindow::showHelp()
     print(tr("Utilità:  DIST (DI)  AREA (AA)  ID  LIST (LI)  COPYCLIP (Ctrl+C)  PASTECLIP (Ctrl+V)"));
     print(tr("          MEASUREGEOM (MEA, misura rapida)  COPYBASE (Ctrl+Maiusc+C)  ADDSELECTED"));
     print(tr("Stili:    STYLE (ST)  MLEADERSTYLE (MLS)  DIMSTYLE   Quote: DIMTEDIT  DIMEDIT   Disegno: SPLINE (SPL)"));
-    print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE  CLAUDE"));
+    print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE  ASSISTENTE"));
     print(tr("Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS"));
     print(tr("          Tutto/Ultimo/Precedente/Rimuovi nelle richieste  ISOLATEOBJECTS  HIDEOBJECTS  UNISOLATEOBJECTS"));
     print(tr("Script:   SCRIPT (SCR)  SETVAR  -LAYER  COLOR  OSMODE  ORTHOMODE  TILEMODE  ATTREQ ..."));

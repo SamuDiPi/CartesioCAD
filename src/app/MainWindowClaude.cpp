@@ -1,5 +1,5 @@
 // Connettore per Claude Desktop: gli strumenti che Claude usa sul disegno aperto (vedi ClaudeLink.h e
-// src/mcp/main.cpp), la conferma delle modifiche proposte e la finestra "Claude" per attivare il connettore.
+// src/mcp/main.cpp), la conferma delle modifiche proposte e la finestra "Assistente IA" (comando ASSISTENTE).
 //
 // Regole:
 // - Claude legge solo quello che chiede (di default la selezione) e non vede file, cartelle o rete.
@@ -21,6 +21,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -45,6 +46,7 @@ namespace {
 constexpr int kMaxOperations = 2000;
 constexpr std::size_t kMaxIds = 500000;   // oggetti toccati da una proposta, anche scelti con i filtri
 constexpr double kMaxCoordinate = 1e12;
+constexpr qint64 kMaxPlanMs = 15000;    // tempo massimo per calcolare una proposta o una ricerca con filtro
 constexpr int kProposalSeconds = 240;   // poi la proposta scade (cartesio-mcp aspetta al massimo 5 minuti)
 
 QString typeKey(EntityType t)
@@ -527,6 +529,13 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
     std::map<QString, int> renamed;   // nome nuovo (minuscolo) -> indice del layer rinominato
     std::size_t idCount = 0;
     QString scope;   // oggetti scelti con un filtro: si aggiunge alla riga dell'operazione
+    // Tempo massimo: un filtro o un'espressione regolare costruiti male (anche da un testo del disegno) non devono
+    // bloccare il programma.
+    QElapsedTimer clock;
+    clock.start();
+    const auto late = [&clock] { return clock.elapsed() > kMaxPlanMs; };
+    const QString tooSlow = QObject::tr("il calcolo supera %1 secondi: restringere il filtro o semplificare "
+                                        "l'espressione regolare").arg(kMaxPlanMs / 1000);
 
     const auto layerIndex = [&](const QString& name, int* index) -> bool {
         if (const auto it = renamed.find(name.toLower()); it != renamed.end()) {
@@ -582,6 +591,10 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
                 return false;
             int locked = 0;
             for (const auto& e : doc.entities()) {
+                if (late()) {
+                    *why = tooSlow;
+                    return false;
+                }
                 if (erased.count(e->id()) || e->type() == EntityType::Viewport || !matches(doc, *e, *filter, selection))
                     continue;
                 const int layer = e->layer();
@@ -805,6 +818,8 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
                 return bad(why);
             std::size_t changed = 0;
             for (qint64 id : ids) {
+                if (late())
+                    return bad(tooSlow);
                 // Prima su una copia: gli oggetti che non cambiano restano fuori dalla modifica.
                 const Entity* original = doc.find(static_cast<EntityId>(id));
                 auto probe = original ? (working.count(static_cast<EntityId>(id)) ? working[static_cast<EntityId>(id)]->clone() : original->clone()) : nullptr;
@@ -1071,6 +1086,10 @@ bool MainWindow::startClaude(QString* error)
         claude_ = new ClaudeLink([this](const QString& tool, const QJsonObject& args, ClaudeLink::Reply reply) {
             handleClaudeTool(tool, args, std::move(reply));
         }, this);
+        connect(claude_, &ClaudeLink::rejected, this, [this](const QString& who) {
+            print(tr("Assistente IA: collegamento rifiutato da %1 (è ammesso solo cartesio-mcp.exe della cartella "
+                     "di CartesioCAD).").arg(who));
+        });
     }
     return claude_->start(error);
 }
@@ -1087,7 +1106,7 @@ void MainWindow::startupClaude()
         return;
     QString error;
     if (!startClaude(&error))
-        print(tr("Connettore per Claude non attivo: %1 (forse è già aperto un altro CartesioCAD).").arg(error));
+        print(tr("Assistente IA: connettore non attivo: %1 (forse è già aperto un altro CartesioCAD).").arg(error));
 }
 
 void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, ClaudeLink::Reply reply)
@@ -1177,7 +1196,14 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
         // Parametri semplici di leggi_oggetti, ancora accettati.
         const QString onlyLayer = q.value(QStringLiteral("layer")).toString();
         const QString onlyType = q.value(QStringLiteral("tipo")).toString();
+        QElapsedTimer clock;
+        clock.start();
         for (const auto& e : doc.entities()) {
+            if (clock.elapsed() > kMaxPlanMs) {
+                *why = tr("La ricerca supera %1 secondi: restringere il filtro o semplificare l'espressione regolare.")
+                           .arg(kMaxPlanMs / 1000);
+                return false;
+            }
             if (scope == QLatin1String("selezione") ? !selected.count(e->id())
                                                     : (e->space() != 0 && !(filter && filter->allSpaces)))
                 continue;
@@ -1328,7 +1354,7 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
             reply(false, tr("Salvataggio non riuscito: %1").arg(error));
             return;
         }
-        print(tr("Claude: salvata la nuova versione %1 (l'originale %2 non è stato toccato).")
+        print(tr("Assistente IA: salvata la nuova versione %1 (l'originale %2 non è stato toccato).")
                   .arg(QDir::toNativeSeparators(target), QFileInfo(original).fileName()));
         ++claudeSaved_;
         saveThumbnail(d, target);
@@ -1398,7 +1424,7 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
         for (const auto& [index, name] : plan->layerRenames) {
             std::string why;
             if (!doc.renameLayer(index, name.toStdString(), &why))
-                print(tr("Claude: layer non rinominato in %1: %2").arg(name, QString::fromStdString(why)));
+                print(tr("Assistente IA: layer non rinominato in %1: %2").arg(name, QString::fromStdString(why)));
         }
         drawing->notifyChanged();
         std::vector<EntityId> alive;
@@ -1410,16 +1436,16 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
         return {};
     };
 
-    const QString title = description.isEmpty() ? tr("Modifiche proposte da Claude") : description;
-    if (claudeAutoApprove_) {   // solo negli script di prova (-CLAUDEATTIVA AUTO)
+    const QString title = description.isEmpty() ? tr("Modifiche proposte dall'assistente IA") : description;
+    if (claudeAutoApprove_) {   // solo negli script di prova (-ASSISTENTEATTIVA AUTO)
         const QString failure = apply();
-        print(tr("Claude (prova, applicata senza conferma): %1").arg(title));
+        print(tr("Assistente IA (prova, applicata senza conferma): %1").arg(title));
         reply(failure.isEmpty(), failure.isEmpty() ? tr("L'utente ha applicato le modifiche.") : tr("Non applicate: %1").arg(failure));
         return;
     }
 
     d->setSelection(preview->touched);   // gli oggetti interessati si vedono evidenziati
-    auto* dialog = new FormDialog(tr("Claude propone delle modifiche"), FormDialog::Ok | FormDialog::Cancel, this);
+    auto* dialog = new FormDialog(tr("Modifiche proposte dall'assistente IA"), FormDialog::Ok | FormDialog::Cancel, this);
     dialog->setAttribute(Qt::WA_DeleteOnClose);
     dialog->group(title);
     dialog->note(tr("Disegno: %1. Gli oggetti esistenti interessati sono selezionati. Le modifiche si applicano solo "
@@ -1438,7 +1464,7 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
     connect(dialog, &QDialog::accepted, this, [this, apply, answer, title] {
         const QString failure = apply();
         if (failure.isEmpty())
-            print(tr("Claude: applicate le modifiche \"%1\" (Ctrl+Z per annullarle).").arg(title));
+            print(tr("Assistente IA: applicate le modifiche \"%1\" (Ctrl+Z per annullarle).").arg(title));
         answer(failure.isEmpty(), failure.isEmpty() ? tr("L'utente ha applicato le modifiche.")
                                                     : tr("L'utente ha confermato, ma non è stato possibile applicarle: %1").arg(failure));
     });
@@ -1453,7 +1479,7 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
     QApplication::alert(this);
 }
 
-// ------------------------------------------------------------------ finestra "Claude"
+// ------------------------------------------------------------------ finestra "Assistente IA"
 
 QString MainWindow::configureClaudeDesktop()
 {
@@ -1500,7 +1526,7 @@ QString MainWindow::configureClaudeDesktop()
 
 void MainWindow::showClaudeDialog()
 {
-    FormDialog dialog(tr("Claude"), FormDialog::Close, this);
+    FormDialog dialog(tr("Assistente IA"), FormDialog::Close, this);
     dialog.group(tr("Connettore per Claude Desktop"));
     dialog.note(tr("Con il connettore si chiede a Claude, nell'app Claude Desktop con il proprio account, di leggere e "
                    "modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le mostra e le applica solo "
@@ -1520,16 +1546,17 @@ void MainWindow::showClaudeDialog()
         appOptions().save();
         QString error;
         if (on && !startClaude(&error))
-            QMessageBox::warning(this, tr("Claude"), tr("Impossibile attivare il connettore: %1").arg(error));
+            QMessageBox::warning(this, tr("Assistente IA"), tr("Impossibile attivare il connettore: %1").arg(error));
         if (!on)
             stopClaude();
         refresh();
     });
     dialog.note(tr("Prima di premere Configura chiudere Claude Desktop (anche dall'icona vicino all'orologio)."));
     dialog.buttonsRow({{tr("Configura Claude Desktop"), [this] {
-                           QMessageBox::information(this, tr("Claude"), configureClaudeDesktop());
+                           QMessageBox::information(this, tr("Assistente IA"), configureClaudeDesktop());
                        }}});
     dialog.note(tr("Claude è un marchio di Anthropic. CartesioCAD è un progetto indipendente, non collegato ad Anthropic."));
+    dialog.setSize(580, 460);
     refresh();
     dialog.exec();
 }

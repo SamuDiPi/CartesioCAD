@@ -271,8 +271,8 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     custom->addLargeButton(optionsAct);
     custom->addLargeButton(scriptAct_);
     RibbonPanel* assistant = ribbon->addPanel(tr("Strumenti"), tr("Assistente"));
-    QAction* claudeAct = makeAction(tr("Claude"), glyphIcon(QStringLiteral("AI"), true), {},
-                                    tr("Connettore per Claude Desktop: Claude legge il disegno e propone modifiche"));
+    QAction* claudeAct = makeAction(tr("Assistente IA"), glyphIcon(QStringLiteral("IA"), true), {},
+                                    tr("Assistente IA: connettore per Claude Desktop, l'app di Anthropic, che legge il disegno e propone modifiche"));
     connect(claudeAct, &QAction::triggered, this, [this] { showClaudeDialog(); });
     assistant->addLargeButton(claudeAct);
     RibbonPanel* cleanup = ribbon->addPanel(tr("Strumenti"), tr("Pulizia"));

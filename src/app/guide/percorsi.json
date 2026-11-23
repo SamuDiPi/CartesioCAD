@@ -98,16 +98,16 @@
       ]
     },
     {
-      "titolo": "Lavorare con Claude",
-      "descrizione": "Collegare Claude Desktop, chiedere una modifica, controllarla e salvare una nuova versione senza toccare l'originale.",
+      "titolo": "Lavorare con un assistente IA",
+      "descrizione": "Collegare Claude Desktop (l'app di Anthropic), chiedere una modifica, controllarla e salvare una nuova versione senza toccare l'originale.",
       "minuti": 10,
       "passi": [
         { "testo": "Serve Claude Desktop, l'app di Anthropic (claude.ai/download), con il proprio account: installala e accedi, poi chiudila. CartesioCAD non chiede password né chiavi: l'accesso a Claude resta in Claude Desktop. Quando è pronta, premi Avanti.", "fatto": { "tipo": "next" } },
         { "testo": "Apri il disegno su cui lavorare (Apri o Ctrl+O), DWG o DXF. Il file aperto non verrà mai sovrascritto: Claude salva solo nuove versioni accanto.", "fatto": { "tipo": "drawing" } },
-        { "testo": "Strumenti > Assistente > Claude (evidenziato). Nella finestra spunta \"Attiva il connettore\": è un canale solo locale, per il tuo utente di Windows. Leggi la nota sulla privacy: quello che Claude legge passa ad Anthropic secondo le condizioni del tuo account; con i disegni dei clienti verifica di poterli condividere.", "pulsante": "Claude", "fatto": { "tipo": "claude", "stato": "attivo" } },
-        { "testo": "Chiudi del tutto Claude Desktop (anche dall'icona vicino all'orologio), poi nella stessa finestra premi \"Configura Claude Desktop\" (basta la prima volta) e riapri Claude Desktop: fra gli strumenti della chat compare \"cartesiocad\". Quando lo vedi, premi Avanti.", "pulsante": "Claude", "fatto": { "tipo": "next" } },
+        { "testo": "Strumenti > Assistente > Assistente IA (evidenziato). Nella finestra spunta \"Attiva il connettore\": è un canale solo locale, per il tuo utente di Windows. Leggi la nota sulla privacy: quello che Claude legge passa ad Anthropic secondo le condizioni del tuo account; con i disegni dei clienti verifica di poterli condividere.", "pulsante": "Assistente IA", "fatto": { "tipo": "claude", "stato": "attivo" } },
+        { "testo": "Chiudi del tutto Claude Desktop (anche dall'icona vicino all'orologio), poi nella stessa finestra premi \"Configura Claude Desktop\" (basta la prima volta) e riapri Claude Desktop: fra gli strumenti della chat compare \"cartesiocad\". Quando lo vedi, premi Avanti.", "pulsante": "Assistente IA", "fatto": { "tipo": "next" } },
         { "testo": "Seleziona nel disegno gli oggetti su cui vuoi lavorare: Claude di default legge solo la selezione. Poi in Claude Desktop scrivi cosa vuoi, per esempio \"Leggi gli oggetti selezionati e dimmi su che layer sono\". Il passo si chiude quando Claude legge il disegno.", "fatto": { "tipo": "claude", "stato": "richiesta" } },
-        { "testo": "Chiedi una modifica, per esempio \"Sposta i testi selezionati sul layer Testi\". In CartesioCAD si apre la finestra \"Claude propone delle modifiche\" con l'elenco delle operazioni e gli oggetti interessati selezionati: controllali e premi OK (Annulla per scartarle). Niente cambia senza OK.", "fatto": { "tipo": "claude", "stato": "modifiche" } },
+        { "testo": "Chiedi una modifica, per esempio \"Sposta i testi selezionati sul layer Testi\". In CartesioCAD si apre la finestra \"Modifiche proposte dall'assistente IA\" con l'elenco delle operazioni e gli oggetti interessati selezionati: controllali e premi OK (Annulla per scartarle). Niente cambia senza OK.", "fatto": { "tipo": "claude", "stato": "modifiche" } },
         { "testo": "Guarda il risultato nel disegno. Se non va bene, Ctrl+Z annulla tutte le modifiche di Claude in un colpo solo; poi puoi chiedere a Claude di riprovare. Premi Avanti quando il disegno è come vuoi.", "fatto": { "tipo": "next" } },
         { "testo": "Chiedi a Claude \"Salva una nuova versione\": CartesioCAD scrive pianta-v2.dwg (o .dxf) accanto al file aperto, lo ricontrolla e da lì in poi lavora sulla nuova versione. L'originale resta com'era.", "fatto": { "tipo": "claude", "stato": "versione" } }
       ]

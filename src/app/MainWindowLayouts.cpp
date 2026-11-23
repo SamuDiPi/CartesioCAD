@@ -1135,19 +1135,19 @@ bool MainWindow::runScript(const QString& path)
             // Diagnosi: -CARTELLE = dove si cercano font e tabelle stili.
             // Diagnosi: aggiornamenti. -AGGIORNAMENTICONTROLLA (GitHub), -AGGIORNAMENTOLOCALE manifesto archivio cartella
             // (verifica la firma e installa in quella cartella), -VERSIONEPRECEDENTE cartella.
-            // Diagnosi: -CLAUDEDESKTOP configura Claude Desktop (cartelle da APPDATA e LOCALAPPDATA) e scrive l'esito.
-            if (word == QLatin1String("-CLAUDEDESKTOP")) {
-                print(QStringLiteral("-CLAUDEDESKTOP: ") + configureClaudeDesktop());
+            // Diagnosi: -ASSISTENTEDESKTOP configura Claude Desktop (cartelle da APPDATA e LOCALAPPDATA) e scrive l'esito.
+            if (word == QLatin1String("-ASSISTENTEDESKTOP")) {
+                print(QStringLiteral("-ASSISTENTEDESKTOP: ") + configureClaudeDesktop());
                 continue;
             }
-            // Diagnosi: -CLAUDEATTIVA [AUTO | FOTO file.png] accende il connettore per questa sessione; con AUTO le proposte si
+            // Diagnosi: -ASSISTENTEATTIVA [AUTO | FOTO file.png] accende il connettore per questa sessione; con AUTO le proposte si
             // applicano senza la finestra di conferma (solo per le prove automatiche).
-            if (word == QLatin1String("-CLAUDEATTIVA")) {
+            if (word == QLatin1String("-ASSISTENTEATTIVA")) {
                 QString error;
                 if (startClaude(&error))
-                    print(tr("-CLAUDEATTIVA: canale %1 attivo").arg(ClaudeLink::channelName()));
+                    print(tr("-ASSISTENTEATTIVA: canale %1 attivo").arg(ClaudeLink::channelName()));
                 else
-                    print(tr("-CLAUDEATTIVA: errore %1").arg(error));
+                    print(tr("-ASSISTENTEATTIVA: errore %1").arg(error));
                 const qsizetype mark = i;
                 const QString option = nextToken().toUpper();
                 if (option == QLatin1String("AUTO"))
@@ -1908,7 +1908,7 @@ bool MainWindow::runScript(const QString& path)
                     dialog = std::make_unique<TextStyleDialog>(d, this);
                 else if (which == QLatin1String("STILIDIRETTRICE") && d)
                     dialog = std::make_unique<MLeaderStyleDialog>(d, this);
-                else if (which == QLatin1String("CLAUDE")) {
+                else if (which == QLatin1String("ASSISTENTE")) {
                     FormDialog::grabNext(target);
                     showClaudeDialog();
                     continue;

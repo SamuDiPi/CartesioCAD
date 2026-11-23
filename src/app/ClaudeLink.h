@@ -7,7 +7,7 @@
 // di Claude e le passa qui una per riga, in JSON:
 //   richiesta  {"id": 1, "strumento": "leggi_oggetti", "argomenti": {...}}
 //   risposta   {"id": 1, "ok": true, "testo": "..."}  oppure  {"id": 1, "ok": false, "testo": "motivo"}
-// Il canale è spento di default: si accende dalla finestra "Claude" (comando CLAUDE) o dalle Opzioni.
+// Il canale è spento di default: si accende dalla finestra "Assistente IA" (comando ASSISTENTE).
 
 #include <QJsonObject>
 #include <QObject>
@@ -40,8 +40,11 @@ public:
 
 signals:
     void activity(const QString& tool);
+    // Collegamento rifiutato: non era cartesio-mcp.exe della cartella del programma (`who` dice chi era).
+    void rejected(const QString& who);
 
 private:
+    static bool trustedClient(QLocalSocket* socket, QString* who);
     void onConnection();
     void onReadable(QLocalSocket* socket);
 
