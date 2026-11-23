@@ -553,8 +553,13 @@ QStringList claudeDesktopFolders()
     const QString roaming = qEnvironmentVariable("APPDATA");
     if (!roaming.isEmpty() && QFileInfo(roaming + QStringLiteral("/Claude")).isDir())
         folders << roaming + QStringLiteral("/Claude");
-    const QString packages = qEnvironmentVariable("LOCALAPPDATA") + QStringLiteral("/Packages");
-    QDirIterator it(packages, {QStringLiteral("Claude_*"), QStringLiteral("AnthropicPBC.Claude*")}, QDir::Dirs);
+    const QString local = qEnvironmentVariable("LOCALAPPDATA");
+    // Versione dello Store: le versioni recenti tengono i dati in LOCALAPPDATA/Claude-Data/claude_<id>, quelle
+    // precedenti nella cartella virtualizzata del pacchetto.
+    QDirIterator data(local + QStringLiteral("/Claude-Data"), {QStringLiteral("claude_*")}, QDir::Dirs);
+    while (data.hasNext())
+        folders << data.next();
+    QDirIterator it(local + QStringLiteral("/Packages"), {QStringLiteral("Claude_*"), QStringLiteral("AnthropicPBC.Claude*")}, QDir::Dirs);
     while (it.hasNext()) {
         const QString folder = it.next() + QStringLiteral("/LocalCache/Roaming/Claude");
         if (QFileInfo(folder).isDir())
@@ -895,8 +900,10 @@ QString MainWindow::configureClaudeDesktop()
             return tr("Impossibile scrivere %1.").arg(QDir::toNativeSeparators(path));
         done << QDir::toNativeSeparators(path);
     }
-    return tr("Fatto: CartesioCAD aggiunto ai connettori di Claude Desktop (%1).\n\nChiudere del tutto Claude Desktop "
-              "(anche dall'icona vicino all'orologio) e riaprirlo: fra gli strumenti compare \"cartesiocad\".")
+    return tr("Fatto: CartesioCAD aggiunto ai connettori di Claude Desktop (%1).\n\nOra aprire Claude Desktop "
+              "(se era aperto, chiuderlo del tutto, anche dall'icona vicino all'orologio, e riaprirlo): fra i "
+              "connettori compare \"cartesiocad\". Se non compare, chiudere Claude Desktop e premere di nuovo "
+              "Configura: Claude Desktop aperto può riscrivere il proprio file di configurazione.")
         .arg(done.join(QStringLiteral(", ")));
 }
 
@@ -927,6 +934,7 @@ void MainWindow::showClaudeDialog()
             stopClaude();
         refresh();
     });
+    dialog.note(tr("Prima di premere Configura chiudere Claude Desktop (anche dall'icona vicino all'orologio)."));
     dialog.buttonsRow({{tr("Configura Claude Desktop"), [this] {
                            QMessageBox::information(this, tr("Claude"), configureClaudeDesktop());
                        }}});

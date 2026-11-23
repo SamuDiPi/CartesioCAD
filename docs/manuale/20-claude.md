@@ -11,7 +11,7 @@ CartesioCAD non chiede né conserva credenziali: l'accesso a Claude si fa in Cla
 ### Attivarlo (una volta sola)
 
 1. Installare Claude Desktop da claude.ai/download, accedere con il proprio account e chiuderlo.
-2. In CartesioCAD: Strumenti > Assistente > **Claude**, spuntare **Attiva il connettore** e premere **Configura Claude Desktop**. CartesioCAD aggiunge `cartesiocad` ai connettori di Claude Desktop (file `claude_desktop_config.json`, di cui tiene una copia `.prima-di-cartesiocad`); gli altri connettori restano come sono.
+2. In CartesioCAD: Strumenti > Assistente > **Claude**, spuntare **Attiva il connettore**, chiudere del tutto Claude Desktop (anche dall'icona vicino all'orologio: aperto, può riscrivere il proprio file di configurazione) e premere **Configura Claude Desktop**. CartesioCAD aggiunge `cartesiocad` ai connettori di Claude Desktop (file `claude_desktop_config.json` nella cartella dei dati di Claude Desktop, anche per la versione dello Store di Microsoft; ne tiene una copia `.prima-di-cartesiocad`); gli altri connettori restano come sono.
 3. Riaprire Claude Desktop: fra gli strumenti compare **cartesiocad**.
 
 Il connettore resta acceso ai prossimi avvii finché non si toglie la spunta. Se sono aperti due CartesioCAD, solo il primo riceve le richieste.
