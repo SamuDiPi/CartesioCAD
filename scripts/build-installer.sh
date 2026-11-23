@@ -20,7 +20,7 @@ for candidate in "$ISCC" "${LOCALAPPDATA:-}/Programs/Inno Setup 7/ISCC.exe" "/c/
 done
 [ -f "$ISCC" ] || { echo "Inno Setup 7 non trovato (variabile ISCC)" >&2; exit 1; }
 
-win() { cygpath -w "$1" 2>/dev/null || echo "$1"; }
+win() { cygpath -aw "$1" 2>/dev/null || echo "$1"; }   # percorso assoluto: lo script .iss sta in un'altra cartella
 mkdir -p "$OUT"
 MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$ISCC" /Q "/DVersione=$VERSION" "/DCartella=$(win "$SOURCE")" "/O$(win "$OUT")" "$(win "$ROOT/installer/CartesioCAD.iss")"
 echo "Installatore: $OUT/CartesioCAD-$VERSION-installazione.exe"
