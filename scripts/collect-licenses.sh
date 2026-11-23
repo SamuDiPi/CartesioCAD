@@ -146,7 +146,7 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "  Licenza:   GPL-3.0-or-later"
         echo "  Sorgenti:  https://github.com/SamuDiPi/Canalo"
         echo "  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS"
-        echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js 3.11.174 (Mozilla Foundation,"
+        echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js 6.5.438 (Mozilla Foundation,"
         echo "  Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt)."
         echo "  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web"
         echo "  (@mlightcad/libredwg-web 0.1.3, dichiarato GPL-2.0-only, contiene GNU LibreDWG GPL-3.0-or-later):"

@@ -17,3 +17,10 @@ Nella scheda *Manuale* della Guida si scrive una parola (un comando come `TRIM`,
 ## Percorsi guidati
 
 Per imparare facendo ci sono i **percorsi guidati** (scheda *Percorsi* della Guida): CartesioCAD propone un passo alla volta, evidenzia il pulsante da usare e si accorge da solo quando il passo è fatto. Si possono interrompere e riprendere in qualsiasi momento; non partono mai da soli.
+
+## Privacy e sicurezza
+
+- **Nessun dato raccolto.** CartesioCAD lavora solo sul computer: niente account, statistiche, telemetria o controllo degli aggiornamenti, e non si collega a internet da solo (apre un sito solo se lo si chiede, per esempio *Sorgenti* nella finestra Informazioni). Disegni, schemi e progetti non vengono inviati a nessuno.
+- **Cosa resta sul computer:** le opzioni e l'elenco dei file recenti (nel registro di Windows, chiave `HKEY_CURRENT_USER\Software\CartesioCAD`), le copie del salvataggio automatico e i file che si salvano. I dati nei disegni (per esempio i nomi nei cartigli) li tratta chi usa il programma.
+- **File da fonti affidabili.** DWG, DXF, PDF e script `.scr` vanno aperti solo se vengono da fonti di cui ci si fida. I DWG si leggono con GNU LibreDWG 0.14 in un programma separato (`libredwg/dwg2dxf.exe`): per questa versione sono state pubblicate vulnerabilità che un DWG costruito apposta potrebbe sfruttare. Il plugin CanaloCAD legge i PDF con pdf.js 6.5.438, nel browser.
+- **Segnalare una vulnerabilità:** vedi il file SECURITY.md nel repository.

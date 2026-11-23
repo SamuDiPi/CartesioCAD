@@ -2421,7 +2421,7 @@
       try {
         const buf = file.arrayBuffer();
         const pdfjsLib = loadPdfJs();
-        const pdf = pdfjsLib.getDocument({ data: buf }).promise;
+        const pdf = openPdfDocument(pdfjsLib, buf);
         for (let p = 1; p <= pdf.numPages; p++) {
           const page = pdf.getPage(p);
           const tc = page.getTextContent();
