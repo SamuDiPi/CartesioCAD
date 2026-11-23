@@ -100,6 +100,7 @@ if(CARTESIO_BUILD_APP)
 
     qt_add_executable(CartesioCAD WIN32 MACOSX_BUNDLE
         src/app/main.cpp
+        $<$<PLATFORM_ID:Windows>:src/app/cartesiocad.rc>
         src/app/MainWindow.h
         src/app/MainWindow.cpp
         src/app/MainWindowLayouts.cpp

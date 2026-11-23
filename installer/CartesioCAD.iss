@@ -42,6 +42,7 @@ LicenseFile={#Cartella}\LICENSE.txt
 InfoBeforeFile=prima-di-installare.txt
 OutputBaseFilename=CartesioCAD-{#Versione}-installazione
 UninstallDisplayIcon={app}\CartesioCAD.exe
+SetupIconFile=..\src\app\icons\cartesiocad.ico
 UninstallDisplayName=CartesioCAD {#Versione}
 Compression=lzma2/max
 SolidCompression=yes

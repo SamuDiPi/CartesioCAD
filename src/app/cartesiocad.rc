@@ -1,0 +1,3 @@
+// Risorse Windows di CartesioCAD.exe: l'icona (collegamenti, barra delle applicazioni, Esplora file).
+// L'icona si rigenera con scripts/genera-icona.py.
+IDI_ICON1 ICON "icons/cartesiocad.ico"
