@@ -2372,8 +2372,8 @@ void testPlotStyleTables()
     CHECK(gray && gray->forAci(3).grayscale() && gray->forAci(3).hasObjectColor());
     const auto screen = builtinPlotStyleTable("Retino 50%.ctb");
     CHECK(screen && screen->forAci(200).screen == 50);
-    // I nomi che arrivano dai disegni ricevuti danno la stessa tabella.
-    CHECK(builtinPlotStyleTable("monochrome.ctb") && builtinPlotStyleTable("monochrome.ctb")->forAci(1).rgb() == 0);
+    // Solo i nomi di CartesioCAD sono predefiniti.
+    CHECK(!builtinPlotStyleTable("monochrome.ctb"));
     CHECK(!builtinPlotStyleTable("inesistente.ctb"));
 
     // Andata e ritorno del testo, con colore, spessore e retinatura personalizzati.
@@ -3026,9 +3026,9 @@ void testCircuitTags()
     };
     symbol("STUDIO_Punto di alimentazione - Punto-1", {10000, 5000});
     symbol("STUDIO_Punto di alimentazione - Punto-2", {20000, 5000});
-    symbol("STUDIO_FM_Torretta da incasso - MARCA_B-3", {30000, 5000});
+    symbol("STUDIO_FM_Torretta da incasso - 3", {30000, 5000});
     for (const char* name : {"STUDIO_Punto di alimentazione - Punto-1", "STUDIO_Punto di alimentazione - Punto-2",
-                             "STUDIO_FM_Torretta da incasso - MARCA_B-3"}) {
+                             "STUDIO_FM_Torretta da incasso - 3"}) {
         auto in = std::make_unique<InsertEntity>(name, Vec2{0, 0});
         in->setLayer(fixt);
         doc.add(std::move(in));

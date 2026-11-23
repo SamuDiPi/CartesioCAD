@@ -10,6 +10,7 @@ if [ ! -f "$src/Canalo.html" ]; then
 fi
 mkdir -p "$dest"
 cp "$src/Canalo.html" "$dest/Canalo.html"
+cp "$src/src/fonts/OFL-Inter.txt" "$src/src/fonts/OFL-JetBrainsMono.txt" "$dest/"
 
 # Motore per CartesioCAD: i moduli di calcolo, importazione, scena e DXF della pagina (senza interfaccia), eseguiti
 # con il motore JavaScript di Qt (app/CanaloEngine) accanto a engine/host.js: stessa tavola DXF della pagina.

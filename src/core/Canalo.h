@@ -43,8 +43,7 @@ const std::vector<std::pair<std::string, std::vector<Series>>>& brands();
 const std::vector<Series>& seriesOf(const std::string& brand);
 // Serie della distinta per la tipologia di canalina (come BOM_SERIES_FOR della pagina).
 const Series& seriesForType(const std::string& trayType);
-// Serie per codice; anche quelle dei costruttori dei progetti di prima (A1_ASO, B2...) diventano la
-// tipologia corrispondente.
+// Serie per codice; un codice non più elencato (progetti delle versioni precedenti) diventa la passerella asolata.
 const Series& seriesById(const std::string& id);
 
 // Staffaggio: carichi ammessi (kg) per passo 1, 1,5, 2, 2,5 e 3 m.

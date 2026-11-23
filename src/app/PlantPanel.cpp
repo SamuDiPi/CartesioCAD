@@ -780,7 +780,7 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
     for (const auto& [brand, list] : canalo::brands())
         for (const canalo::Series& s : list)
             seriesList.append({q(s.name), q(brand + "|" + s.id)});
-    d.choice(tr("Serie (passerella)"), seriesList, series, [&](const QVariant& v) { series = v.toString(); });
+    d.choice(tr("Tipo (passerella)"), seriesList, series, [&](const QVariant& v) { series = v.toString(); });
     QList<QPair<QString, QVariant>> supports;
     for (const canalo::Support& s : canalo::supports())
         supports.append({q(s.name), q(s.key)});

@@ -128,13 +128,8 @@ const Series& seriesById(const std::string& id)
         for (const Series& s : list)
             if (s.id == id)
                 return s;
-    // Serie dei costruttori dei progetti salvati prima: la tipologia corrispondente.
-    static const std::pair<const char*, const char*> legacy[] = {
-        {"A1_CIE", "solid"}, {"B2", "solid"}, {"C_S28", "solid"}, {"D_RS", "solid"}, {"CUSTOM_CIE", "solid"},
-        {"FILO", "mesh"}, {"B3", "mesh"}};
-    for (const auto& [old, type] : legacy)
-        if (id == old)
-            return seriesForType(type);
+    // Serie non più elencate (progetti salvati con le versioni precedenti): passerella asolata; il tipo si
+    // ricontrolla nella tratta.
     return seriesForType("perforated");
 }
 
@@ -838,7 +833,7 @@ Tray readSection(const Drawn& drawn, Vec2* originOut)
     if (std::regex_search(corpus, mm, lh1) || std::regex_search(corpus, mm, lh2))
         assign(std::stod(mm[1].str()), std::stod(mm[2].str()));
     if (detW == 0.0 || detH == 0.0) {
-        const std::regex kw(R"((?:CANALINA|CANALE|PASSERELLA|TRAY|A1|CF|RKS|MKS)\b[^\d\n\r]*(\d{2,4})\s*[xX*]\s*(\d{2,4}))", std::regex::ECMAScript | std::regex::icase);
+        const std::regex kw(R"((?:CANALINA|CANALE|PASSERELLA|TRAY)\b[^\d\n\r]*(\d{2,4})\s*[xX*]\s*(\d{2,4}))", std::regex::ECMAScript | std::regex::icase);
         if (std::regex_search(corpus, mm, kw))
             assign(std::stod(mm[1].str()), std::stod(mm[2].str()));
     }

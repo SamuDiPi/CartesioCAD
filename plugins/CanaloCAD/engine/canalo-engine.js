@@ -268,7 +268,7 @@
       return newEntry;
     }
 
-    // Mappa granulare basata sul diametro reale (mm) secondo tabelle dimensionali CEI UNEL 35310
+    // Mappa granulare basata sul diametro reale (mm) secondo le tabelle dimensionali CEI UNEL 35310 e i valori tipici dei cavi in commercio
     // NOTA NORMATIVA: I cavi importati sono SEMPRE BT (sys: "BT_POWER"), salvo esplicita presenza di sigle di segnale/speciali.
     function inferCableSpecsByDiameter(d, codeStr = "", layerStr = "") {
       const combined = (String(codeStr || "") + " " + String(layerStr || "")).toUpperCase();
@@ -1976,9 +1976,9 @@
         }
       }
 
-      // Priorità B: Parola chiave canalina seguita da WxH o HxW (es. "CANALINA 75x300", "CANALE 400x75", "A1 75x300")
+      // Priorità B: Parola chiave canalina seguita da WxH o HxW (es. "CANALINA 75x300", "CANALE 400x75", "PASSERELLA 300x75")
       if (!detectedW || !detectedH) {
-        const mTrayKeyword = allTextCorpus.match(/(?:CANALINA|CANALE|PASSERELLA|TRAY|A1|CF|RKS|MKS)\b[^\d\n\r]*(\d{2,4})\s*[xX×*]\s*(\d{2,4})/i);
+        const mTrayKeyword = allTextCorpus.match(/(?:CANALINA|CANALE|PASSERELLA|TRAY)\b[^\d\n\r]*(\d{2,4})\s*[xX×*]\s*(\d{2,4})/i);
         if (mTrayKeyword) {
           assignTrayDims(mTrayKeyword[1], mTrayKeyword[2]);
         }

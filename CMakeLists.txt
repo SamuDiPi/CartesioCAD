@@ -246,7 +246,9 @@ if(CARTESIO_BUILD_APP)
     # plugins/CanaloCAD accanto all'eseguibile. Si aggiorna con scripts/update-canalo.sh.
     set(canalo_files
         "${CMAKE_CURRENT_SOURCE_DIR}/plugins/CanaloCAD/Canalo.html"
-        "${CMAKE_CURRENT_SOURCE_DIR}/plugins/CanaloCAD/VERSIONE.txt")
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugins/CanaloCAD/VERSIONE.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugins/CanaloCAD/OFL-Inter.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugins/CanaloCAD/OFL-JetBrainsMono.txt")
     add_custom_command(TARGET CartesioCAD POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:CartesioCAD>/plugins/CanaloCAD"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${canalo_files} "$<TARGET_FILE_DIR:CartesioCAD>/plugins/CanaloCAD"

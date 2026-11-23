@@ -398,7 +398,8 @@ QStringList plotWarnings(const std::vector<PlotJob>& jobs)
         QString error;
         if (s.flag(kPlotPlotStyles) && !s.styleSheet.empty()
             && !loadPlotStyleTable(QString::fromStdString(s.styleSheet), &error)) {
-            const QString message = error + QObject::tr(" Si stampa con i colori degli oggetti.");
+            const QString message = error + QObject::tr(" Si stampa con i colori degli oggetti; per il bianco e nero "
+                                                        "scegliere Nero.ctb (o Grigi.ctb) nel dialogo Stampa.");
             if (!out.contains(message))
                 out << message;
         }

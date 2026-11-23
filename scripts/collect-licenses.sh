@@ -145,7 +145,8 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)"
         echo "  Licenza:   GPL-3.0-or-later"
         echo "  Sorgenti:  https://github.com/SamuDiPi/Canalo"
-        echo "  Contiene il CSS generato con Tailwind CSS (MIT, https://tailwindcss.com). Alla prima importazione"
+        echo "  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD) e il CSS"
+        echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com). Alla prima importazione"
         echo "  di un DWG o di un PDF la pagina scarica dalla rete LibreDWG-web (GPL-3.0-or-later,"
         echo "  https://github.com/mlightcad/libredwg-web) e pdf.js (Apache-2.0, https://mozilla.github.io/pdf.js/):"
         echo "  non sono inclusi in questa distribuzione."
@@ -154,9 +155,8 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
 
     echo
     echo "------------------------------------------------------------------------------------------------"
-    echo "Marchi: i nomi di prodotti e costruttori citati (per esempio nel catalogo di CanaloCAD) appartengono"
-    echo "ai rispettivi proprietari e sono usati solo per indicare i prodotti; CartesioCAD non è collegato a"
-    echo "loro. DWG è usato solo per indicare il formato dei file."
+    echo "Marchi: CartesioCAD e CanaloCAD non citano marche o prodotti di altri. DWG e DXF sono usati solo per"
+    echo "indicare il formato dei file; i marchi appartengono ai rispettivi titolari."
 } > "$OUT"
 
 echo "Licenze di terze parti: ${#packages[@]} pacchetti, elenco in $OUT"

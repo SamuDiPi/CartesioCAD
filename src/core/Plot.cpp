@@ -690,22 +690,22 @@ const std::vector<std::string>& builtinPlotStyleTableNames()
 std::optional<PlotStyleTable> builtinPlotStyleTable(std::string_view name)
 {
     PlotStyleTable t;
-    // Oltre ai nomi di CartesioCAD si riconoscono quelli più comuni nei disegni ricevuti (un disegno che chiede
-    // una tabella per nome la trova anche se il file .ctb non c'è): stesso significato, contenuto nostro.
+    // Solo i nomi di CartesioCAD. Una tabella chiesta da un disegno con un altro nome si cerca come file .ctb nella
+    // cartella degli stili; se non c'è, si stampa con i colori degli oggetti.
     if (equalsNoCase(name, "Colori.ctb")) {
         t.description = "Stili di stampa predefiniti: colori, tipi di linea e spessori degli oggetti";
-    } else if (equalsNoCase(name, "Nero.ctb") || equalsNoCase(name, "monochrome.ctb")) {
+    } else if (equalsNoCase(name, "Nero.ctb")) {
         t.description = "Tutti i colori in nero";
         for (auto& s : t.styles)
             s.setRgb(0x000000);
-    } else if (equalsNoCase(name, "Grigi.ctb") || equalsNoCase(name, "grayscale.ctb")) {
+    } else if (equalsNoCase(name, "Grigi.ctb")) {
         t.description = "Colori convertiti in scala di grigi";
         for (auto& s : t.styles)
             s.setGrayscale(true);
     } else {
         int screen = 0;
         for (int v : {25, 50, 75, 100})
-            if (equalsNoCase(name, "Retino " + std::to_string(v) + "%.ctb") || equalsNoCase(name, "Screening " + std::to_string(v) + "%.ctb"))
+            if (equalsNoCase(name, "Retino " + std::to_string(v) + "%.ctb"))
                 screen = v;
         if (screen == 0)
             return std::nullopt;
