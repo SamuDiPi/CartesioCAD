@@ -1,3 +1,3 @@
 CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
-Commit: 3e720af pdf.js incorporato: i PDF si leggono senza rete
+Commit: 181de17 pdf.js incorporato: i PDF si leggono senza rete
 Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.
