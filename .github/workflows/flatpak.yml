@@ -49,11 +49,11 @@ jobs:
         run: |
           mkdir -p prova && cd prova
           printf '0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n100\n21\n50\n0\nCIRCLE\n8\n0\n10\n50\n20\n25\n40\n20\n0\nTEXT\n8\n0\n10\n10\n20\n60\n40\n5\n1\nProva Linux\n0\nENDSEC\n0\nEOF\n' > disegno.dxf
-          printf 'LOGFILEON %s/esito.txt\n-INFORMAZIONI\nOPEN "%s/disegno.dxf"\nSAVEAS "%s/salvato.dwg"\nOPEN "%s/salvato.dwg"\nSAVEAS "%s/riletto.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > prova.scr
+          printf 'LOGFILEON %s/esito.txt\n-INFORMAZIONI\nOPEN "%s/disegno.dxf"\n-WINDOWPNG %s/finestra.png 1400 850\n-VIEWPNG %s/vista.png\nSAVEAS "%s/salvato.dwg"\nOPEN "%s/salvato.dwg"\nSAVEAS "%s/riletto.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > prova.scr
           timeout 180 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
             --env=CARTESIO_RENDER=software io.github.samudipi.CartesioCAD "$PWD/prova.scr" > uscita.log 2>&1 || echo "uscita $?"
           echo "--- esito"; cat esito.txt || true
-          echo "--- uscita"; tail -40 uscita.log || true
+          echo "--- uscita"; sort uscita.log | uniq -c | sort -rn | head -40 || true
           ls -l
           test -s salvato.dwg
           grep -q "Prova Linux" riletto.dxf
