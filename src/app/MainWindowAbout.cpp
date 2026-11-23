@@ -67,7 +67,7 @@ QString MainWindow::aboutText(bool html)
     components << tr("Poppler %1 per i PDF degli schemi (GPL-2.0-or-later)").arg(QString::fromStdString(poppler::version_string()));
 #endif
     if (QFileInfo::exists(QCoreApplication::applicationDirPath() + QStringLiteral("/libredwg/dwg2dxf.exe")))
-        components << tr("LibreDWG 0.14 per i file DWG (GPL-3.0-or-later)");
+        components << tr("LibreDWG 0.14.8413 per i file DWG (GPL-3.0-or-later)");
     const QString canalo = canaloVersion();
     if (!canalo.isEmpty())
         components << tr("%1, plugin (GPL-3.0-or-later)").arg(canalo.section(QStringLiteral(" - "), 0, 0));

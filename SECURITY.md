@@ -14,7 +14,7 @@ CartesioCAD è un progetto personale e gratuito: le segnalazioni si esaminano ap
 
 CartesioCAD usa librerie di altri progetti (elenco completo in `LICENZE-TERZE-PARTI.txt` della versione distribuita). Le loro vulnerabilità vanno segnalate anche ai rispettivi progetti; a ogni versione nuova CartesioCAD si ricompila con le librerie aggiornate.
 
-- **GNU LibreDWG 0.14** (lettura e scrittura DWG, programma separato `libredwg/dwg2dxf.exe`): per la 0.14 sono state pubblicate vulnerabilità nella lettura dei DWG; si aggiornerà alla prossima versione stabile. Aprire DWG solo da fonti affidabili.
+- **GNU LibreDWG 0.14.8413** (lettura e scrittura DWG, programma separato `libredwg/dwg2dxf.exe`): istantanea pubblicata dal progetto dopo la 0.14 stabile, scelta perché corregge le vulnerabilità della 0.14 (CVE-2026-15520 nella decompressione R2004, CVE-2026-62250 ciclo infinito con DWG pre-R13); le correzioni di CVE-2026-9502, CVE-2026-15182 e CVE-2026-9530 erano già nella 0.14. Verificata sugli stessi DWG della 0.14 (lettura identica). Si passerà alla prossima versione stabile appena esce. Aprire DWG solo da fonti affidabili.
 - **Poppler** (lettura degli schemi in PDF) e **Qt**: versioni di MSYS2 aggiornate al momento della compilazione. Poppler fino alla 26.11 ha una vulnerabilità nella verifica delle firme digitali con NSS (CVE-2026-131847): CartesioCAD legge solo il testo dei PDF e non verifica firme, quindi quella parte non viene usata.
 - **OpenSSL 4.1** (solo la verifica della firma Ed25519 degli aggiornamenti; l'HTTPS usa il TLS di Windows). La serie 3.6 non è più supportata dal 1° novembre 2026 e non si distribuisce più.
 - **pdf.js 6.5.438** nel plugin CanaloCAD, aperto con `isEvalSupported: false`.

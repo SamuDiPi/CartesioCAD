@@ -127,16 +127,16 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
     echo "  Sorgenti:  src/app/BuiltinStrokeFont.inc"
     if [ -d "$DEST/libredwg" ]; then
         echo
-        echo "LibreDWG 0.14 (GNU)"
+        echo "LibreDWG 0.14.8413 (GNU; istantanea successiva alla 0.14 stabile, con le correzioni di sicurezza)"
         echo "  File:      libredwg/dwg2dxf.exe libredwg/dxf2dwg.exe libredwg/libredwg-0.dll"
         echo "             (programmi separati, usati per leggere e scrivere i file DWG)"
         echo "  Licenza:   GPL-3.0-or-later"
         echo "  Sito:      https://www.gnu.org/software/libredwg/"
-        echo "  Sorgenti:  https://ftp.gnu.org/gnu/libredwg/libredwg-0.14.tar.xz"
-        echo "             (binari: https://github.com/LibreDWG/libredwg/releases/tag/0.14)"
+        echo "  Sorgenti:  https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz"
+        echo "             (binari: https://github.com/LibreDWG/libredwg/releases/tag/0.14.8413)"
         cp -n "$TEXTS/GPL-3.0-only.txt" "$DEST/licenze/testi/" || true
         if [ -n "$SOURCES" ]; then
-            [ -f "$SOURCES/libredwg-0.14.tar.xz" ] || curl -fsSL -o "$SOURCES/libredwg-0.14.tar.xz" "https://ftp.gnu.org/gnu/libredwg/libredwg-0.14.tar.xz"
+            [ -f "$SOURCES/libredwg-0.14.8413.tar.xz" ] || curl -fsSL -o "$SOURCES/libredwg-0.14.8413.tar.xz" "https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz"
         fi
     fi
 

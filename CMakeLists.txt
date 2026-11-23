@@ -247,7 +247,7 @@ if(CARTESIO_BUILD_APP)
 
     # Supporto DWG: i convertitori di LibreDWG (scaricati con scripts/fetch-libredwg.sh) vengono
     # copiati nella cartella "libredwg" accanto all'eseguibile.
-    set(CARTESIO_LIBREDWG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libredwg-0.14"
+    set(CARTESIO_LIBREDWG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libredwg-0.14.8413"
         CACHE PATH "Cartella con dwg2dxf, dxf2dwg e libredwg-0.dll")
     if(WIN32 AND EXISTS "${CARTESIO_LIBREDWG_DIR}/dwg2dxf.exe")
         set(libredwg_files

@@ -5,11 +5,11 @@
 # Uso (da MSYS2 o Git Bash, nella cartella del progetto):  scripts/fetch-libredwg.sh
 set -euo pipefail
 
-VERSION="0.14"
+VERSION="0.14.8413"   # istantanea dopo la 0.14 stabile: corregge CVE-2026-15520 e CVE-2026-62250
 ARCHIVE="libredwg-${VERSION}-win64.zip"
 URL="https://github.com/LibreDWG/libredwg/releases/download/${VERSION}/${ARCHIVE}"
-# Impronta del pacchetto ufficiale, firmato dal responsabile di LibreDWG (chiave nel portachiavi GNU).
-SHA256="1ad7e15344d20b3426c3435b078d82fb84b35062815946b2cca9c5fc9810fea8"
+# Impronta del pacchetto ufficiale (pubblicata da GitHub per il file del rilascio).
+SHA256="0bd11dcdef710f09110922f9d667bec29bbba21eff3598cb1855de14a16f0197"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="${ROOT}/third_party/libredwg-${VERSION}"
