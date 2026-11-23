@@ -1,4 +1,5 @@
 #include "app/Updater.h"
+#include "app/ClaudeLink.h"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -20,6 +21,11 @@
 #include <private/qzipreader_p.h>
 
 #include <openssl/evp.h>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <shellapi.h>
+#endif
 
 #include <memory>
 
@@ -317,6 +323,16 @@ void Updater::download(const UpdateOffer& offer, std::function<void(qint64, qint
             // Archivio: scritto mentre arriva, con la dimensione del manifesto come limite.
             QDir().mkpath(downloadFolder());
             const QString path = downloadFolder() + u'/' + manifest->archive;
+            // Manifesto e firma accanto all'archivio: se l'installazione chiede i diritti di amministratore, la copia
+            // avviata con quei diritti li rilegge e verifica tutto da sola.
+            {
+                QSaveFile m(manifestPathFor(path)), s(manifestPathFor(path) + QStringLiteral(".sig"));
+                if (!m.open(QIODevice::WriteOnly) || m.write(manifestData) != manifestData.size() || !m.commit()
+                    || !s.open(QIODevice::WriteOnly) || s.write(signature) != signature.size() || !s.commit()) {
+                    done({}, std::nullopt, tr("impossibile scrivere in %1").arg(QDir::toNativeSeparators(downloadFolder())));
+                    return;
+                }
+            }
             auto file = std::make_shared<QFile>(path + QStringLiteral(".parziale"));
             if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
                 done({}, std::nullopt, tr("impossibile scrivere in %1").arg(QDir::toNativeSeparators(downloadFolder())));
@@ -525,6 +541,125 @@ QString Updater::previousVersion(const QString& appDir)
     if (!in.open(QIODevice::ReadOnly))
         return QObject::tr("sconosciuta");
     return QString::fromUtf8(in.readAll()).trimmed();
+}
+
+bool Updater::folderWritable(const QString& dir)
+{
+    QFile probe(QDir(dir).filePath(QStringLiteral(".prova-scrittura")));
+    if (!probe.open(QIODevice::WriteOnly))
+        return false;
+    probe.close();
+    probe.remove();
+    return true;
+}
+
+bool Updater::installFromFiles(const QString& manifestPath, const QString& archive, const QString& appDir, QString* error)
+{
+    const auto fail = [error](const QString& why) {
+        if (error)
+            *error = why;
+        return false;
+    };
+    QFile m(manifestPath), s(manifestPath + QStringLiteral(".sig"));
+    if (!m.open(QIODevice::ReadOnly) || m.size() > 64 * 1024 || !s.open(QIODevice::ReadOnly) || s.size() > 1024)
+        return fail(QObject::tr("manifesto o firma mancanti"));
+    const QByteArray manifestData = m.readAll(), signature = s.readAll();
+    if (!verifySignature(manifestData, signature))
+        return fail(QObject::tr("la firma del manifesto non è valida: aggiornamento rifiutato"));
+    QString why;
+    const auto manifest = parseManifest(manifestData, &why);
+    if (!manifest)
+        return fail(why);
+    // Mai indietro con i diritti di amministratore: per tornare a una versione precedente c'è il ripristino.
+    if (manifest->version < currentVersion())
+        return fail(QObject::tr("la versione %1 è più vecchia di quella installata").arg(QString::fromStdString(manifest->version.text())));
+    if (QFileInfo(archive).fileName() != manifest->archive)
+        return fail(QObject::tr("l'archivio non è quello indicato nel manifesto firmato"));
+    return install(archive, *manifest, appDir, error);   // rilegge l'archivio in memoria e ne verifica l'impronta
+}
+
+bool Updater::runElevated(const QStringList& arguments, QString* error)
+{
+#ifdef Q_OS_WIN
+    const QString outcomeDir = QDir::tempPath();
+    const QString outcome = QDir(outcomeDir).filePath(QStringLiteral("cartesiocad-esito.txt"));
+    QFile::remove(outcome);
+    QStringList quoted;
+    for (const QString& a : arguments + QStringList{QStringLiteral("--esito-in"), QDir::toNativeSeparators(outcomeDir)})
+        quoted << u'"' + QString(a).remove(u'"') + u'"';
+    const std::wstring file = QDir::toNativeSeparators(QCoreApplication::applicationFilePath()).toStdWString();
+    const std::wstring params = quoted.join(u' ').toStdWString();
+    SHELLEXECUTEINFOW info{};
+    info.cbSize = sizeof info;
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
+    info.lpVerb = L"runas";
+    info.lpFile = file.c_str();
+    info.lpParameters = params.c_str();
+    info.nShow = SW_HIDE;
+    if (!ShellExecuteExW(&info) || !info.hProcess) {
+        if (error)
+            *error = GetLastError() == ERROR_CANCELLED ? QObject::tr("autorizzazione di amministratore non concessa")
+                                                       : QObject::tr("impossibile avviare l'installazione con i diritti di amministratore");
+        return false;
+    }
+    while (WaitForSingleObject(info.hProcess, 100) == WAIT_TIMEOUT)
+        QCoreApplication::processEvents();
+    DWORD code = 1;
+    GetExitCodeProcess(info.hProcess, &code);
+    CloseHandle(info.hProcess);
+    QFile result(outcome);
+    const QString text = result.open(QIODevice::ReadOnly) ? QString::fromUtf8(result.readAll()).trimmed() : QString();
+    result.close();
+    QFile::remove(outcome);
+    if (code != 0) {
+        if (error)
+            *error = text.isEmpty() ? QObject::tr("installazione non riuscita (codice %1)").arg(code) : text;
+        return false;
+    }
+    return true;
+#else
+    Q_UNUSED(arguments);
+    if (error)
+        *error = QObject::tr("non disponibile su questo sistema");
+    return false;
+#endif
+}
+
+int Updater::commandLineTask(const QStringList& arguments)
+{
+    if (arguments.size() < 2 || !arguments.at(1).startsWith(QLatin1String("--")))
+        return -1;
+    const QString task = arguments.at(1);
+    // La cartella del programma è sempre quella di questa copia (non un argomento): con i diritti di amministratore
+    // non si scrive altrove.
+    const QString appDir = QCoreApplication::applicationDirPath();
+    const qsizetype outcomeIndex = arguments.indexOf(QStringLiteral("--esito-in"));
+    const auto finish = [&](bool ok, const QString& text) {
+        if (outcomeIndex > 0 && outcomeIndex + 1 < arguments.size()) {
+            const QDir dir(arguments.at(outcomeIndex + 1));
+            if (dir.exists()) {
+                QFile out(dir.filePath(QStringLiteral("cartesiocad-esito.txt")));
+                if (out.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                    out.write(text.toUtf8());
+            }
+        }
+        return ok ? 0 : 1;
+    };
+    if (task == QLatin1String("--installa-aggiornamento") && arguments.size() >= 4) {
+        QString error;
+        const bool ok = installFromFiles(arguments.at(2), arguments.at(3), appDir, &error);
+        return finish(ok, ok ? QStringLiteral("ok") : error);
+    }
+    if (task == QLatin1String("--ripristina-versione")) {
+        QString error;
+        const bool ok = rollback(appDir, &error);
+        return finish(ok, ok ? QStringLiteral("ok") : error);
+    }
+    if (task == QLatin1String("--rimuovi-connettore")) {
+        const QString text = removeClaudeDesktopEntry(appDir);
+        return finish(true, text);
+    }
+    return -1;
 }
 
 void Updater::cleanup(const QString& appDir)

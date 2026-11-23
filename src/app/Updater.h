@@ -85,6 +85,22 @@ public:
     static void cleanup(const QString& appDir);
     // Cartella in cui si scaricano gli aggiornamenti.
     static QString downloadFolder();
+    // Manifesto firmato salvato accanto all'archivio scaricato (con la firma in <manifesto>.sig).
+    static QString manifestPathFor(const QString& archive) { return archive + QStringLiteral(".manifesto.json"); }
+
+    // --- Programma installato in Programmi (cartella scrivibile solo dall'amministratore)
+    static bool folderWritable(const QString& dir);
+    // Verifica tutto da capo dai file (firma del manifesto con la chiave incorporata, dimensione e SHA-256
+    // dell'archivio letto in memoria, versione non più vecchia di quella installata) e installa. È quello che fa la
+    // copia del programma avviata con i diritti di amministratore: non si fida di chi l'ha avviata.
+    static bool installFromFiles(const QString& manifestPath, const QString& archive, const QString& appDir, QString* error);
+    // Avvia questo programma con i diritti di amministratore (richiesta UAC di Windows) con `arguments`, aspetta che
+    // finisca e restituisce il suo esito (testo scritto in un file temporaneo). False se l'utente rifiuta.
+    static bool runElevated(const QStringList& arguments, QString* error);
+    // Lavori da riga di comando senza finestra: --installa-aggiornamento <manifesto> <archivio> --esito-in <cartella>,
+    // --ripristina-versione --esito-in <cartella>, --rimuovi-connettore. Restituisce il codice d'uscita, o -1 se gli
+    // argomenti non sono di questi.
+    static int commandLineTask(const QStringList& arguments);
 
 private:
     void get(const QString& url, qint64 limit, std::function<void(QByteArray, QString)> done);

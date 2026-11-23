@@ -52,4 +52,8 @@ private:
     QLocalServer* server_ = nullptr;
 };
 
+// Disinstallazione: toglie "cartesiocad" dai connettori di Claude Desktop, solo se punta a cartesio-mcp.exe di
+// `appDir` (un'altra installazione resta collegata). Restituisce cosa ha fatto.
+QString removeClaudeDesktopEntry(const QString& appDir);
+
 } // namespace cartesio

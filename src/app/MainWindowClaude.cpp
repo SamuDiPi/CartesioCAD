@@ -1078,6 +1078,32 @@ QStringList claudeDesktopFolders()
 
 } // namespace
 
+QString removeClaudeDesktopEntry(const QString& appDir)
+{
+    const QString ours = QFileInfo(appDir + QStringLiteral("/cartesio-mcp.exe")).absoluteFilePath();
+    QStringList removed;
+    for (const QString& folder : claudeDesktopFolders()) {
+        const QString path = folder + QStringLiteral("/claude_desktop_config.json");
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly))
+            continue;
+        const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        file.close();
+        QJsonObject config = doc.object();
+        QJsonObject servers = config.value(QStringLiteral("mcpServers")).toObject();
+        const QString command = servers.value(QStringLiteral("cartesiocad")).toObject().value(QStringLiteral("command")).toString();
+        if (command.isEmpty() || QFileInfo(command).absoluteFilePath().compare(ours, Qt::CaseInsensitive) != 0)
+            continue;   // nessuna voce, o un'altra installazione
+        servers.remove(QStringLiteral("cartesiocad"));
+        config.insert(QStringLiteral("mcpServers"), servers);
+        QSaveFile out(path);
+        if (out.open(QIODevice::WriteOnly) && out.write(QJsonDocument(config).toJson(QJsonDocument::Indented)) >= 0 && out.commit())
+            removed << QDir::toNativeSeparators(path);
+    }
+    return removed.isEmpty() ? QObject::tr("Nessun connettore di questa installazione in Claude Desktop.")
+                             : QObject::tr("Connettore tolto da: %1").arg(removed.join(QStringLiteral(", ")));
+}
+
 // ------------------------------------------------------------------ canale
 
 bool MainWindow::startClaude(QString* error)

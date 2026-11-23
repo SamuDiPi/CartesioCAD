@@ -1,0 +1,25 @@
+CartesioCAD - programma CAD 2D libero (GNU GPL v3)
+
+È un'ANTEPRIMA: può contenere errori. Salvare spesso e tenere copie dei disegni. Le misure, le tratte e i calcoli
+(portate dei cavi, cadute di tensione, CanaloCAD) sono indicativi e vanno verificati dal progettista.
+
+Installazione
+- Il programma va in Programmi; servono i diritti di amministratore.
+- Windows può mostrare l'avviso "autore sconosciuto": l'installatore non è firmato digitalmente.
+- Nessuna associazione di file: DWG e DXF restano aperti dal programma che si usa già.
+- Gli aggiornamenti si cercano dal programma (menu dell'applicazione > Controlla aggiornamenti); per installarli
+  Windows chiede i diritti di amministratore. Si installano solo pacchetti firmati dall'autore.
+
+Privacy
+- CartesioCAD non raccoglie né invia dati. Si collega a GitHub solo per cercare gli aggiornamenti (a richiesta, o
+  all'avvio se l'opzione è accesa: spenta di default).
+- L'Assistente IA (spento di default) collega il disegno all'app Claude Desktop di Anthropic, se l'utente lo
+  attiva: quello che Claude legge passa ad Anthropic secondo le condizioni dell'account Claude dell'utente.
+
+Sicurezza
+- Aprire DWG, DXF, PDF e script .scr solo da fonti affidabili.
+
+Licenze: CartesioCAD è distribuito secondo la GNU General Public License v3, senza alcuna garanzia. I componenti
+di terze parti e le loro licenze sono elencati in LICENZE-TERZE-PARTI.txt nella cartella del programma.
+CartesioCAD è un progetto indipendente, non collegato ad altri produttori di software CAD; DWG e DXF indicano solo
+il formato dei file. L'installatore è creato con Inno Setup (Jordan Russell, Martijn Laan - jrsoftware.org).

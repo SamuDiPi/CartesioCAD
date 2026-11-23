@@ -150,12 +150,23 @@ void MainWindow::downloadAndInstall(const UpdateOffer& offer)
                 return;
             }
             QString installError;
-            if (!Updater::install(archive, *manifest, appDirectory(), &installError)) {
+            // Installato in Programmi: l'installazione la fa una copia del programma con i diritti di amministratore
+            // (richiesta UAC), che verifica di nuovo firma e archivio prima di toccare la cartella.
+            const bool elevated = !Updater::folderWritable(appDirectory());
+            const bool installed = elevated
+                ? Updater::runElevated({QStringLiteral("--installa-aggiornamento"),
+                                        QDir::toNativeSeparators(Updater::manifestPathFor(archive)),
+                                        QDir::toNativeSeparators(archive)},
+                                       &installError)
+                : Updater::install(archive, *manifest, appDirectory(), &installError);
+            if (!installed) {
                 print(tr("Aggiornamento non installato: %1").arg(installError));
                 QMessageBox::warning(this, tr("Aggiornamento"), tr("Aggiornamento non installato: %1").arg(installError));
                 return;
             }
             QFile::remove(archive);
+            QFile::remove(Updater::manifestPathFor(archive));
+            QFile::remove(Updater::manifestPathFor(archive) + QStringLiteral(".sig"));
             pendingUpdate_.reset();
             if (updateAct_)
                 updateAct_->setText(tr("Controlla aggiornamenti..."));
@@ -178,7 +189,10 @@ void MainWindow::rollbackUpdate()
         != QMessageBox::Yes)
         return;
     QString error;
-    if (!Updater::rollback(appDirectory(), &error)) {
+    const bool restored = Updater::folderWritable(appDirectory())
+                              ? Updater::rollback(appDirectory(), &error)
+                              : Updater::runElevated({QStringLiteral("--ripristina-versione")}, &error);
+    if (!restored) {
         QMessageBox::warning(this, tr("Versione precedente"), error);
         return;
     }

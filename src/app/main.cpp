@@ -1,5 +1,6 @@
 #include "app/MainWindow.h"
 #include "app/Theme.h"
+#include "app/Updater.h"
 
 #include <QApplication>
 #include <QTimer>
@@ -15,6 +16,16 @@ int main(int argc, char* argv[])
             qputenv("QSG_RENDERER_BATCH_NODE_THRESHOLD", "10000000");
         if (!qEnvironmentVariableIsSet("QSG_RENDERER_BATCH_VERTEX_THRESHOLD"))
             qputenv("QSG_RENDERER_BATCH_VERTEX_THRESHOLD", "100000000");
+    }
+    // Lavori senza finestra (aggiornamento con i diritti di amministratore, disinstallazione): argomenti con "--".
+    if (argc > 1 && argv[1][0] == '-' && argv[1][1] == '-') {
+        QCoreApplication core(argc, argv);
+        QCoreApplication::setApplicationName("CartesioCAD");
+        QCoreApplication::setOrganizationName("CartesioCAD");
+        QCoreApplication::setApplicationVersion(CARTESIO_VERSION);
+        const int code = cartesio::Updater::commandLineTask(QCoreApplication::arguments());
+        if (code >= 0)
+            return code;
     }
     QApplication app(argc, argv);
     QApplication::setApplicationName("CartesioCAD");

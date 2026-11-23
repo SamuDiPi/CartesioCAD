@@ -232,7 +232,8 @@ Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`
 1. Aggiornare `VERSION` in `CMakeLists.txt`, fare il commit, compilare e `cmake --install build --prefix dist/CartesioCAD`.
 2. Creare `CartesioCAD-X.Y.Z-win64.zip` con la cartella `CartesioCAD` dentro, e l'archivio dei sorgenti di terze parti (`scripts/collect-licenses.sh dist/CartesioCAD --sorgenti <cartella>`).
 3. Firmare: `scripts/sign-release.sh CartesioCAD-X.Y.Z-win64.zip <chiave privata .pem> [--major]`. Scrive `CartesioCAD-X.Y.Z-aggiornamento.json` e la sua firma `.json.sig`.
-4. Pubblicare la versione su GitHub (tag `vX.Y.Z`) allegando i quattro file: archivio, sorgenti di terze parti, manifesto e firma. Senza manifesto e firma la versione non si installa dal programma.
+4. Installatore: `scripts/build-installer.sh dist/CartesioCAD <cartella di uscita>` (Inno Setup 7) crea `CartesioCAD-X.Y.Z-installazione.exe`: installazione in Programmi con i diritti di amministratore, collegamento nel menu Start, nessuna associazione di file; la disinstallazione toglie la cartella del programma e il connettore dell'Assistente IA da Claude Desktop e chiede se cancellare le impostazioni.
+5. Pubblicare la versione su GitHub (tag `vX.Y.Z`) allegando i cinque file: installatore, archivio, sorgenti di terze parti, manifesto e firma. Senza manifesto e firma la versione non si installa dal programma.
 
 La chiave privata non va mai nel repository (`.gitignore` esclude `*.pem`): senza di lei non si possono pubblicare aggiornamenti installabili dal programma, quindi va conservata con una copia di sicurezza. Se andasse persa o fosse compromessa, serve una versione con una chiave pubblica nuova, da scaricare a mano.
 
