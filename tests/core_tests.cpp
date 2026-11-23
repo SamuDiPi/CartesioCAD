@@ -816,7 +816,7 @@ void testDimension()
 }
 
 // Contorni "textbox" (flag 8): buchi attorno ai testi. Quello fuori dal contorno vero non va disegnato
-// (i "retini a caso" del Bernardi), quello dentro resta un buco.
+// (i "retini a caso" di una pianta di prova), quello dentro resta un buco.
 void testHatchTextBoxes()
 {
     const char* content =

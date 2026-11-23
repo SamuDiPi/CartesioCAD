@@ -1230,7 +1230,7 @@ std::unique_ptr<Entity> Reader::readSpline(const Record& r)
 // I contorni "textbox" (flag 8) sono i rettangoli attorno ai testi tolti dal tratteggio:
 // servono solo a fare buchi. Se il testo è stato spostato fuori dal contorno vero, lì non si disegna
 // niente, mentre col pari/dispari il rettangolo diventerebbe una macchia di tratteggio isolata (i "retini a
-// caso" del Bernardi). Si tengono solo quelli col centro dentro i contorni veri; se non ce ne sono, nessuno.
+// caso" di una pianta di prova). Si tengono solo quelli col centro dentro i contorni veri; se non ce ne sono, nessuno.
 static void dropOutsideTextBoxes(std::vector<std::vector<PolyVertex>>& loops, const std::vector<bool>& textBoxes)
 {
     if (std::find(textBoxes.begin(), textBoxes.end(), true) == textBoxes.end())

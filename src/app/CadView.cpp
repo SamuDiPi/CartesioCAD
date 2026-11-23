@@ -110,7 +110,7 @@ void CadView::startGpuRendering()
     quick_->setFocusPolicy(Qt::NoFocus);
     quick_->setClearColor(appOptions().modelBackground);
     // Il disegno in una texture (layer) e la selezione in un item sopra: un clic ridisegna solo la selezione
-    // (sul Bernardi da 80-140 ms a pochi ms). CARTESIO_NOLAYER=1 torna al disegno unico.
+    // (su una pianta grande di prova da 80-140 ms a pochi ms). CARTESIO_NOLAYER=1 torna al disegno unico.
     const bool layered = !qEnvironmentVariableIsSet("CARTESIO_NOLAYER");
     item_ = new DrawingItem(*this, nullptr, layered ? DrawingItem::Part::Scene : DrawingItem::Part::Full);
     item_->setParent(quick_);

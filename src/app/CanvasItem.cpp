@@ -89,7 +89,7 @@ void CadCanvas::rebuild()
             }
             // Il disegno va in una texture (layer di Qt Quick) riusata finché non cambia: muovendo il mouse si
             // ridisegnano solo mirino e anteprime, non le decine di migliaia di linee (fotogrammi da 8-18 ms a
-            // pochi ms sul Bernardi). 4 campioni come la vista a widget: linee antialias.
+            // pochi ms su una pianta grande di prova). 4 campioni come la vista a widget: linee antialias.
             if (QObject* layer = drawing_->property("layer").value<QObject*>()) {
                 layer->setProperty("enabled", !qEnvironmentVariableIsSet("CARTESIO_NOLAYER"));
                 layer->setProperty("samples", 4);

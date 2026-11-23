@@ -1080,7 +1080,7 @@ private:
 
 // Due sottoalberi della scena con la stessa forma (stessi nodi e tipi, geometrie a colori per vertice con lo stesso
 // modo di disegno): allora la geometria nuova si copia in quella esistente invece di sostituire i nodi. Aggiungere
-// nodi alla scena fa ricostruire a Qt tutte le liste di disegno (circa 20 ms sul Bernardi); cambiare solo i
+// nodi alla scena fa ricostruire a Qt tutte le liste di disegno (circa 20 ms su una pianta grande di prova); cambiare solo i
 // vertici ricarica quella geometria. Niente testi TrueType, immagini o altro: per quelli si sostituisce.
 bool sameShape(const QSGNode* a, const QSGNode* b)
 {
@@ -1606,7 +1606,7 @@ QSGNode* DrawingItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*)
             root->viewportNodes.emplace_back(vp.id, inner);
         }
         // Blocchi: quelli uguali tengono i loro nodi AL LORO POSTO (staccarli e riattaccarli fa ricostruire a Qt
-        // tutte le liste di disegno e ricaricare tutti i vertici: 20-45 ms a ogni modifica sul Bernardi); si
+        // tutte le liste di disegno e ricaricare tutti i vertici: 20-45 ms a ogni modifica su una pianta grande di prova); si
         // staccano solo i blocchi cambiati e i nuovi si inseriscono nella posizione giusta.
         std::unordered_map<const GpuChunk*, std::size_t> old;
         for (std::size_t k = 0; k < root->chunks.size(); ++k)
