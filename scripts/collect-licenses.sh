@@ -100,8 +100,15 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "  File:      $files"
         echo "  Licenza:   ${licenses#spdx:}"
         echo "  Sito:      $url"
-        echo "  Sorgenti:  https://repo.msys2.org/mingw/sources/$base-$version.src.tar.zst"
-        echo "             (ricetta di compilazione: https://github.com/msys2/MINGW-packages/tree/master/${base#mingw-w64-})"
+        if [[ "$version" == *-*.* ]]; then
+            # Pacchetto ricompilato da noi (revisione con il punto, es. 4.1.0-1.1): ricetta MSYS2 con correzioni di
+            # sicurezza ufficiali del progetto, in attesa della versione ufficiale. I sorgenti sono nell'archivio.
+            echo "  Sorgenti:  $base-$version.src.tar.zst nell'archivio dei sorgenti di terze parti di questa versione"
+            echo "             (ricetta MSYS2 ricompilata con le correzioni di sicurezza pubblicate dal progetto)"
+        else
+            echo "  Sorgenti:  https://repo.msys2.org/mingw/sources/$base-$version.src.tar.zst"
+            echo "             (ricetta di compilazione: https://github.com/msys2/MINGW-packages/tree/master/${base#mingw-w64-})"
+        fi
         # Avvisi di licenza e copyright del pacchetto (share/licenses/<nome>, LICENSE di ICU...).
         while IFS= read -r lf; do
             [ -f "$MSYS$lf" ] || continue
