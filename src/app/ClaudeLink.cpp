@@ -30,6 +30,12 @@ QString ClaudeLink::channelName() { return claudeChannelName(); }
 
 bool ClaudeLink::start(QString* error)
 {
+#ifndef Q_OS_WIN
+    // Il controllo di chi si collega (trustedClient) esiste solo per Windows: altrove il canale non si apre.
+    if (error)
+        *error = tr("L'Assistente IA è disponibile solo nella versione per Windows.");
+    return false;
+#else
     if (running())
         return true;
     server_ = new QLocalServer(this);
@@ -45,6 +51,7 @@ bool ClaudeLink::start(QString* error)
     }
     connect(server_, &QLocalServer::newConnection, this, &ClaudeLink::onConnection);
     return true;
+#endif
 }
 
 void ClaudeLink::stop()

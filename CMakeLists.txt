@@ -262,8 +262,20 @@ if(CARTESIO_BUILD_APP)
             VERBATIM)
         install(FILES ${libredwg_files} DESTINATION libredwg)
         message(STATUS "Supporto DWG: LibreDWG in ${CARTESIO_LIBREDWG_DIR}")
-    else()
+    elseif(WIN32)
         message(STATUS "Supporto DWG non incluso: eseguire scripts/fetch-libredwg.sh")
+    else()
+        message(STATUS "Supporto DWG: dwg2dxf e dxf2dwg di LibreDWG nella cartella libredwg accanto al programma (pacchetto Flatpak)")
+    endif()
+
+    # Dove vanno i file che stanno accanto all'eseguibile: su Windows la radice della cartella da distribuire,
+    # su Linux lib/cartesiocad (con un collegamento al programma in bin).
+    if(WIN32)
+        set(CARTESIO_APP_DEST ".")
+        set(CARTESIO_PLUGIN_DEST "plugins/CanaloCAD")
+    else()
+        set(CARTESIO_APP_DEST "lib/cartesiocad")
+        set(CARTESIO_PLUGIN_DEST "lib/cartesiocad/plugins/CanaloCAD")
     endif()
 
     # Plugin CanaloCAD: l'app web (un solo file HTML) viaggia con CartesioCAD, in
@@ -278,7 +290,7 @@ if(CARTESIO_BUILD_APP)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${canalo_files} "$<TARGET_FILE_DIR:CartesioCAD>/plugins/CanaloCAD"
         COMMENT "Copia del plugin CanaloCAD"
         VERBATIM)
-    install(FILES ${canalo_files} DESTINATION plugins/CanaloCAD)
+    install(FILES ${canalo_files} DESTINATION ${CARTESIO_PLUGIN_DEST})
 
     # Windows + MinGW: dopo ogni compilazione copia le DLL accanto all'exe (avvio con doppio clic),
     # e "cmake --install" crea una cartella pulita da distribuire.
@@ -313,6 +325,20 @@ if(CARTESIO_BUILD_APP)
         install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\" -E env MSYS2_ROOT= \"${msys_root}/usr/bin/bash.exe\"
             \"${CMAKE_CURRENT_SOURCE_DIR}/scripts/collect-licenses.sh\" \"\${CMAKE_INSTALL_PREFIX}\"
             COMMAND_ERROR_IS_FATAL ANY)")
+    elseif(UNIX AND NOT APPLE)
+        # Linux (pacchetto Flatpak, packaging/flatpak): il programma con i suoi file in lib/cartesiocad e un
+        # collegamento in bin; voce di menu, icona e scheda del programma nelle cartelle standard.
+        set(CARTESIO_APP_ID "io.github.samudipi.CartesioCAD")
+        install(TARGETS CartesioCAD RUNTIME DESTINATION ${CARTESIO_APP_DEST})
+        install(FILES LICENSE DESTINATION ${CARTESIO_APP_DEST} RENAME LICENSE.txt)
+        install(FILES packaging/linux/LICENZE-TERZE-PARTI.txt DESTINATION ${CARTESIO_APP_DEST})
+        install(FILES packaging/linux/${CARTESIO_APP_ID}.desktop DESTINATION share/applications)
+        install(FILES packaging/linux/${CARTESIO_APP_ID}.metainfo.xml DESTINATION share/metainfo)
+        install(FILES src/app/icons/cartesiocad.png DESTINATION share/icons/hicolor/256x256/apps
+                RENAME ${CARTESIO_APP_ID}.png)
+        install(CODE "file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin\")
+            execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink ../${CARTESIO_APP_DEST}/CartesioCAD
+                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cartesiocad\" COMMAND_ERROR_IS_FATAL ANY)")
     endif()
 endif()
 

@@ -53,6 +53,14 @@ void MainWindow::startupUpdates()
 
 void MainWindow::checkForUpdates(bool interactive)
 {
+    if (!Updater::selfUpdateSupported()) {
+        if (interactive)
+            QMessageBox::information(this, tr("Aggiornamenti"),
+                tr("Questa versione (pacchetto Flatpak) non si aggiorna dal programma: la versione nuova si scarica "
+                   "dalla pagina Releases del progetto e si installa sopra quella presente.\n\n%1")
+                    .arg(QStringLiteral("https://github.com/SamuDiPi/CartesioCAD/releases")));
+        return;
+    }
     if (updateBusy_)
         return;
     updateBusy_ = true;
@@ -179,6 +187,11 @@ void MainWindow::downloadAndInstall(const UpdateOffer& offer)
 
 void MainWindow::rollbackUpdate()
 {
+    if (!Updater::selfUpdateSupported()) {
+        QMessageBox::information(this, tr("Versione precedente"),
+            tr("Con il pacchetto Flatpak la versione precedente si rimette installando il suo file."));
+        return;
+    }
     const QString previous = Updater::previousVersion(appDirectory());
     if (previous.isEmpty()) {
         QMessageBox::information(this, tr("Versione precedente"), tr("Non c'è una versione precedente da ripristinare."));

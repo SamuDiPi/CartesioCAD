@@ -1552,6 +1552,10 @@ QString MainWindow::configureClaudeDesktop()
 
 void MainWindow::showClaudeDialog()
 {
+#ifndef Q_OS_WIN
+    QMessageBox::information(this, tr("Assistente IA"), tr("L'Assistente IA è disponibile solo nella versione per Windows."));
+    return;
+#endif
     FormDialog dialog(tr("Assistente IA"), FormDialog::Close, this);
     dialog.group(tr("Connettore per Claude Desktop"));
     dialog.note(tr("Con il connettore si chiede a Claude, nell'app Claude Desktop con il proprio account, di leggere e "

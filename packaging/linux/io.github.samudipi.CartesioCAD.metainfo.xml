@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.samudipi.CartesioCAD</id>
+  <name>CartesioCAD</name>
+  <summary>Open source 2D CAD for DWG and DXF drawings</summary>
+  <summary xml:lang="it">CAD 2D open source per disegni DWG e DXF</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <developer id="io.github.samudipi">
+    <name>SamuDiPi</name>
+  </developer>
+  <description>
+    <p>CartesioCAD is a 2D CAD with a ribbon, a command line, drawing aids, layers, blocks, dimensions and
+      layouts. It reads and writes DXF and, through GNU LibreDWG, DWG files, and prints to PDF.</p>
+    <p xml:lang="it">CartesioCAD è un CAD 2D con barra multifunzione, riga di comando, aiuti al disegno, layer,
+      blocchi, quote e layout. Legge e scrive i file DXF e, con GNU LibreDWG, i file DWG, e stampa in PDF.</p>
+    <p>This is a preview: it may contain errors, keep copies of your drawings. The Linux package does not
+      include the in-app updater nor the AI assistant connector of the Windows version, and it does not
+      use the network.</p>
+    <p xml:lang="it">È un'anteprima: può contenere errori, tenere copie dei disegni. Il pacchetto per Linux non
+      comprende l'aggiornamento dal programma né il connettore dell'Assistente IA della versione per Windows, e
+      non usa la rete.</p>
+    <p>CartesioCAD is an independent project: it is not affiliated with, approved or sponsored by other CAD
+      software vendors. DWG and DXF only name the file formats.</p>
+  </description>
+  <launchable type="desktop-id">io.github.samudipi.CartesioCAD.desktop</launchable>
+  <url type="homepage">https://github.com/SamuDiPi/CartesioCAD</url>
+  <url type="bugtracker">https://github.com/SamuDiPi/CartesioCAD/issues</url>
+  <url type="vcs-browser">https://github.com/SamuDiPi/CartesioCAD</url>
+  <content_rating type="oars-1.1"/>
+  <provides>
+    <binary>cartesiocad</binary>
+  </provides>
+  <releases>
+    <release version="0.5.0" date="2026-11-23" type="development">
+      <url type="details">https://github.com/SamuDiPi/CartesioCAD/releases/tag/v0.5.0</url>
+    </release>
+  </releases>
+</component>

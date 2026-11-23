@@ -1,0 +1,94 @@
+# Pacchetto Flatpak di CartesioCAD.
+#   flatpak-builder --user --install-deps-from=flathub --repo=repo --force-clean build packaging/flatpak/io.github.samudipi.CartesioCAD.yml
+#   flatpak build-bundle repo CartesioCAD.flatpak io.github.samudipi.CartesioCAD --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+# Qt, OpenSSL, HarfBuzz e le librerie di sistema arrivano dal runtime; nel pacchetto ci sono CartesioCAD,
+# Poppler (PDF degli schemi) e i convertitori di GNU LibreDWG (file DWG).
+app-id: io.github.samudipi.CartesioCAD
+runtime: org.kde.Platform
+runtime-version: '6.11'
+sdk: org.kde.Sdk
+command: cartesiocad
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Stampa sulle stampanti del sistema.
+  - --socket=cups
+  # Un CAD apre e salva disegni ovunque, e i riferimenti esterni stanno accanto al disegno: servono le
+  # cartelle dell'utente e i dischi montati. Niente rete: il programma non si collega a niente.
+  - --filesystem=home
+  - --filesystem=/media
+  - --filesystem=/run/media
+  - --filesystem=/mnt
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/cmake
+  - /share/man
+  - /share/info
+  - /share/doc
+  - /share/pkgconfig
+  - '*.a'
+  - '*.la'
+modules:
+  - name: poppler
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      - -DENABLE_CPP=ON
+      - -DENABLE_UTILS=OFF
+      - -DENABLE_GLIB=OFF
+      - -DENABLE_GOBJECT_INTROSPECTION=OFF
+      - -DENABLE_QT5=OFF
+      - -DENABLE_QT6=OFF
+      - -DENABLE_BOOST=OFF
+      - -DENABLE_LIBOPENJPEG=OFF
+      - -DENABLE_LCMS=OFF
+      - -DENABLE_LIBCURL=OFF
+      - -DENABLE_LIBTIFF=OFF
+      - -DENABLE_NSS3=OFF
+      - -DENABLE_GPGME=OFF
+      - -DBUILD_MANUAL_TESTS=OFF
+      - -DBUILD_CPP_TESTS=OFF
+      - -DRUN_GPERF_IF_PRESENT=OFF
+    post-install:
+      - install -Dm644 COPYING /app/lib/cartesiocad/licenze/poppler/COPYING
+      - install -Dm644 COPYING3 /app/lib/cartesiocad/licenze/poppler/COPYING3
+    sources:
+      - type: archive
+        url: https://poppler.freedesktop.org/poppler-26.11.0.tar.xz
+        sha256: 41c32680160addf5a8dd7a830e4869c01e9f6bee1abb91e44fabd1ba9d7828fb
+
+  - name: libredwg
+    buildsystem: autotools
+    config-opts:
+      - --disable-bindings
+      - --disable-python
+      - --disable-shared
+      - --enable-release
+    # Dei programmi di LibreDWG servono solo i due convertitori, accanto a CartesioCAD nella cartella libredwg.
+    post-install:
+      - install -Dm755 /app/bin/dwg2dxf /app/lib/cartesiocad/libredwg/dwg2dxf
+      - install -Dm755 /app/bin/dxf2dwg /app/lib/cartesiocad/libredwg/dxf2dwg
+      - install -Dm644 COPYING /app/lib/cartesiocad/licenze/libredwg/COPYING
+      - rm -f /app/bin/dwg* /app/bin/dxf* /app/bin/dxfwrite
+    sources:
+      - type: archive
+        url: https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz
+        sha256: 7a1103de47fdc191882586a515d577876a71264ba607369e57751cd29cb2e0f4
+
+  - name: cartesiocad
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCARTESIO_BUILD_TESTS=ON
+    # I test girano durante la costruzione del pacchetto: se falliscono il pacchetto non si crea.
+    post-install:
+      - QT_QPA_PLATFORM=offscreen ./cartesio_core_tests
+      - QT_QPA_PLATFORM=offscreen ./cartesio_canalo_engine_tests
+    sources:
+      - type: dir
+        path: ../..

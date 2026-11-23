@@ -31,6 +31,9 @@ int main(int argc, char* argv[])
     QApplication::setApplicationName("CartesioCAD");
     QApplication::setOrganizationName("CartesioCAD");
     QApplication::setApplicationVersion(CARTESIO_VERSION);
+#ifdef Q_OS_LINUX
+    QGuiApplication::setDesktopFileName(QStringLiteral("io.github.samudipi.CartesioCAD"));   // icona e voce di menu (Wayland)
+#endif
     cartesio::theme::apply(app);
 
     cartesio::MainWindow window;

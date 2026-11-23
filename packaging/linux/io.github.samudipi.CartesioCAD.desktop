@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=CartesioCAD
+GenericName=2D CAD
+GenericName[it]=CAD 2D
+Comment=Open source 2D CAD for DWG and DXF drawings
+Comment[it]=CAD 2D open source per disegni DWG e DXF
+Exec=cartesiocad %f
+Icon=io.github.samudipi.CartesioCAD
+Terminal=false
+Categories=Graphics;2DGraphics;Engineering;
+MimeType=image/vnd.dxf;image/vnd.dwg;
+StartupNotify=true

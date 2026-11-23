@@ -97,6 +97,16 @@ public:
     // Avvia questo programma con i diritti di amministratore (richiesta UAC di Windows) con `arguments`, aspetta che
     // finisca e restituisce il suo esito (testo scritto in un file temporaneo). False se l'utente rifiuta.
     static bool runElevated(const QStringList& arguments, QString* error);
+    // L'aggiornamento dal programma c'è solo su Windows: altrove (pacchetto Flatpak) il programma sta in una
+    // cartella di sola lettura e si aggiorna installando il pacchetto nuovo.
+    static bool selfUpdateSupported()
+    {
+#ifdef Q_OS_WIN
+        return true;
+#else
+        return false;
+#endif
+    }
     // Lavori da riga di comando senza finestra: --installa-aggiornamento <manifesto> <archivio> --esito-in <cartella>,
     // --ripristina-versione --esito-in <cartella>, --rimuovi-connettore. Restituisce il codice d'uscita, o -1 se gli
     // argomenti non sono di questi.

@@ -1,0 +1,69 @@
+# Costruisce il pacchetto Flatpak di CartesioCAD su Linux, lo prova senza schermo e lo allega come artefatto.
+name: Flatpak
+
+on:
+  push:
+    branches: [flatpak]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Strumenti Flatpak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder appstream desktop-file-utils
+          # Ubuntu 24.04 vieta gli spazi dei nomi senza privilegi usati da Flatpak per isolare la compilazione.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Controllo dei file del pacchetto
+        run: |
+          desktop-file-validate packaging/linux/io.github.samudipi.CartesioCAD.desktop
+          appstreamcli validate --no-net packaging/linux/io.github.samudipi.CartesioCAD.metainfo.xml
+
+      - name: Costruzione (con i test)
+        run: |
+          flatpak-builder --user --install-deps-from=flathub --repo=repo --force-clean --install \
+            build packaging/flatpak/io.github.samudipi.CartesioCAD.yml
+
+      - name: Pacchetto in un solo file
+        run: |
+          VERSION=$(sed -n 's/^ *VERSION \([0-9.]*\)$/\1/p' CMakeLists.txt | head -1)
+          flatpak build-bundle repo "CartesioCAD-$VERSION.flatpak" io.github.samudipi.CartesioCAD \
+            --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
+          ls -l CartesioCAD-*.flatpak
+          sha256sum CartesioCAD-*.flatpak
+
+      - name: Prova senza schermo (apre un DXF, salva DWG, lo rilegge)
+        run: |
+          mkdir -p prova && cd prova
+          printf '0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n100\n21\n50\n0\nCIRCLE\n8\n0\n10\n50\n20\n25\n40\n20\n0\nTEXT\n8\n0\n10\n10\n20\n60\n40\n5\n1\nProva Linux\n0\nENDSEC\n0\nEOF\n' > disegno.dxf
+          printf 'LOGFILEON %s/esito.txt\n-INFORMAZIONI\nOPEN "%s/disegno.dxf"\nSAVEAS "%s/salvato.dwg"\nOPEN "%s/salvato.dwg"\nSAVEAS "%s/riletto.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > prova.scr
+          timeout 180 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
+            --env=CARTESIO_RENDER=software io.github.samudipi.CartesioCAD "$PWD/prova.scr" > uscita.log 2>&1 || echo "uscita $?"
+          echo "--- esito"; cat esito.txt || true
+          echo "--- uscita"; tail -40 uscita.log || true
+          ls -l
+          test -s salvato.dwg
+          grep -q "Prova Linux" riletto.dxf
+          grep -c CIRCLE riletto.dxf
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        if: always()
+        with:
+          name: CartesioCAD-flatpak
+          path: |
+            CartesioCAD-*.flatpak
+            prova/
+          if-no-files-found: warn

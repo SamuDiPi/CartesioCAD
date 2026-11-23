@@ -1,0 +1,51 @@
+CartesioCAD - componenti di terze parti (pacchetto Flatpak per Linux)
+=====================================================================
+
+CartesioCAD è software libero distribuito secondo la GNU General Public License v3.0 (LICENSE.txt),
+senza alcuna garanzia. I sorgenti di CartesioCAD sono in https://github.com/SamuDiPi/CartesioCAD
+(la versione e il commit di questa copia sono indicati in Aiuto > Informazioni su CartesioCAD).
+Il pacchetto si costruisce dai sorgenti con packaging/flatpak/io.github.samudipi.CartesioCAD.yml, che
+indica indirizzo e impronta di ogni archivio usato.
+
+Dentro il pacchetto, oltre a CartesioCAD, ci sono i componenti seguenti. I testi delle licenze sono nella
+cartella "licenze". Su richiesta (una segnalazione su https://github.com/SamuDiPi/CartesioCAD/issues)
+forniamo i sorgenti anche direttamente, per almeno tre anni dalla distribuzione di questa versione.
+
+------------------------------------------------------------------------------------------------
+
+Poppler 26.11.0 (lettura dei PDF degli schemi; libreria libpoppler-cpp)
+  Licenza:   GPL-2.0-or-later
+  Sito:      https://poppler.freedesktop.org
+  Sorgenti:  https://poppler.freedesktop.org/poppler-26.11.0.tar.xz
+
+LibreDWG 0.14.8413 (GNU; programmi separati dwg2dxf e dxf2dwg, usati per leggere e scrivere i file DWG)
+  Licenza:   GPL-3.0-or-later
+  Sito:      https://www.gnu.org/software/libredwg/
+  Sorgenti:  https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz
+
+Font Hershey (caratteri del font a tratti incorporato in CartesioCAD)
+  Licenza:   uso libero per qualsiasi scopo, con queste attribuzioni:
+             The Hershey Fonts were originally created by Dr. A. V. Hershey while working at the
+             U. S. National Bureau of Standards. The format of the Font data in this distribution was
+             originally created by James Hurt, Cognition, Inc., 900 Technology Park Drive, Billerica,
+             MA 01821 (mit-eddie!ci-dandelion!hurt).
+             I dati non si possono convertire nel formato distribuito dal NTIS.
+  Sorgenti:  src/app/BuiltinStrokeFont.inc
+
+CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)
+  Licenza:   GPL-3.0-or-later
+  Sorgenti:  https://github.com/SamuDiPi/Canalo
+  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS
+  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js (Mozilla Foundation, Apache-2.0,
+  https://mozilla.github.io/pdf.js/).
+  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web
+  (@mlightcad/libredwg-web, dichiarato GPL-2.0-only, contiene GNU LibreDWG GPL-3.0-or-later):
+  non è incluso né distribuito con CartesioCAD.
+
+Non sono dentro il pacchetto, ma servono per eseguirlo e arrivano dal runtime org.kde.Platform 6.11
+(Flathub), ciascuno con la sua licenza: Qt 6 (LGPL-3.0), OpenSSL (Apache-2.0), HarfBuzz, FreeType,
+zlib e le altre librerie di sistema.
+
+------------------------------------------------------------------------------------------------
+Marchi: CartesioCAD e CanaloCAD non citano marche o prodotti di altri. DWG e DXF sono usati solo per
+indicare il formato dei file; i marchi appartengono ai rispettivi titolari.
