@@ -800,6 +800,9 @@ CircuitCheck checkCircuit(const Project& project, const Circuit& circuit, const 
         add(Level::Warning, "il circuito non è in nessuna tratta: portata in aria libera, senza raggruppamento");
 
     // Caduta di tensione (resistiva, cosφ 0,9, rame a regime): lunghezza dello schema, altrimenti delle tratte.
+    // Lunghezza: quella dello schema; altrimenti quella del percorso calcolato; altrimenti la somma delle tratte.
+    if (circuit.lengthM <= 0.0 && circuit.pathLengthM > 0.0)
+        measured = circuit.pathLengthM;
     cc.lengthM = circuit.lengthM > 0.0 ? circuit.lengthM : measured;
     cc.measured = circuit.lengthM <= 0.0 && measured > 0.0;
     if (cc.lengthM > 0.0 && circuit.ib > 0.0 && !parts.empty()) {
@@ -881,7 +884,7 @@ std::vector<BomItem> plantBom(const Project& project, const std::map<std::string
     // Cavi: metri per tipo e formazione.
     int withoutLength = 0;
     for (const Circuit& c : project.circuits) {
-        double length = c.lengthM;
+        double length = c.lengthM > 0.0 ? c.lengthM : c.pathLengthM;
         bool inRun = false;
         if (length <= 0.0)
             for (const Run& r : project.runs)

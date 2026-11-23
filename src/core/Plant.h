@@ -43,6 +43,7 @@ struct Circuit {
     bool fromPdf = false;      // importato dallo schema (si aggiorna a ogni importazione)
     double breakerIn = 0.0;    // corrente nominale dell'interruttore In, A (0 = non nota)
     double izRef = 0.0;        // portata di riferimento imposta, A (0 = dal catalogo, posa in aria libera)
+    double pathLengthM = 0.0;  // lunghezza del percorso calcolato sulle tratte (Percorsi automatici), 0 = non calcolato
 };
 
 enum class RunKind { Tube, Duct, Tray };

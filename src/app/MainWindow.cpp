@@ -146,7 +146,7 @@ const QStringList kUiCommands = {
     QStringLiteral("CANALOINS"), QStringLiteral("CANALOINSERISCI"), QStringLiteral("CANALOULTIMA"), QStringLiteral("CANALOLAST"),
     QStringLiteral("CANALOVERIFICA"), QStringLiteral("CANALOCHECK"), QStringLiteral("CANALOSEZIONE"), QStringLiteral("CANALOCAVI"), QStringLiteral("CANALINA"), QStringLiteral("CANALINE"), QStringLiteral("CABLETRAY"), QStringLiteral("IMPIANTO"), QStringLiteral("TRATTA"),
     QStringLiteral("VERIFICAIMPIANTO"), QStringLiteral("GUIDA"), QStringLiteral("GUIDE"), QStringLiteral("ETICHETTETRATTE"), QStringLiteral("SEZIONETRATTA"),
-    QStringLiteral("DISTINTAIMPIANTO"),
+    QStringLiteral("DISTINTAIMPIANTO"), QStringLiteral("PERCORSIIMPIANTO"), QStringLiteral("PERCORSI"), QStringLiteral("QUADROIMPIANTO"),
     QStringLiteral("OPTIONS"), QStringLiteral("OPZIONI"), QStringLiteral("OP"), QStringLiteral("PREFERENCES"),
     QStringLiteral("PRINT"), QStringLiteral("PREVIEW"), QStringLiteral("ANTEPRIMA"), QStringLiteral("PRE"),
     QStringLiteral("PUBLISH"), QStringLiteral("PUBBLICA"), QStringLiteral("-PLOT"), QStringLiteral("-STAMPA"),
@@ -2222,6 +2222,16 @@ bool MainWindow::handleUiCommand(const QString& word)
                 return;
             }
             plant_->bomDialog();
+        });
+    else if (is({"PERCORSIIMPIANTO", "PERCORSI"}))
+        later([this] {
+            showPanel(MainView::Plant);
+            plant_->routesDialog();
+        });
+    else if (is({"QUADROIMPIANTO"}))
+        later([this] {
+            showPanel(MainView::Plant);
+            plant_->boardFromSelection();
         });
     else if (is({"ETICHETTETRATTE"}))
         later([this] {

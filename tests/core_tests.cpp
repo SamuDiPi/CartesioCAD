@@ -10,6 +10,7 @@
 #include "core/Osnap.h"
 #include "core/Plot.h"
 #include "core/Version.h"
+#include "core/Routing.h"
 #include "core/SingleLine.h"
 #include "core/CircuitTags.h"
 #include "core/PointLegend.h"
@@ -3729,6 +3730,40 @@ void testPlant()
 }
 
 // Manuale: ogni comando registrato ha la sua voce (il nome tra apici inversi in docs/manuale).
+// Percorsi automatici: derivazione a T, incrocio senza contatto, tratte in fila, punti fuori portata.
+void testRouting()
+{
+    using namespace plant;
+    const std::vector<RouteSegment> net = {
+        {{0, 0}, {100, 0}, "T1"},     // dorsale
+        {{50, 0}, {50, 80}, "T2"},    // derivazione a T dal centro della dorsale
+        {{0, 40}, {90, 40}, "T3"},    // incrocia T2 senza toccarla con un estremo: non collegata
+        {{100, 0}, {100, 100}, "T4"}, // continua la dorsale
+    };
+    RouteOptions o;
+    o.joinTolerance = 0.5;
+    o.maxAccess = 10.0;
+    o.unitsToM = 1.0;
+    o.extraPerCircuit = 3.0;
+    const std::vector<RouteRequest> req = {
+        {"C1", {-2, 0}, {{50, 82}}},
+        {"C2", {-2, 0}, {{10, 41}}},
+        {"C3", {-2, 0}, {{100, 50}}},
+        {"C4", {-2, 0}, {{20, 1}, {30, 1}}},
+        {"C5", {1000, 1000}, {{20, 1}}},
+        {"C6", {-2, 0}, {{50, 82}, {100, 50}, {500, 500}}},
+    };
+    const auto r = routeCircuits(net, req, o);
+    CHECK(r.size() == 6);
+    CHECK(r[0].reached == 1 && r[0].runs == std::vector<std::string>({"T1", "T2"}) && approx(r[0].lengthM, 137.0));
+    CHECK(r[1].reached == 0 && r[1].unreached == 1 && r[1].runs.empty() && approx(r[1].lengthM, 0.0));
+    CHECK(r[2].runs == std::vector<std::string>({"T1", "T4"}) && approx(r[2].lengthM, 155.0));
+    CHECK(r[3].reached == 2 && r[3].runs == std::vector<std::string>({"T1"}) && approx(r[3].lengthM, 36.0));
+    CHECK(!r[4].sourceOnNetwork && r[4].unreached == 1);
+    CHECK(r[5].reached == 2 && r[5].unreached == 1 && r[5].runs == std::vector<std::string>({"T1", "T2", "T4"})
+          && approx(r[5].lengthM, 155.0));
+}
+
 // Versioni degli aggiornamenti: lettura, confronto, major.
 void testVersions()
 {
@@ -3847,6 +3882,7 @@ int main()
     testPlant();
     testManualCoversCommands();
     testVersions();
+    testRouting();
 
     if (failures == 0)
         std::printf("Tutti i test superati.\n");

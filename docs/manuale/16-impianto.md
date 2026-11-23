@@ -38,6 +38,26 @@ Tipi di cavo che mancano nel catalogo: codice, tipo, formazione, diametro, peso 
 
 La lunghezza della tratta si **misura dal disegno**. *Aggiungi la selezione* unisce altre linee a una tratta esistente; *Mostra* la seleziona e la inquadra.
 
+## Percorsi automatici (`PERCORSIIMPIANTO`, `PERCORSI`)
+
+**Dove:** tavolozza Impianto, scheda Tratte > Percorsi automatici.
+
+Assegna da solo ogni circuito alle tratte del suo percorso e ne calcola la lunghezza, dal quadro agli utilizzatori.
+
+- **Rete delle tratte:** le linee e polilinee delle tratte di questo disegno. Si collegano dove si toccano gli estremi o dove un estremo cade su un'altra tratta (derivazione a T). Due tratte che si incrociano e basta **non** sono collegate: possono essere a quote diverse. Per collegarle si spezza una delle due nel punto d'incrocio.
+- **Partenza:** il quadro, cioè la prima parte della sigla del circuito ("QPT-SX-N" in "QPT-SX-N C-14"). Nel disegno è l'oggetto segnato con *Quadro dalla selezione*, oppure un testo che contiene solo il nome del quadro.
+- **Arrivi:** le sigle del circuito scritte in pianta, sui layer delle sigle della tavolozza Circuiti. Se c'è un punto (utilizzatore) vicino alla sigla, si parte da quello.
+- **Percorso:** il più breve sulla rete. Quadro e utilizzatori si attaccano al punto più vicino delle tratte, se sono entro la distanza massima scelta (5 m di partenza). Il tratto di attacco conta nella lunghezza ma non entra in nessuna tratta.
+- **Lunghezza:** quella dell'utilizzatore più lontano più l'aggiunta per risalite, discese e scorte (3 m di partenza). Si usa per la caduta di tensione e per i metri di cavo della distinta quando lo schema non dà una lunghezza.
+
+Prima di applicare compare il riepilogo: circuiti con percorso, utilizzatori non raggiunti, quadri non trovati, e nei dettagli le tratte e la lunghezza di ogni circuito. Applicando, ogni circuito calcolato esce dalle tratte di questo disegno ed entra in quelle del suo percorso. Le tratte di altri disegni e i circuiti non calcolati non cambiano.
+
+## Quadro dalla selezione (`QUADROIMPIANTO`)
+
+**Dove:** tavolozza Impianto, scheda Tratte > Quadro dalla selezione.
+
+Si seleziona nel disegno il simbolo del quadro e si sceglie il suo nome: diventa il punto di partenza dei suoi circuiti (il centro dell'ingombro degli oggetti). Un quadro ha un solo segno: segnandone un altro, il precedente si toglie. Il segno si salva con il disegno.
+
 ## Verifiche (`VERIFICAIMPIANTO`)
 
 **Dove:** Impianto > Impianti elettrici > Verifica impianto; Impianto > *Verifica*.

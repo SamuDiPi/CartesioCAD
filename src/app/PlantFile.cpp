@@ -40,6 +40,8 @@ QJsonObject toJson(const plant::Circuit& c)
         o["In"] = c.breakerIn;
     if (c.izRef > 0.0)
         o["izRiferimento"] = c.izRef;
+    if (c.pathLengthM > 0.0)
+        o["lunghezzaPercorso"] = c.pathLengthM;
     return o;
 }
 
@@ -59,6 +61,7 @@ plant::Circuit circuitFrom(const QJsonObject& o)
     c.fromPdf = o["daSchema"].toBool();
     c.breakerIn = o["In"].toDouble();
     c.izRef = o["izRiferimento"].toDouble();
+    c.pathLengthM = o["lunghezzaPercorso"].toDouble();
     return c;
 }
 

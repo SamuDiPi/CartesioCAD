@@ -6,6 +6,9 @@
 
 #include "core/Entity.h"
 #include "core/Plant.h"
+#include "core/Routing.h"
+
+#include <set>
 #include "core/SingleLine.h"
 
 #include <QQuickWidget>
@@ -45,6 +48,18 @@ public:
     QString newRun(plant::Run run, QString* error);
     // Verifica di tutte le tratte e dei circuiti: righe di testo per la riga di comando.
     QStringList checkAll();
+    // Percorsi automatici (PlantRoutes.cpp): calcolo dal disegno e applicazione al progetto.
+    struct RouteReport {
+        std::vector<plant::RouteResult> results;
+        std::set<std::string> runsInDrawing;
+        QStringList missingBoards;
+        QStringList lines;
+        int circuitsWithTags = 0;
+    };
+    RouteReport computeRoutes(double maxAccessM, double extraM) const;
+    int applyRoutes(const RouteReport& report);
+    // Segna gli oggetti selezionati come quadro `name` (partenza dei suoi circuiti).
+    bool tagBoard(const QString& name, QString* error);
     // Etichette delle tratte nel disegno corrente (sostituiscono quelle di prima): quante.
     int writeLabels();
     // Sezione della tratta disegnata accanto al suo percorso (sostituisce quella di prima); false con il motivo.
@@ -84,6 +99,8 @@ public:
     Q_INVOKABLE void showRun(int row);
     Q_INVOKABLE void verify();
     Q_INVOKABLE void labels();
+    Q_INVOKABLE void routesDialog();
+    Q_INVOKABLE void boardFromSelection();
     Q_INVOKABLE void showGuide() { emit guideRequested(); }
     Q_INVOKABLE void bomDialog();
     Q_INVOKABLE void section(int row);

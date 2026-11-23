@@ -261,6 +261,18 @@ Rectangle {
             }
             Button {
                 visible: plant.currentTab === 1
+                text: qsTr("Percorsi automatici")
+                tip: qsTr("Assegna ogni circuito alle tratte dal quadro agli utilizzatori con la sua sigla e ne calcola la lunghezza (comando PERCORSIIMPIANTO)")
+                onClicked: plant.routesDialog()
+            }
+            Button {
+                visible: plant.currentTab === 1
+                text: qsTr("Quadro dalla selezione")
+                tip: qsTr("Segna gli oggetti selezionati come il quadro da cui partono i suoi circuiti")
+                onClicked: plant.boardFromSelection()
+            }
+            Button {
+                visible: plant.currentTab === 1
                 text: qsTr("Etichette in pianta")
                 tip: qsTr("Scrive o aggiorna accanto a ogni tratta tipo, misura, circuiti, riempimento ed esito (comando ETICHETTETRATTE)")
                 onClicked: plant.labels()

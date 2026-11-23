@@ -32,6 +32,7 @@ add_library(cartesio_core STATIC
     src/core/Osnap.cpp
     src/core/TitleBlock.cpp
     src/core/Version.cpp
+    src/core/Routing.cpp
     src/core/Plot.cpp
     src/core/SingleLine.cpp
     src/core/CircuitTags.cpp
@@ -123,6 +124,7 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowConvert.cpp
         src/app/MainWindowTransmit.cpp
         src/app/MainWindowUpdate.cpp
+        src/app/PlantRoutes.cpp
         src/app/Updater.cpp
         src/app/MainWindowTextEditor.cpp
         src/app/MainWindowRibbonTabs.cpp

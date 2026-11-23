@@ -1593,6 +1593,22 @@ bool MainWindow::runScript(const QString& path)
                 print(plant_->drawSection(id, &error) ? tr("-SEZIONETRATTA %1").arg(id) : tr("-SEZIONETRATTA: %1").arg(error));
                 continue;
             }
+            // Diagnosi: -PERCORSIIMPIANTO distanza_m aggiunta_m (calcola e applica), -QUADRO nome (oggetti selezionati).
+            if (word == QLatin1String("-PERCORSIIMPIANTO")) {
+                const double maxAccess = nextToken().toDouble();
+                const double extra = nextToken().toDouble();
+                const auto report = plant_->computeRoutes(maxAccess > 0 ? maxAccess : 5.0, extra);
+                for (const QString& line : report.lines)
+                    print(line);
+                print(tr("-PERCORSIIMPIANTO: %1 circuiti con sigla, %2 applicati").arg(report.circuitsWithTags).arg(plant_->applyRoutes(report)));
+                continue;
+            }
+            if (word == QLatin1String("-QUADRO")) {
+                QString error;
+                const QString name = nextToken().replace(u'_', u' ');
+                print(plant_->tagBoard(name, &error) ? tr("-QUADRO: %1 segnato").arg(name) : tr("-QUADRO: %1").arg(error));
+                continue;
+            }
             if (word == QLatin1String("-VERIFICAIMPIANTO")) {
                 for (const QString& line : plant_->checkAll())
                     print(line);
