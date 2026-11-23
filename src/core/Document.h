@@ -335,6 +335,14 @@ public:
         plantFile_ = std::move(path);
         ++revision_;
     }
+    // Metri per unità del disegno da usare per l'impianto (lunghezze di tratte e percorsi), quando le unità dichiarate
+    // dal file ($INSUNITS) non sono quelle vere; 0 = quelle del file. Si salva con il collegamento al progetto.
+    double plantMetersPerUnit() const { return plantMetersPerUnit_; }
+    void setPlantMetersPerUnit(double m)
+    {
+        plantMetersPerUnit_ = m > 0.0 ? m : 0.0;
+        ++revision_;
+    }
     // Canaline portacavi del disegno: codice (CN1, CN2...) -> stato della sezione di CanaloCAD in JSON (misure,
     // tipologia, staffaggio, cavi...). Gli oggetti della canalina hanno il codice (Entity::canaloTray). Le modifiche
     // si annullano come quelle dei layer: dopo il cambio, checkpoint().
@@ -540,6 +548,7 @@ private:
     EntityId nextId_ = 1;
     std::uint64_t revision_ = 0;
     std::string plantFile_;
+    double plantMetersPerUnit_ = 0.0;
     std::map<std::string, std::string> canaloTrays_;
     // Ingombri delle entità, ricalcolati quando cambia la revisione.
     // Ingombri degli oggetti, allineati a entities_, con il serial dell'oggetto di cui sono l'ingombro.

@@ -342,8 +342,7 @@ double PlantPanel::runLengthM(const std::string& id) const
     for (const auto& e : doc.entities())
         if (e->plantRun() == id)
             length += pathLength(*e);
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    return length * unitsFactor(units, 6);   // 6 = metri
+    return length * plantMetersPerUnit(doc);
 }
 
 std::map<std::string, double> PlantPanel::runLengths() const
@@ -362,9 +361,8 @@ std::map<std::string, plant::RunGeometry> PlantPanel::runGeometry() const
     if (!drawing_)
         return out;
     const Document& doc = drawing_->document();
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    const double toM = unitsFactor(units, 6);
-    const double tol = 1.0 / std::max(1e-9, unitsFactor(units, 4));   // 1 mm nelle unità del disegno
+    const double toM = plantMetersPerUnit(doc);
+    const double tol = 0.001 / std::max(1e-12, toM);   // 1 mm nelle unità del disegno
     auto turn = [](Vec2 d1, Vec2 d2) {
         const double a = std::atan2(d1.x * d2.y - d1.y * d2.x, d1.x * d2.x + d1.y * d2.y);
         return std::abs(a) * 180.0 / kPi;
@@ -1088,8 +1086,25 @@ void PlantPanel::showRun(int row)
 
 double PlantPanel::labelHeight() const
 {
-    // 2,5 mm sulla carta alla scala di annotazione; se il disegno è a 1:1 ma grande (pianta), si ricava dalle tratte.
+    // L'altezza dei testi più comune nel disegno (si adatta a unità e scala, anche con più piani nello stesso
+    // disegno); senza testi, 2,5 mm sulla carta alla scala di annotazione o una frazione dell'ingombro delle tratte.
     const Document& doc = drawing_->document();
+    std::map<long long, int> heights;
+    for (const auto& e : doc.entities()) {
+        if (e->space() != 0 || !e->plantRun().empty())
+            continue;
+        double th = 0.0;
+        if (e->type() == EntityType::Text)
+            th = static_cast<const TextEntity&>(*e).height;
+        else if (e->type() == EntityType::MText)
+            th = static_cast<const MTextEntity&>(*e).height;
+        if (th > 0.0)
+            ++heights[std::llround(th * 1000.0)];
+    }
+    if (!heights.empty()) {
+        const auto most = std::max_element(heights.begin(), heights.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
+        return static_cast<double>(most->first) / 1000.0;
+    }
     double h = 2.5 * doc.annotationFactor();
     BBox box;
     for (const auto& e : doc.entities())
@@ -1192,8 +1207,7 @@ bool PlantPanel::drawSection(const QString& runId, QString* error)
         if (const Entity* e = doc.find(id))
             box.expand(e->bounds());
     // Ingrandita rispetto alla pianta quanto basta per leggerla: la larghezza della sezione circa 25 volte il testo.
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    const double mm = unitsFactor(4, units);   // unità di disegno per millimetro
+    const double mm = 0.001 / std::max(1e-12, plantMetersPerUnit(doc));   // unità di disegno per millimetro
     const double h = labelHeight();
     const double real = r->kind == plant::RunKind::Tube ? r->tubeOuter : r->width;
     double factor = 1.0;

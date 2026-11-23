@@ -1603,6 +1603,22 @@ bool MainWindow::runScript(const QString& path)
                 print(tr("-PERCORSIIMPIANTO: %1 circuiti con sigla, %2 applicati").arg(report.circuitsWithTags).arg(plant_->applyRoutes(report)));
                 continue;
             }
+            // Diagnosi: -TRATTEDALAYER layer;layer (spazi come _): tratte con la legenda; -UNITAIMPIANTO metri_per_unità.
+            if (word == QLatin1String("-TRATTEDALAYER")) {
+                const QStringList layers = nextToken().replace(u'_', u' ').split(u';', Qt::SkipEmptyParts);
+                const auto r = plant_->importRunsFromLayers(layers, {}, true);
+                QStringList kinds;
+                for (const auto& [k, n] : r.byKind)
+                    kinds << tr("%1 %2").arg(k).arg(n);
+                print(tr("-TRATTEDALAYER: %1 tratte (%2 dalla scritta vicina, %3 pezzi corti scartati) %4")
+                          .arg(r.runs).arg(r.fromLabels).arg(r.tooShort).arg(kinds.join(QStringLiteral(", "))));
+                continue;
+            }
+            if (word == QLatin1String("-UNITAIMPIANTO")) {
+                plant_->setDrawingUnits(nextToken().toDouble());
+                print(tr("-UNITAIMPIANTO: %1 m per unità").arg(d ? d->document().plantMetersPerUnit() : 0.0));
+                continue;
+            }
             if (word == QLatin1String("-QUADRO")) {
                 QString error;
                 const QString name = nextToken().replace(u'_', u' ');

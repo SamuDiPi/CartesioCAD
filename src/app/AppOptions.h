@@ -123,6 +123,9 @@ QString plotLogFile();
 
 // Fattore da un'unità di disegno a un'altra (codici di $INSUNITS); 1 se una è "senza unità".
 double unitsFactor(int fromUnits, int toUnits);
+// Metri per unità del disegno per l'impianto: quelle impostate nel disegno, altrimenti $INSUNITS, altrimenti le
+// unità predefinite delle Opzioni.
+double plantMetersPerUnit(const class Document& doc);
 // Nome delle unità ($INSUNITS) per gli elenchi.
 QString unitsName(int code);
 

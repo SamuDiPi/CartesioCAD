@@ -85,8 +85,7 @@ PlantPanel::RouteReport PlantPanel::computeRoutes(double maxAccessM, double extr
     if (!drawing_)
         return report;
     const Document& doc = drawing_->document();
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    const double toM = unitsFactor(units, 6);
+    const double toM = plantMetersPerUnit(doc);
 
     // Rete: le tratte del progetto disegnate qui.
     std::vector<plant::RouteSegment> segments;
@@ -237,11 +236,14 @@ void PlantPanel::routesDialog()
                    "testo con il suo nome."));
     dialog.number(tr("Distanza massima di quadro e utilizzatori dalle tratte"), 0.5, 100, 1, maxAccess, QStringLiteral(" m"));
     dialog.number(tr("Da aggiungere a ogni circuito (risalite, discese, scorte)"), 0, 100, 1, extra, QStringLiteral(" m"));
+    double units = drawing_->document().plantMetersPerUnit();
+    addUnitsField(dialog, units);
     dialog.note(tr("Il risultato si vede prima di applicarlo. Applicato, ogni circuito calcolato è assegnato alle tratte del suo "
                    "percorso in questo disegno e prende la lunghezza dell'utilizzatore più lontano (usata per la caduta di "
                    "tensione se lo schema non ne dà una)."));
     if (dialog.exec() != QDialog::Accepted)
         return;
+    setDrawingUnits(units);
     s.setValue(QStringLiteral("Plant/routeMaxAccess"), maxAccess);
     s.setValue(QStringLiteral("Plant/routeExtra"), extra);
 

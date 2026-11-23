@@ -1,5 +1,7 @@
 #include "app/AppOptions.h"
 
+#include "core/Document.h"
+
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -32,6 +34,13 @@ double metres(int code)
 }
 
 } // namespace
+
+double plantMetersPerUnit(const Document& doc)
+{
+    if (doc.plantMetersPerUnit() > 0.0)
+        return doc.plantMetersPerUnit();
+    return unitsFactor(doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits, 6);
+}
 
 double unitsFactor(int fromUnits, int toUnits)
 {

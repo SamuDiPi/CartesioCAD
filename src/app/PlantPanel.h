@@ -58,6 +58,17 @@ public:
     };
     RouteReport computeRoutes(double maxAccessM, double extraM) const;
     int applyRoutes(const RouteReport& report);
+    // Tratte da layer (PlantRunImport.cpp). `choices`: per stile ("TIPOLINEA|spessore") il codice di tipo e misura
+    // ("" = ignora); gli stili non elencati prendono la legenda se `useLegend`.
+    struct LayerImport {
+        int runs = 0;
+        int fromLabels = 0;
+        int tooShort = 0;   // rami sotto la lunghezza minima, scartati
+        std::map<QString, int> byKind;
+    };
+    LayerImport importRunsFromLayers(const QStringList& layers, const std::map<std::string, std::string>& choices, bool useLegend);
+    // Unità reali del disegno per l'impianto (metri per unità, 0 = quelle del file).
+    void setDrawingUnits(double metersPerUnit);
     // Segna gli oggetti selezionati come quadro `name` (partenza dei suoi circuiti).
     bool tagBoard(const QString& name, QString* error);
     // Etichette delle tratte nel disegno corrente (sostituiscono quelle di prima): quante.
@@ -100,6 +111,7 @@ public:
     Q_INVOKABLE void verify();
     Q_INVOKABLE void labels();
     Q_INVOKABLE void routesDialog();
+    Q_INVOKABLE void runsFromLayersDialog();
     Q_INVOKABLE void boardFromSelection();
     Q_INVOKABLE void showGuide() { emit guideRequested(); }
     Q_INVOKABLE void bomDialog();
@@ -130,6 +142,7 @@ private:
     void tagObjects(const std::vector<EntityId>& ids, const std::string& runId);
     QString resolvedPath(const QString& stored) const;
     QString storedPath(const QString& absolute) const;
+    void addUnitsField(class FormDialog& dialog, double& metersPerUnit) const;
     void loadLinked();
 
     DrawingWidget* drawing_ = nullptr;

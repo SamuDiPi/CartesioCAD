@@ -419,8 +419,7 @@ double CanaloPanel::drawingUnit() const
     if (!drawing_)
         return 1.0;
     const Document& doc = drawing_->document();
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    return unitsFactor(4, units);
+    return 0.001 / std::max(1e-12, plantMetersPerUnit(doc));   // unità di disegno per mm (unità reali dell'impianto)
 }
 
 int CanaloPanel::minimumWidth(const QJsonObject& st, const QJsonObject& metrics) const
@@ -1016,8 +1015,7 @@ double CanaloPanel::routeLengthM(const std::vector<EntityId>& ids) const
                 segment(pl->vertices.back().point, pl->vertices.front().point, pl->vertices.back().bulge);
         }
     }
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    return length * unitsFactor(units, 6);   // in metri
+    return length * plantMetersPerUnit(doc);   // in metri
 }
 
 // ---------------------------------------------------------------- database
@@ -1334,8 +1332,7 @@ void CanaloPanel::insertSheet()
         QString error;
         if (DrawingWidget::readFile(path, source, &error)) {
             const int from = source.insUnits() > 0 ? source.insUnits() : appOptions().insertSourceUnits;
-            const int to = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-            importDrawingAsBlock(doc, source, name.toStdString(), unitsFactor(from, to));
+            importDrawingAsBlock(doc, source, name.toStdString(), unitsFactor(from, 6) / std::max(1e-12, plantMetersPerUnit(doc)));
             doc.checkpoint();
             drawing_->notifyChanged();
             emit message(tr("Tavola %1 aggiornata (anche quelle già inserite). Per inserirne un'altra copia: INSERT %1.").arg(name));
@@ -1373,8 +1370,7 @@ void CanaloPanel::insertSheetAt(Vec2 at)
         return;
     Document& doc = drawing_->document();
     const int from = source.insUnits() > 0 ? source.insUnits() : appOptions().insertSourceUnits;
-    const int to = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    importDrawingAsBlock(doc, source, name.toStdString(), unitsFactor(from, to));
+    importDrawingAsBlock(doc, source, name.toStdString(), unitsFactor(from, 6) / std::max(1e-12, plantMetersPerUnit(doc)));
     std::vector<std::unique_ptr<Entity>> added;
     auto insert = std::make_unique<InsertEntity>(name.toStdString(), at);
     insert->setCanaloTray(trayId_.toStdString());

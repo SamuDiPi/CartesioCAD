@@ -70,8 +70,7 @@ QString latestCanaloDrawing(const QString& folder, const QDateTime& after)
 canalo::Drawn drawnForCanalo(const Document& doc, const std::vector<EntityId>& ids)
 {
     canalo::Drawn out;
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    const double k = unitsFactor(units, 4);
+    const double k = plantMetersPerUnit(doc) * 1000.0;   // mm per unità (unità reali dell'impianto)
     auto mm = [k](Vec2 p) { return Vec2{p.x * k, p.y * k}; };
     for (EntityId id : ids) {
         const Entity* e = doc.find(id);
@@ -100,8 +99,7 @@ bool exportForCanalo(const Document& doc, const std::vector<EntityId>& ids, cons
     // CanaloCAD lavora in millimetri: la sezione si converte (es. da un disegno in cm).
     Document out;
     out.setInsUnits(4);
-    const int units = doc.insUnits() > 0 ? doc.insUnits() : appOptions().insertTargetUnits;
-    const Affine toMm = Affine::scaling({0.0, 0.0}, unitsFactor(units, 4));
+    const Affine toMm = Affine::scaling({0.0, 0.0}, plantMetersPerUnit(doc) * 1000.0);
     const ImportSource source = ImportSource::from(doc);
     Importer importer(out, source);
     int count = 0;

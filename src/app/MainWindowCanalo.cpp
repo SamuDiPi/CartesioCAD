@@ -184,7 +184,7 @@ void MainWindow::canaloCheck(bool askData, bool sheet)
         for (EntityId id : d->selection())
             if (const Entity* e = d->document().find(id))
                 box.expand(e->bounds());
-        const double unit = unitsFactor(4, d->document().insUnits() > 0 ? d->document().insUnits() : appOptions().insertTargetUnits);
+        const double unit = 0.001 / std::max(1e-12, plantMetersPerUnit(d->document()));   // unità di disegno per mm
         canalo_->insertSheetAt(box.isValid() ? Vec2{box.max.x + 50.0 * unit, box.min.y} : Vec2{0.0, 0.0});
         print(tr("Tavola di CanaloCAD inserita accanto alla sezione (Ctrl+Z la toglie)."));
     }

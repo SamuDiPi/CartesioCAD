@@ -146,7 +146,7 @@ const QStringList kUiCommands = {
     QStringLiteral("CANALOINS"), QStringLiteral("CANALOINSERISCI"), QStringLiteral("CANALOULTIMA"), QStringLiteral("CANALOLAST"),
     QStringLiteral("CANALOVERIFICA"), QStringLiteral("CANALOCHECK"), QStringLiteral("CANALOSEZIONE"), QStringLiteral("CANALOCAVI"), QStringLiteral("CANALINA"), QStringLiteral("CANALINE"), QStringLiteral("CABLETRAY"), QStringLiteral("IMPIANTO"), QStringLiteral("TRATTA"),
     QStringLiteral("VERIFICAIMPIANTO"), QStringLiteral("GUIDA"), QStringLiteral("GUIDE"), QStringLiteral("ETICHETTETRATTE"), QStringLiteral("SEZIONETRATTA"),
-    QStringLiteral("DISTINTAIMPIANTO"), QStringLiteral("PERCORSIIMPIANTO"), QStringLiteral("PERCORSI"), QStringLiteral("QUADROIMPIANTO"),
+    QStringLiteral("DISTINTAIMPIANTO"), QStringLiteral("PERCORSIIMPIANTO"), QStringLiteral("PERCORSI"), QStringLiteral("QUADROIMPIANTO"), QStringLiteral("TRATTEDALAYER"),
     QStringLiteral("OPTIONS"), QStringLiteral("OPZIONI"), QStringLiteral("OP"), QStringLiteral("PREFERENCES"),
     QStringLiteral("PRINT"), QStringLiteral("PREVIEW"), QStringLiteral("ANTEPRIMA"), QStringLiteral("PRE"),
     QStringLiteral("PUBLISH"), QStringLiteral("PUBBLICA"), QStringLiteral("-PLOT"), QStringLiteral("-STAMPA"),
@@ -2227,6 +2227,11 @@ bool MainWindow::handleUiCommand(const QString& word)
         later([this] {
             showPanel(MainView::Plant);
             plant_->routesDialog();
+        });
+    else if (is({"TRATTEDALAYER"}))
+        later([this] {
+            showPanel(MainView::Plant);
+            plant_->runsFromLayersDialog();
         });
     else if (is({"QUADROIMPIANTO"}))
         later([this] {

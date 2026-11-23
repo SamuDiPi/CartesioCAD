@@ -1480,6 +1480,8 @@ void Writer2000::objects()
         pair(100, "AcDbXrecord");
         pair(280, 1);
         text(1, doc_.plantFile());
+        if (doc_.plantMetersPerUnit() > 0.0)
+            pair(40, doc_.plantMetersPerUnit());
     }
     if (groupsRecord) {
         pair(0, "XRECORD");

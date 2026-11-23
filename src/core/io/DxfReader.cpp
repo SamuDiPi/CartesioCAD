@@ -645,6 +645,8 @@ void Reader::process(const Record& r, const std::string& section)
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_IMPIANTO") {
             if (const auto path = r.text(1); path)
                 doc_.setPlantFile(*path);
+            if (const auto m = r.number(40); m && *m > 0.0)
+                doc_.setPlantMetersPerUnit(*m);
         }
         // Canaline portacavi: 2 codice, poi i pezzi (1) dello stato JSON.
         if (r.type == "XRECORD" && dictionaryNames_.count(r.text(5).value_or(""))

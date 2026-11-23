@@ -38,6 +38,19 @@ Tipi di cavo che mancano nel catalogo: codice, tipo, formazione, diametro, peso 
 
 La lunghezza della tratta si **misura dal disegno**. *Aggiungi la selezione* unisce altre linee a una tratta esistente; *Mostra* la seleziona e la inquadra.
 
+## Tratte da layer (`TRATTEDALAYER`)
+
+**Dove:** tavolozza Impianto, scheda Tratte > Tratte da layer.
+
+Le linee e polilinee dei layer delle canalizzazioni (proposti quelli con nomi come canaline, passerelle, tubi) diventano tratte, senza selezionarle una per una.
+
+- **Rami:** ogni tratta è un ramo, fra derivazioni (dove si incontrano tre o più linee, o una linea finisce su un'altra) ed estremi. Due linee in fila con lo stesso stile restano la stessa tratta.
+- **Tipo e misura per stile:** le linee si raggruppano per stile (tipo di linea e spessore), come nelle legende. Per ogni stile la finestra mostra quante linee e quanti metri contiene e propone tipo e misura letti dalla **legenda** del disegno (righe come "CANALINA METALLICA ... 400x75mm" con il campione di linea a sinistra). Si può scegliere un'altra misura o *Ignora*.
+- **Scritte vicine:** una scritta con tipo e misura vicino a un ramo (entro 2 m, per esempio "CANALINA METALLICA 200x75mm") vale per quel ramo più della legenda.
+- **Unità reali del disegno:** nella prima finestra. Se il file dichiara unità sbagliate (per esempio millimetri, ma le porte da 90 cm misurano 9 unità: il disegno è in decimetri), si sceglie qui l'unità vera. Vale per tratte, percorsi, distinta e CanaloCAD, e si salva con il disegno. La seconda finestra mostra i metri totali delle linee, per controllo.
+
+I pezzi sotto i 50 cm (trattini, polilinee con punti doppi) si scartano. Le linee già in una tratta non si toccano. Ctrl+Z toglie in un passo il collegamento delle linee alle tratte create; le tratte restano nel progetto e si possono eliminare dalla tavolozza.
+
 ## Percorsi automatici (`PERCORSIIMPIANTO`, `PERCORSI`)
 
 **Dove:** tavolozza Impianto, scheda Tratte > Percorsi automatici.

@@ -11,6 +11,7 @@
 #include "core/Plot.h"
 #include "core/Version.h"
 #include "core/Routing.h"
+#include "core/RunImport.h"
 #include "core/SingleLine.h"
 #include "core/CircuitTags.h"
 #include "core/PointLegend.h"
@@ -3730,6 +3731,71 @@ void testPlant()
 }
 
 // Manuale: ogni comando registrato ha la sua voce (il nome tra apici inversi in docs/manuale).
+// Tratte da layer: testi con tipo e misura, legenda con il campione di linea, rami tra le derivazioni.
+void testRunImport()
+{
+    using namespace plant;
+    const auto a = parseRunText("{\\W0.8;CANALINA METALLICA IN ACCIAIO ZINCATO DIM. 400x75mm PER DORSALI}");
+    CHECK(a && a->kind == RunKind::Duct && approx(a->width, 400) && approx(a->height, 75));
+    const auto b = parseRunText("Passerella 75 x 300");
+    CHECK(b && b->kind == RunKind::Tray && approx(b->width, 300) && approx(b->height, 75));
+    const auto c = parseRunText("N.4 TUBI %%C125 SOTTOPAVIMENTO");
+    CHECK(c && c->kind == RunKind::Tube && approx(c->tube, 125));
+    const auto c2 = parseRunText("tubo corrugato \xC3\xB8" "32");
+    CHECK(c2 && c2->kind == RunKind::Tube && approx(c2->tube, 32));
+    const auto d = parseRunText("TUBAZIONI IN ACCIAIO ZINCATO PER DORSALI ENERGIA");
+    CHECK(d && d->kind == RunKind::Tube && approx(d->tube, 0));
+    CHECK(!parseRunText("36W - 4000lm - 600x60mm") && !parseRunText("CANALINA ESISTENTE"));
+
+    Document doc;
+    Layer trays{"EL-CANALINE", 3, true};
+    trays.linetype = "Continuous";
+    const int lt = doc.addLayer(trays);
+    CHECK(suggestRunLayers(doc).empty());   // senza linee non si propone
+    auto add = [&](std::unique_ptr<Entity> e, const std::string& linetype = "ByLayer") {
+        e->setLayer(lt);
+        e->setLinetype(linetype);
+        return doc.add(std::move(e));
+    };
+    // Dorsale continua spezzata in due linee in fila, una derivazione a T tratteggiata, un ramo continuo staccato.
+    const EntityId d1 = add(std::make_unique<LineEntity>(Vec2{0, 0}, Vec2{100, 0}));
+    const EntityId d2 = add(std::make_unique<LineEntity>(Vec2{100, 0}, Vec2{200, 0}));
+    const EntityId t1 = add(std::make_unique<LineEntity>(Vec2{150, 0}, Vec2{150, 80}), "DASHED");
+    const EntityId s1 = add(std::make_unique<LineEntity>(Vec2{0, 300}, Vec2{100, 300}));
+    // Legenda (layer 0): campione continuo e campione tratteggiato a sinistra dei testi.
+    doc.add(std::make_unique<LineEntity>(Vec2{1000, 1001}, Vec2{1016, 1001}));
+    doc.add(std::make_unique<TextEntity>(Vec2{1018, 1000}, 2.0, "CANALINA METALLICA DIM. 400x75mm"));
+    auto dashed = std::make_unique<LineEntity>(Vec2{1000, 993}, Vec2{1016, 993});
+    dashed->setLinetype("DASHED");
+    doc.add(std::move(dashed));
+    doc.add(std::make_unique<TextEntity>(Vec2{1018, 992}, 2.0, "CANALINA METALLICA DIM. 200x75mm"));
+    // Scritta vicino al ramo staccato: vale per quel ramo.
+    doc.add(std::make_unique<TextEntity>(Vec2{40, 305}, 2.0, "PASSERELLA 300x75"));
+
+    CHECK(suggestRunLayers(doc) == std::vector<int>({lt}));
+    const auto styles = pathStyles(doc, {lt});
+    CHECK(styles.size() == 2 && styles[0].style.linetype == "CONTINUOUS" && styles[0].ids.size() == 3 && approx(styles[0].length, 300));
+    const auto legend = readRunLegend(doc);
+    CHECK(legend.size() == 2);
+    const auto find = [&legend](double w) {
+        for (const LegendItem& l : legend)
+            if (approx(l.spec.width, w))
+                return l.style.linetype;
+        return std::string();
+    };
+    CHECK(find(400) == "CONTINUOUS" && find(200) == "DASHED");
+    const auto chains = chainRuns(doc, {d1, d2, t1, s1}, 0.5, 20.0, legend);
+    CHECK(chains.size() == 3);
+    int dorsal = 0, branch = 0, labelled = 0;
+    for (const RunChain& ch : chains) {
+        dorsal += ch.ids.size() == 2;
+        branch += ch.ids.size() == 1 && ch.ids[0] == t1;
+        if (ch.label && ch.ids == std::vector<EntityId>({s1}) && ch.label->kind == RunKind::Tray)
+            ++labelled;
+    }
+    CHECK(dorsal == 1 && branch == 1 && labelled == 1);
+}
+
 // Percorsi automatici: derivazione a T, incrocio senza contatto, tratte in fila, punti fuori portata.
 void testRouting()
 {
@@ -3883,6 +3949,7 @@ int main()
     testManualCoversCommands();
     testVersions();
     testRouting();
+    testRunImport();
 
     if (failures == 0)
         std::printf("Tutti i test superati.\n");

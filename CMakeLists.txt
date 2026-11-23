@@ -33,6 +33,7 @@ add_library(cartesio_core STATIC
     src/core/TitleBlock.cpp
     src/core/Version.cpp
     src/core/Routing.cpp
+    src/core/RunImport.cpp
     src/core/Plot.cpp
     src/core/SingleLine.cpp
     src/core/CircuitTags.cpp
@@ -125,6 +126,7 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowTransmit.cpp
         src/app/MainWindowUpdate.cpp
         src/app/PlantRoutes.cpp
+        src/app/PlantRunImport.cpp
         src/app/Updater.cpp
         src/app/MainWindowTextEditor.cpp
         src/app/MainWindowRibbonTabs.cpp

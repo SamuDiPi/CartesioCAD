@@ -261,6 +261,12 @@ Rectangle {
             }
             Button {
                 visible: plant.currentTab === 1
+                text: qsTr("Tratte da layer")
+                tip: qsTr("Le linee dei layer delle canalizzazioni diventano tratte, con tipo e misura dalla legenda (comando TRATTEDALAYER)")
+                onClicked: plant.runsFromLayersDialog()
+            }
+            Button {
+                visible: plant.currentTab === 1
                 text: qsTr("Percorsi automatici")
                 tip: qsTr("Assegna ogni circuito alle tratte dal quadro agli utilizzatori con la sua sigla e ne calcola la lunghezza (comando PERCORSIIMPIANTO)")
                 onClicked: plant.routesDialog()
