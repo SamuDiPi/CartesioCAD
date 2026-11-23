@@ -34,6 +34,7 @@
 #include <QTimer>
 
 #include <cmath>
+#include <functional>
 #include <map>
 #include <set>
 
@@ -42,7 +43,7 @@ namespace cartesio {
 namespace {
 
 constexpr int kMaxOperations = 2000;
-constexpr int kMaxIds = 20000;
+constexpr std::size_t kMaxIds = 500000;   // oggetti toccati da una proposta, anche scelti con i filtri
 constexpr double kMaxCoordinate = 1e12;
 constexpr int kProposalSeconds = 240;   // poi la proposta scade (cartesio-mcp aspetta al massimo 5 minuti)
 
@@ -234,9 +235,269 @@ bool validLayerName(const QString& name)
     return !name.trimmed().isEmpty() && name.size() <= 255 && !bad.match(name).hasMatch();
 }
 
+// ---------------------------------------------------------------- filtri (modifiche massive)
+
+// Testo leggibile di un oggetto (testi e testi multilinea), vuoto per gli altri.
+QString entityText(const Entity& e)
+{
+    if (e.type() == EntityType::Text)
+        return QString::fromStdString(static_cast<const TextEntity&>(e).displayText());
+    if (e.type() == EntityType::MText) {
+        QStringList lines;
+        for (const std::string& l : static_cast<const MTextEntity&>(e).lines())
+            lines << QString::fromStdString(l);
+        return lines.join(QLatin1Char('\n'));
+    }
+    return {};
+}
+
+// Criteri per scegliere gli oggetti senza elencarli: valgono tutti quelli indicati insieme.
+struct ClaudeFilter {
+    std::vector<QRegularExpression> layers, blocks;
+    std::set<QString> types;
+    std::optional<int> color;
+    QString text;
+    std::optional<QRegularExpression> textRegex;
+    QString attributeTag;
+    std::optional<QRegularExpression> attributeValue;
+    std::optional<BBox> area;
+    bool inside = false;
+    bool selection = false;
+    bool allSpaces = false;
+};
+
+// Nomi con * e ? (uno o un elenco), senza distinzione fra maiuscole e minuscole.
+std::vector<QRegularExpression> wildcards(const QJsonValue& v)
+{
+    QStringList names;
+    if (v.isArray()) {
+        for (const QJsonValue& x : v.toArray())
+            names << x.toString();
+    } else {
+        names << v.toString();
+    }
+    std::vector<QRegularExpression> out;
+    for (const QString& n : names)
+        if (!n.isEmpty() && n.size() <= 255)
+            out.push_back(QRegularExpression::fromWildcard(n, Qt::CaseInsensitive));
+    return out;
+}
+
+std::optional<ClaudeFilter> parseFilter(const QJsonValue& value, QString* why)
+{
+    const auto bad = [why](const QString& message) -> std::optional<ClaudeFilter> {
+        *why = message;
+        return std::nullopt;
+    };
+    if (!value.isObject())
+        return bad(QObject::tr("\"filtro\" deve essere un oggetto JSON"));
+    const QJsonObject f = value.toObject();
+    static const QStringList known = {QStringLiteral("layer"), QStringLiteral("tipo"), QStringLiteral("colore"),
+                                      QStringLiteral("testo"), QStringLiteral("testo_regex"), QStringLiteral("blocco"),
+                                      QStringLiteral("attributo"), QStringLiteral("area"), QStringLiteral("dentro"),
+                                      QStringLiteral("selezione"), QStringLiteral("spazio")};
+    if (f.isEmpty())
+        return bad(QObject::tr("filtro vuoto (per tutti gli oggetti usare per esempio {\"layer\": \"*\"})"));
+    for (const QString& key : f.keys())
+        if (!known.contains(key))
+            return bad(QObject::tr("criterio sconosciuto nel filtro: %1").arg(key));
+    ClaudeFilter out;
+    if (f.contains(QStringLiteral("layer")) && (out.layers = wildcards(f.value(QStringLiteral("layer")))).empty())
+        return bad(QObject::tr("nome di layer non valido nel filtro"));
+    if (f.contains(QStringLiteral("blocco")) && (out.blocks = wildcards(f.value(QStringLiteral("blocco")))).empty())
+        return bad(QObject::tr("nome di blocco non valido nel filtro"));
+    if (f.contains(QStringLiteral("tipo"))) {
+        const QJsonValue t = f.value(QStringLiteral("tipo"));
+        const QJsonArray list = t.isArray() ? t.toArray() : QJsonArray{t};
+        for (const QJsonValue& x : list)
+            out.types.insert(x.toString().toLower());
+    }
+    if (f.contains(QStringLiteral("colore"))) {
+        if (!f.value(QStringLiteral("colore")).isDouble())
+            return bad(QObject::tr("colore del filtro non numerico"));
+        out.color = f.value(QStringLiteral("colore")).toInt();
+    }
+    out.text = f.value(QStringLiteral("testo")).toString().left(1000);
+    if (f.contains(QStringLiteral("testo_regex"))) {
+        const QString pattern = f.value(QStringLiteral("testo_regex")).toString();
+        QRegularExpression re(pattern, QRegularExpression::CaseInsensitiveOption);
+        if (pattern.isEmpty() || pattern.size() > 500 || !re.isValid())
+            return bad(QObject::tr("espressione regolare non valida: %1").arg(re.errorString()));
+        out.textRegex = re;
+    }
+    if (f.contains(QStringLiteral("attributo"))) {
+        const QJsonObject a = f.value(QStringLiteral("attributo")).toObject();
+        out.attributeTag = a.value(QStringLiteral("tag")).toString();
+        if (out.attributeTag.isEmpty())
+            return bad(QObject::tr("nel filtro \"attributo\" serve il tag"));
+        if (a.contains(QStringLiteral("valore")))
+            out.attributeValue = QRegularExpression::fromWildcard(a.value(QStringLiteral("valore")).toString(), Qt::CaseInsensitive);
+    }
+    if (f.contains(QStringLiteral("area"))) {
+        const QJsonArray a = f.value(QStringLiteral("area")).toArray();
+        if (a.size() != 4)
+            return bad(QObject::tr("area del filtro: [x1, y1, x2, y2]"));
+        BBox box;
+        box.expand(Vec2{a[0].toDouble(), a[1].toDouble()});
+        box.expand(Vec2{a[2].toDouble(), a[3].toDouble()});
+        out.area = box;
+    }
+    out.inside = f.value(QStringLiteral("dentro")).toBool();
+    out.selection = f.value(QStringLiteral("selezione")).toBool();
+    out.allSpaces = f.value(QStringLiteral("spazio")).toString() == QLatin1String("tutti");
+    return out;
+}
+
+bool matches(const Document& doc, const Entity& e, const ClaudeFilter& f, const std::set<EntityId>& selection)
+{
+    if (f.selection ? !selection.count(e.id()) : (!f.allSpaces && e.space() != 0))
+        return false;
+    if (!f.layers.empty()) {
+        const QString name = layerName(doc, e.layer());
+        if (std::none_of(f.layers.begin(), f.layers.end(), [&](const QRegularExpression& re) { return re.match(name).hasMatch(); }))
+            return false;
+    }
+    if (!f.types.empty() && !f.types.count(typeKey(e.type())))
+        return false;
+    if (f.color && e.color() != *f.color)
+        return false;
+    if (!f.text.isEmpty() || f.textRegex) {
+        const QString t = entityText(e);
+        if (t.isEmpty() || (!f.text.isEmpty() && !t.contains(f.text, Qt::CaseInsensitive))
+            || (f.textRegex && !f.textRegex->match(t).hasMatch()))
+            return false;
+    }
+    if (!f.blocks.empty() || !f.attributeTag.isEmpty()) {
+        if (e.type() != EntityType::Insert)
+            return false;
+        const auto& b = static_cast<const InsertEntity&>(e);
+        if (!f.blocks.empty()) {
+            const QString shown = QString::fromStdString(b.effectiveName()), name = QString::fromStdString(b.blockName);
+            if (std::none_of(f.blocks.begin(), f.blocks.end(), [&](const QRegularExpression& re) {
+                    return re.match(shown).hasMatch() || re.match(name).hasMatch();
+                }))
+                return false;
+        }
+        if (!f.attributeTag.isEmpty()
+            && std::none_of(b.attributes.begin(), b.attributes.end(), [&](const Attribute& a) {
+                   return QString::fromStdString(a.tag).compare(f.attributeTag, Qt::CaseInsensitive) == 0
+                          && (!f.attributeValue || f.attributeValue->match(QString::fromStdString(a.text.displayText())).hasMatch());
+               }))
+            return false;
+    }
+    if (f.area) {
+        if (f.inside) {
+            const BBox box = e.bounds();
+            if (!box.isValid() || box.min.x < f.area->min.x || box.min.y < f.area->min.y || box.max.x > f.area->max.x
+                || box.max.y > f.area->max.y)
+                return false;
+        } else if (!e.touchesRect(*f.area)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+QString describeFilter(const QJsonObject& f)
+{
+    QStringList parts;
+    for (auto it = f.begin(); it != f.end(); ++it) {
+        const QJsonValue v = it.value();
+        QString text = v.isString() ? QStringLiteral("\"%1\"").arg(v.toString())
+                       : v.isBool() ? (v.toBool() ? QObject::tr("sì") : QObject::tr("no"))
+                       : v.isDouble() ? QString::number(v.toDouble())
+                                      : json(v);
+        parts << it.key() + QStringLiteral(" ") + text;
+    }
+    return parts.join(QStringLiteral(", "));
+}
+
+QString escapeMText(const QString& s)
+{
+    QString out = s;
+    out.replace(QLatin1Char('\\'), QStringLiteral("\\\\")).replace(QLatin1Char('{'), QStringLiteral("\\{")).replace(QLatin1Char('}'), QStringLiteral("\\}"));
+    out.replace(QLatin1Char('\n'), QStringLiteral("\\P"));
+    return out;
+}
+
+// Applica `change` solo alle parti di testo di un MTEXT: i codici di formattazione (\P, \fArial|b0;, \H2.5x;...)
+// restano come sono.
+std::string mtextPlain(const std::string& raw, const std::function<QString(const QString&)>& change)
+{
+    const QString s = QString::fromStdString(raw);
+    QString out, plain;
+    const auto flush = [&] {
+        if (!plain.isEmpty()) {
+            out += escapeMText(change(plain));
+            plain.clear();
+        }
+    };
+    for (qsizetype i = 0; i < s.size(); ++i) {
+        const QChar c = s[i];
+        if (c == QLatin1Char('{') || c == QLatin1Char('}')) {
+            flush();
+            out += c;
+            continue;
+        }
+        if (c != QLatin1Char('\\') || i + 1 >= s.size()) {
+            plain += c;
+            continue;
+        }
+        const QChar code = s[i + 1];
+        if (code == QLatin1Char('\\') || code == QLatin1Char('{') || code == QLatin1Char('}')) {
+            plain += code;   // carattere scritto con la barra davanti
+            ++i;
+            continue;
+        }
+        flush();
+        if (QStringLiteral("PpNnLlOoKkXx~").contains(code)) {   // codici di due caratteri
+            out += s.mid(i, 2);
+            ++i;
+        } else if ((code == QLatin1Char('U') || code == QLatin1Char('u')) && i + 2 < s.size() && s[i + 2] == QLatin1Char('+')) {
+            out += s.mid(i, 7);   // \U+00B0
+            i += 6;
+        } else {
+            const qsizetype end = s.indexOf(QLatin1Char(';'), i);
+            if (end < 0) {
+                out += s.mid(i);
+                i = s.size();
+            } else {
+                out += s.mid(i, end - i + 1);
+                i = end;
+            }
+        }
+    }
+    flush();
+    return out.toStdString();
+}
+
+// Cambia i testi di un oggetto: testo, testo multilinea, valori degli attributi di un blocco. True se è cambiato.
+bool changeTexts(Entity& e, const std::function<QString(const QString&)>& change)
+{
+    bool changed = false;
+    const auto apply = [&](std::string& text) {
+        const std::string before = text;
+        text = change(QString::fromStdString(text)).toStdString();
+        changed = changed || text != before;
+    };
+    if (e.type() == EntityType::Text) {
+        apply(static_cast<TextEntity&>(e).text);
+    } else if (e.type() == EntityType::MText) {
+        auto& m = static_cast<MTextEntity&>(e);
+        const std::string before = m.text;
+        m.text = mtextPlain(m.text, change);
+        changed = m.text != before;
+    } else if (e.type() == EntityType::Insert) {
+        for (Attribute& a : static_cast<InsertEntity&>(e).attributes)
+            apply(a.text.text);
+    }
+    return changed;
+}
+
 // Modifiche pronte da applicare: oggetti nuovi o copie modificate (stesso id) e id da togliere.
 struct ClaudePlan {
     std::vector<std::pair<QString, int>> newLayers;   // nome, colore
+    std::vector<std::pair<int, QString>> layerRenames;   // indice, nome nuovo
     std::vector<std::unique_ptr<Entity>> added;
     std::vector<EntityId> removed;
     std::vector<EntityId> touched;   // oggetti esistenti interessati (per evidenziarli)
@@ -245,7 +506,10 @@ struct ClaudePlan {
 
 // Controlla le operazioni sul documento e prepara le modifiche. Con `layersCreated` falso i layer di crea_layer non
 // esistono ancora (anteprima): gli oggetti destinati a loro si preparano sul layer corrente, solo per il conteggio.
-std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, bool layersCreated, QString* error)
+// `selection` è la selezione dell'utente al momento della proposta (per i filtri con "selezione": true). I filtri
+// guardano il disegno com'era prima della proposta, non le modifiche delle operazioni precedenti.
+std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, bool layersCreated,
+                                    const std::set<EntityId>& selection, QString* error)
 {
     const auto fail = [error](const QString& message) -> std::optional<ClaudePlan> {
         *error = message;
@@ -260,9 +524,15 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
     std::map<EntityId, std::unique_ptr<Entity>> working;   // copie degli oggetti esistenti modificati
     std::set<EntityId> erased;
     std::set<QString> planned;
-    int idCount = 0;
+    std::map<QString, int> renamed;   // nome nuovo (minuscolo) -> indice del layer rinominato
+    std::size_t idCount = 0;
+    QString scope;   // oggetti scelti con un filtro: si aggiunge alla riga dell'operazione
 
     const auto layerIndex = [&](const QString& name, int* index) -> bool {
+        if (const auto it = renamed.find(name.toLower()); it != renamed.end()) {
+            *index = it->second;
+            return true;
+        }
         const int found = doc.findLayer(name.toStdString());
         if (found >= 0) {
             *index = found;
@@ -300,25 +570,56 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
         plan.touched.push_back(e->id());
         return working.emplace(e->id(), e->clone()).first->second.get();
     };
+    // Oggetti dell'operazione: elenco "ids" oppure "filtro" (gli oggetti sui layer bloccati si saltano).
     const auto idList = [&](const QJsonObject& op, std::vector<qint64>* ids, QString* why) -> bool {
-        const QJsonArray a = op.value(QStringLiteral("ids")).toArray();
-        if (a.isEmpty()) {
-            *why = QObject::tr("manca l'elenco \"ids\"");
-            return false;
-        }
-        idCount += static_cast<int>(a.size());
-        if (idCount > kMaxIds) {
-            *why = QObject::tr("troppi oggetti (al massimo %1)").arg(kMaxIds);
-            return false;
-        }
-        std::set<qint64> seen;
-        for (const QJsonValue& v : a) {
-            if (!v.isDouble()) {
-                *why = QObject::tr("id non numerico");
+        if (op.contains(QStringLiteral("filtro"))) {
+            if (op.contains(QStringLiteral("ids"))) {
+                *why = QObject::tr("usare \"ids\" oppure \"filtro\", non tutti e due");
                 return false;
             }
-            if (seen.insert(static_cast<qint64>(v.toDouble())).second)
-                ids->push_back(static_cast<qint64>(v.toDouble()));
+            const auto filter = parseFilter(op.value(QStringLiteral("filtro")), why);
+            if (!filter)
+                return false;
+            int locked = 0;
+            for (const auto& e : doc.entities()) {
+                if (erased.count(e->id()) || e->type() == EntityType::Viewport || !matches(doc, *e, *filter, selection))
+                    continue;
+                const int layer = e->layer();
+                if (layer >= 0 && layer < static_cast<int>(doc.layers().size()) && doc.layers()[static_cast<std::size_t>(layer)].locked) {
+                    ++locked;
+                    continue;
+                }
+                ids->push_back(static_cast<qint64>(e->id()));
+            }
+            const QString described = describeFilter(op.value(QStringLiteral("filtro")).toObject());
+            if (ids->empty()) {
+                *why = locked ? QObject::tr("il filtro (%1) trova solo oggetti su layer bloccati").arg(described)
+                              : QObject::tr("il filtro (%1) non trova nessun oggetto").arg(described);
+                return false;
+            }
+            scope = QObject::tr(" [filtro: %1]").arg(described);
+            if (locked)
+                scope += QObject::tr(" (%1 su layer bloccati esclusi)").arg(locked);
+        } else {
+            const QJsonArray a = op.value(QStringLiteral("ids")).toArray();
+            if (a.isEmpty()) {
+                *why = QObject::tr("serve l'elenco \"ids\" oppure un \"filtro\"");
+                return false;
+            }
+            std::set<qint64> seen;
+            for (const QJsonValue& v : a) {
+                if (!v.isDouble()) {
+                    *why = QObject::tr("id non numerico");
+                    return false;
+                }
+                if (seen.insert(static_cast<qint64>(v.toDouble())).second)
+                    ids->push_back(static_cast<qint64>(v.toDouble()));
+            }
+        }
+        idCount += ids->size();
+        if (idCount > kMaxIds) {
+            *why = QObject::tr("troppi oggetti in tutto (al massimo %1)").arg(kMaxIds);
+            return false;
         }
         return true;
     };
@@ -343,6 +644,7 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
             return fail(QObject::tr("Operazione %1 (%2): %3.").arg(k + 1).arg(kind.isEmpty() ? QStringLiteral("?") : kind, message));
         };
         std::vector<qint64> ids;
+        scope.clear();
 
         if (kind == QLatin1String("sposta") || kind == QLatin1String("copia")) {
             const auto dx = number(op, QStringLiteral("dx")), dy = number(op, QStringLiteral("dy"));
@@ -470,6 +772,195 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
             planned.insert(name.toLower());
             plan.newLayers.emplace_back(name, color);
             plan.summary << QObject::tr("Nuovo layer \"%1\" (colore %2)").arg(name).arg(color);
+        } else if (kind == QLatin1String("sostituisci_testo") || kind == QLatin1String("maiuscole")) {
+            // Testi, testi multilinea (solo le parti di testo, non i codici) e valori degli attributi dei blocchi.
+            std::function<QString(const QString&)> change;
+            QString line;
+            if (kind == QLatin1String("maiuscole")) {
+                const QString mode = op.value(QStringLiteral("modo")).toString(QStringLiteral("maiuscolo"));
+                if (mode != QLatin1String("maiuscolo") && mode != QLatin1String("minuscolo"))
+                    return bad(QObject::tr("modo: maiuscolo o minuscolo"));
+                const bool upper = mode == QLatin1String("maiuscolo");
+                change = [upper](const QString& s) { return upper ? s.toUpper() : s.toLower(); };
+                line = upper ? QObject::tr("Testi in maiuscolo") : QObject::tr("Testi in minuscolo");
+            } else {
+                const QString find = op.value(QStringLiteral("cerca")).toString();
+                const QString with = op.value(QStringLiteral("sostituisci")).toString();
+                if (find.isEmpty() || find.size() > 1000 || with.size() > 5000 || !op.value(QStringLiteral("sostituisci")).isString())
+                    return bad(QObject::tr("servono \"cerca\" (non vuoto) e \"sostituisci\""));
+                const bool caseSensitive = op.value(QStringLiteral("maiuscole_minuscole")).toBool();
+                if (op.value(QStringLiteral("regex")).toBool()) {
+                    QRegularExpression re(find, caseSensitive ? QRegularExpression::NoPatternOption
+                                                              : QRegularExpression::CaseInsensitiveOption);
+                    if (!re.isValid() || find.size() > 500)
+                        return bad(QObject::tr("espressione regolare non valida: %1").arg(re.errorString()));
+                    change = [re, with](const QString& s) { return QString(s).replace(re, with).left(20000); };
+                } else {
+                    const Qt::CaseSensitivity cs = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+                    change = [find, with, cs](const QString& s) { return QString(s).replace(find, with, cs).left(20000); };
+                }
+                line = QObject::tr("Sostituisci \"%1\" con \"%2\"").arg(find.left(60), with.left(60));
+            }
+            if (!idList(op, &ids, &why))
+                return bad(why);
+            std::size_t changed = 0;
+            for (qint64 id : ids) {
+                // Prima su una copia: gli oggetti che non cambiano restano fuori dalla modifica.
+                const Entity* original = doc.find(static_cast<EntityId>(id));
+                auto probe = original ? (working.count(static_cast<EntityId>(id)) ? working[static_cast<EntityId>(id)]->clone() : original->clone()) : nullptr;
+                if (!probe || !changeTexts(*probe, change))
+                    continue;
+                Entity* e = target(id, &why);
+                if (!e)
+                    return bad(why);
+                changeTexts(*e, change);
+                ++changed;
+            }
+            if (changed == 0)
+                return bad(QObject::tr("nessun testo cambierebbe"));
+            plan.summary << QObject::tr("%1 in %2").arg(line, objectCount(changed));
+        } else if (kind == QLatin1String("altezza_testo")) {
+            const auto height = number(op, QStringLiteral("altezza"));
+            const auto factor = number(op, QStringLiteral("fattore"));
+            if ((!height && !factor) || (height && *height <= 0) || (factor && (*factor <= 0 || *factor > 1000)))
+                return bad(QObject::tr("serve \"altezza\" o \"fattore\" positivo"));
+            if (!idList(op, &ids, &why))
+                return bad(why);
+            std::size_t changed = 0;
+            for (qint64 id : ids) {
+                const Entity* original = doc.find(static_cast<EntityId>(id));
+                if (!original || (original->type() != EntityType::Text && original->type() != EntityType::MText
+                                  && !(original->type() == EntityType::Insert && !static_cast<const InsertEntity*>(original)->attributes.empty())))
+                    continue;
+                Entity* e = target(id, &why);
+                if (!e)
+                    return bad(why);
+                const auto resize = [&](double& h) { h = height ? *height : h * *factor; };
+                if (e->type() == EntityType::Text)
+                    resize(static_cast<TextEntity*>(e)->height);
+                else if (e->type() == EntityType::MText)
+                    resize(static_cast<MTextEntity*>(e)->height);
+                else
+                    for (Attribute& a : static_cast<InsertEntity*>(e)->attributes)
+                        resize(a.text.height);
+                ++changed;
+            }
+            if (changed == 0)
+                return bad(QObject::tr("fra gli oggetti scelti non ci sono testi"));
+            plan.summary << (height ? QObject::tr("Altezza %1 a %2").arg(*height).arg(objectCount(changed))
+                                    : QObject::tr("Altezza per %1 a %2").arg(*factor).arg(objectCount(changed)));
+        } else if (kind == QLatin1String("imposta_attributo")) {
+            const QString tag = op.value(QStringLiteral("tag")).toString();
+            const QString value = op.value(QStringLiteral("valore")).toString();
+            if (tag.isEmpty() || !op.value(QStringLiteral("valore")).isString() || value.size() > 2000)
+                return bad(QObject::tr("servono \"tag\" e \"valore\""));
+            if (!idList(op, &ids, &why))
+                return bad(why);
+            std::size_t changed = 0;
+            for (qint64 id : ids) {
+                const Entity* original = doc.find(static_cast<EntityId>(id));
+                if (!original || original->type() != EntityType::Insert)
+                    continue;
+                const auto& attributes = static_cast<const InsertEntity*>(original)->attributes;
+                if (std::none_of(attributes.begin(), attributes.end(), [&](const Attribute& a) {
+                        return QString::fromStdString(a.tag).compare(tag, Qt::CaseInsensitive) == 0;
+                    }))
+                    continue;
+                Entity* e = target(id, &why);
+                if (!e)
+                    return bad(why);
+                for (Attribute& a : static_cast<InsertEntity*>(e)->attributes)
+                    if (QString::fromStdString(a.tag).compare(tag, Qt::CaseInsensitive) == 0)
+                        a.text.text = value.toStdString();
+                ++changed;
+            }
+            if (changed == 0)
+                return bad(QObject::tr("nessun blocco scelto ha l'attributo %1").arg(tag));
+            plan.summary << QObject::tr("Attributo %1 = \"%2\" in %3").arg(tag, value.left(60), objectCount(changed));
+        } else if (kind == QLatin1String("cambia_proprieta")) {
+            std::optional<int> layer, color, lineweight;
+            std::optional<std::string> linetype;
+            QStringList what;
+            if (op.contains(QStringLiteral("layer"))) {
+                int index = -1;
+                const QString name = op.value(QStringLiteral("layer")).toString();
+                if (!layerIndex(name, &index))
+                    return bad(QObject::tr("il layer \"%1\" non esiste (crearlo prima con crea_layer)").arg(name));
+                layer = index;
+                what << QObject::tr("layer \"%1\"").arg(name);
+            }
+            if (op.contains(QStringLiteral("colore"))) {
+                const auto c = number(op, QStringLiteral("colore"));
+                if (!c || *c < 0 || *c > 256 || *c != std::floor(*c))
+                    return bad(QObject::tr("colore da 1 a 255, 256 = DaLayer, 0 = DaBlocco"));
+                color = static_cast<int>(*c);
+                what << QObject::tr("colore %1").arg(*color);
+            }
+            if (op.contains(QStringLiteral("tipo_linea"))) {
+                const QString name = op.value(QStringLiteral("tipo_linea")).toString();
+                if (name.compare(QLatin1String("DaLayer"), Qt::CaseInsensitive) == 0 || name.compare(QLatin1String("ByLayer"), Qt::CaseInsensitive) == 0)
+                    linetype = "ByLayer";
+                else if (name.compare(QLatin1String("DaBlocco"), Qt::CaseInsensitive) == 0 || name.compare(QLatin1String("ByBlock"), Qt::CaseInsensitive) == 0)
+                    linetype = "ByBlock";
+                else if (const Linetype* lt = doc.findLinetype(name.toStdString()))
+                    linetype = lt->name;
+                else
+                    return bad(QObject::tr("tipo di linea \"%1\" non caricato nel disegno").arg(name));
+                what << QObject::tr("tipo di linea %1").arg(QString::fromStdString(*linetype));
+            }
+            if (op.contains(QStringLiteral("spessore"))) {
+                const QJsonValue v = op.value(QStringLiteral("spessore"));
+                const QString s = v.toString();
+                if (s.compare(QLatin1String("DaLayer"), Qt::CaseInsensitive) == 0)
+                    lineweight = kLineweightByLayer;
+                else if (s.compare(QLatin1String("DaBlocco"), Qt::CaseInsensitive) == 0)
+                    lineweight = kLineweightByBlock;
+                else if (s.compare(QLatin1String("Predefinito"), Qt::CaseInsensitive) == 0)
+                    lineweight = kLineweightDefault;
+                else if (v.isDouble() && v.toDouble() >= 0 && v.toDouble() <= 2.11)
+                    lineweight = static_cast<int>(std::lround(v.toDouble() * 100.0));
+                else
+                    return bad(QObject::tr("spessore in mm da 0 a 2.11, oppure DaLayer, DaBlocco, Predefinito"));
+                what << QObject::tr("spessore %1").arg(v.isDouble() ? QStringLiteral("%1 mm").arg(v.toDouble()) : s);
+            }
+            if (what.isEmpty())
+                return bad(QObject::tr("indicare almeno una fra layer, colore, tipo_linea, spessore"));
+            if (!idList(op, &ids, &why))
+                return bad(why);
+            for (qint64 id : ids) {
+                Entity* e = target(id, &why);
+                if (!e)
+                    return bad(why);
+                if (layer)
+                    e->setLayer(*layer);
+                if (color) {
+                    e->setColor(*color);
+                    e->setTrueColor(-1);
+                }
+                if (linetype)
+                    e->setLinetype(*linetype);
+                if (lineweight)
+                    e->setLineweight(*lineweight);
+            }
+            plan.summary << QObject::tr("%1: %2").arg(objectCount(ids.size()), what.join(QStringLiteral(", ")));
+        } else if (kind == QLatin1String("rinomina_layer")) {
+            const QString from = op.value(QStringLiteral("da")).toString();
+            const QString to = op.value(QStringLiteral("a")).toString().trimmed();
+            if (!validLayerName(to))
+                return bad(QObject::tr("nome nuovo non valido"));
+            const int index = doc.findLayer(from.toStdString());
+            if (index < 0) {
+                if (layersCreated && doc.findLayer(to.toStdString()) >= 0)
+                    continue;   // già rinominato prima di applicare
+                return bad(QObject::tr("il layer \"%1\" non esiste").arg(from));
+            }
+            if (index == 0 || from == QLatin1String("0"))
+                return bad(QObject::tr("il layer 0 non si rinomina"));
+            if (doc.findLayer(to.toStdString()) >= 0 && to.compare(from, Qt::CaseInsensitive) != 0)
+                return bad(QObject::tr("esiste già un layer \"%1\"").arg(to));
+            renamed[to.toLower()] = index;
+            plan.layerRenames.emplace_back(index, to);
+            plan.summary << QObject::tr("Rinomina il layer \"%1\" in \"%2\"").arg(from, to);
         } else if (kind.startsWith(QLatin1String("aggiungi_"))) {
             std::unique_ptr<Entity> e;
             if (kind == QLatin1String("aggiungi_linea")) {
@@ -518,6 +1009,8 @@ std::optional<ClaudePlan> buildPlan(const Document& doc, const QJsonArray& ops, 
         } else {
             return bad(QObject::tr("operazione sconosciuta"));
         }
+        if (!scope.isEmpty() && !plan.summary.isEmpty())
+            plan.summary.last() += scope;
     }
     for (auto& [id, e] : working) {
         plan.removed.push_back(id);
@@ -655,34 +1148,38 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
         return;
     }
 
-    if (tool == QLatin1String("leggi_oggetti")) {
-        const QString scope = args.value(QStringLiteral("ambito")).toString(QStringLiteral("selezione"));
-        const int limit = std::clamp(args.value(QStringLiteral("massimo")).toInt(300), 1, 2000);
-        const QString onlyLayer = args.value(QStringLiteral("layer")).toString();
-        const QString onlyType = args.value(QStringLiteral("tipo")).toString();
+    // Oggetti scelti da ambito (selezione, tutto, area) ed eventuale filtro, per leggi_oggetti, riepilogo e seleziona.
+    const auto chosen = [&](const QJsonObject& q, std::vector<const Entity*>* out, QString* why) -> bool {
+        const bool hasFilter = q.contains(QStringLiteral("filtro"));
+        const QString scope = q.value(QStringLiteral("ambito")).toString(hasFilter ? QStringLiteral("tutto") : QStringLiteral("selezione"));
+        std::optional<ClaudeFilter> filter;
+        if (hasFilter && !(filter = parseFilter(q.value(QStringLiteral("filtro")), why)))
+            return false;
         BBox area;
         if (scope == QLatin1String("area")) {
-            const QJsonArray a = args.value(QStringLiteral("area")).toArray();
+            const QJsonArray a = q.value(QStringLiteral("area")).toArray();
             if (a.size() != 4) {
-                reply(false, tr("Con ambito \"area\" serve area: [x1, y1, x2, y2]."));
-                return;
+                *why = tr("Con ambito \"area\" serve area: [x1, y1, x2, y2].");
+                return false;
             }
             area.expand(Vec2{a[0].toDouble(), a[1].toDouble()});
             area.expand(Vec2{a[2].toDouble(), a[3].toDouble()});
         } else if (scope != QLatin1String("selezione") && scope != QLatin1String("tutto")) {
-            reply(false, tr("Ambito sconosciuto: usare selezione, tutto o area."));
-            return;
+            *why = tr("Ambito sconosciuto: usare selezione, tutto o area.");
+            return false;
         }
-        std::set<EntityId> selected(d->selection().begin(), d->selection().end());
+        const std::set<EntityId> selected(d->selection().begin(), d->selection().end());
         if (scope == QLatin1String("selezione") && selected.empty()) {
-            reply(false, tr("Nel disegno non è selezionato niente: chiedere all'utente di selezionare gli oggetti, "
-                            "oppure leggere con ambito \"tutto\" o \"area\"."));
-            return;
+            *why = tr("Nel disegno non è selezionato niente: chiedere all'utente di selezionare gli oggetti, oppure usare "
+                      "ambito \"tutto\", \"area\" o un filtro.");
+            return false;
         }
-        QJsonArray objects;
-        int matching = 0;
+        // Parametri semplici di leggi_oggetti, ancora accettati.
+        const QString onlyLayer = q.value(QStringLiteral("layer")).toString();
+        const QString onlyType = q.value(QStringLiteral("tipo")).toString();
         for (const auto& e : doc.entities()) {
-            if (scope == QLatin1String("selezione") ? !selected.count(e->id()) : e->space() != 0)
+            if (scope == QLatin1String("selezione") ? !selected.count(e->id())
+                                                    : (e->space() != 0 && !(filter && filter->allSpaces)))
                 continue;
             if (scope == QLatin1String("area") && !e->touchesRect(area))
                 continue;
@@ -690,21 +1187,105 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
                 continue;
             if (!onlyType.isEmpty() && typeKey(e->type()) != onlyType.toLower())
                 continue;
-            if (++matching <= limit)
-                objects.append(describe(doc, *e));
+            if (filter && !matches(doc, *e, *filter, selected))
+                continue;
+            out->push_back(e.get());
         }
-        QJsonObject answer{{QStringLiteral("oggetti"), objects}, {QStringLiteral("trovati"), matching}};
-        if (matching > limit)
-            answer.insert(QStringLiteral("nota"), tr("Mostrati i primi %1 di %2: restringere con layer, tipo o area.").arg(limit).arg(matching));
+        return true;
+    };
+
+    if (tool == QLatin1String("leggi_oggetti")) {
+        const int limit = std::clamp(args.value(QStringLiteral("massimo")).toInt(300), 1, 2000);
+        const int from = std::max(0, args.value(QStringLiteral("da")).toInt(0));
+        std::vector<const Entity*> list;
+        QString why;
+        if (!chosen(args, &list, &why)) {
+            reply(false, why);
+            return;
+        }
+        QJsonArray objects;
+        for (int i = from; i < static_cast<int>(list.size()) && i < from + limit; ++i)
+            objects.append(describe(doc, *list[static_cast<std::size_t>(i)]));
+        QJsonObject answer{{QStringLiteral("oggetti"), objects}, {QStringLiteral("trovati"), static_cast<qint64>(list.size())}};
+        if (from + limit < static_cast<int>(list.size()))
+            answer.insert(QStringLiteral("nota"), tr("Mostrati %1-%2 di %3: per i successivi \"da\": %4. Per le modifiche "
+                                                     "massive non serve leggerli tutti: usare un filtro in proponi_modifiche.")
+                                                      .arg(from + 1).arg(from + objects.size()).arg(list.size()).arg(from + limit));
         reply(true, json(answer));
+        return;
+    }
+
+    if (tool == QLatin1String("riepilogo")) {
+        const QString by = args.value(QStringLiteral("per")).toString(QStringLiteral("layer"));
+        const QString tag = args.value(QStringLiteral("tag")).toString();
+        if (by != QLatin1String("layer") && by != QLatin1String("tipo") && by != QLatin1String("blocco")
+            && by != QLatin1String("colore") && by != QLatin1String("testo") && by != QLatin1String("attributo")) {
+            reply(false, tr("\"per\": layer, tipo, blocco, colore, testo oppure attributo (con \"tag\")."));
+            return;
+        }
+        if (by == QLatin1String("attributo") && tag.isEmpty()) {
+            reply(false, tr("Con \"per\": \"attributo\" serve il \"tag\"."));
+            return;
+        }
+        QJsonObject scopeArgs = args;   // senza ambito né filtro: tutto il disegno
+        if (!args.contains(QStringLiteral("ambito")) && !args.contains(QStringLiteral("filtro")))
+            scopeArgs.insert(QStringLiteral("ambito"), QStringLiteral("tutto"));
+        std::vector<const Entity*> list;
+        QString why;
+        if (!chosen(scopeArgs, &list, &why)) {
+            reply(false, why);
+            return;
+        }
+        std::map<QString, int> counts;
+        for (const Entity* e : list) {
+            if (by == QLatin1String("layer")) {
+                ++counts[layerName(doc, e->layer())];
+            } else if (by == QLatin1String("tipo")) {
+                ++counts[typeKey(e->type())];
+            } else if (by == QLatin1String("colore")) {
+                ++counts[QString::number(e->color())];
+            } else if (by == QLatin1String("testo")) {
+                const QString t = entityText(*e).simplified().left(200);
+                if (!t.isEmpty())
+                    ++counts[t];
+            } else if (e->type() == EntityType::Insert) {
+                const auto& b = static_cast<const InsertEntity&>(*e);
+                if (by == QLatin1String("blocco")) {
+                    ++counts[QString::fromStdString(b.effectiveName())];
+                } else {
+                    for (const Attribute& a : b.attributes)
+                        if (QString::fromStdString(a.tag).compare(tag, Qt::CaseInsensitive) == 0)
+                            ++counts[QString::fromStdString(a.text.displayText()).left(200)];
+                }
+            }
+        }
+        std::vector<std::pair<QString, int>> sorted(counts.begin(), counts.end());
+        std::stable_sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+        const int limit = std::clamp(args.value(QStringLiteral("massimo")).toInt(200), 1, 2000);
+        QJsonArray groups;
+        for (std::size_t i = 0; i < sorted.size() && static_cast<int>(i) < limit; ++i)
+            groups.append(QJsonObject{{QStringLiteral("valore"), sorted[i].first}, {QStringLiteral("oggetti"), sorted[i].second}});
+        reply(true, json(QJsonObject{{QStringLiteral("per"), by}, {QStringLiteral("oggetti"), static_cast<qint64>(list.size())},
+                                     {QStringLiteral("gruppi"), groups}, {QStringLiteral("gruppi_totali"), static_cast<qint64>(sorted.size())}}));
         return;
     }
 
     if (tool == QLatin1String("seleziona")) {
         std::vector<EntityId> ids;
-        for (const QJsonValue& v : args.value(QStringLiteral("ids")).toArray())
-            if (doc.find(static_cast<EntityId>(v.toDouble())) && ids.size() < static_cast<std::size_t>(kMaxIds))
-                ids.push_back(static_cast<EntityId>(v.toDouble()));
+        if (args.contains(QStringLiteral("filtro"))) {
+            std::vector<const Entity*> list;
+            QString why;
+            if (!chosen(args, &list, &why)) {
+                reply(false, why);
+                return;
+            }
+            for (const Entity* e : list)
+                ids.push_back(e->id());
+        } else {
+            for (const QJsonValue& v : args.value(QStringLiteral("ids")).toArray())
+                if (doc.find(static_cast<EntityId>(v.toDouble())) && ids.size() < kMaxIds)
+                    ids.push_back(static_cast<EntityId>(v.toDouble()));
+        }
         d->setSelection(ids);
         reply(true, tr("Selezionati: %1.").arg(objectCount(ids.size())));
         return;
@@ -742,7 +1323,8 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
             return;
         }
         QString error;
-        if (!d->saveTo(target, &error, dwg ? DxfVersion::R2000 : d->dxfVersion())) {
+        // DXF sempre in versione 2000: conserva testi multilinea, tratteggi, ellissi e spline (l'R12 no).
+        if (!d->saveTo(target, &error, DxfVersion::R2000)) {
             reply(false, tr("Salvataggio non riuscito: %1").arg(error));
             return;
         }
@@ -776,7 +1358,10 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
     const QJsonArray ops = args.value(QStringLiteral("operazioni")).toArray();
     const QString description = args.value(QStringLiteral("descrizione")).toString().left(300);
     QString error;
-    const auto preview = buildPlan(d->document(), ops, false, &error);
+    // La selezione dell'utente di adesso: i filtri con "selezione" la usano anche al momento di applicare (intanto
+    // nel disegno si selezionano gli oggetti interessati, per mostrarli).
+    const std::set<EntityId> selection(d->selection().begin(), d->selection().end());
+    const auto preview = buildPlan(d->document(), ops, false, selection, &error);
     if (!preview) {
         reply(false, tr("Proposta non valida, niente è stato mostrato all'utente. %1").arg(error));
         return;
@@ -784,14 +1369,14 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
 
     QPointer<DrawingWidget> drawing(d);
     // Applica: si ricontrolla tutto sul disegno di adesso (l'utente può averlo cambiato nel frattempo).
-    auto apply = [this, drawing, ops]() -> QString {
+    auto apply = [this, drawing, ops, selection]() -> QString {
         if (!drawing)
             return tr("Il disegno è stato chiuso.");
         if (drawing->commands().isActive())
             drawing->cancel();
         Document& doc = drawing->document();
         QString error;
-        const auto check = buildPlan(doc, ops, false, &error);
+        const auto check = buildPlan(doc, ops, false, selection, &error);
         if (!check)
             return error;
         std::vector<int> created;
@@ -801,7 +1386,7 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
             layer.color = color;
             created.push_back(doc.addLayer(layer));
         }
-        auto plan = buildPlan(doc, ops, true, &error);
+        auto plan = buildPlan(doc, ops, true, selection, &error);
         if (!plan) {
             for (auto it = created.rbegin(); it != created.rend(); ++it)
                 doc.removeLayer(*it);
@@ -809,6 +1394,12 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
         }
         std::vector<EntityId> touched = plan->touched;
         doc.commit(std::move(plan->added), plan->removed);
+        // Nomi nuovi dei layer dopo gli oggetti (i filtri hanno usato i nomi di prima); stesso passo da annullare.
+        for (const auto& [index, name] : plan->layerRenames) {
+            std::string why;
+            if (!doc.renameLayer(index, name.toStdString(), &why))
+                print(tr("Claude: layer non rinominato in %1: %2").arg(name, QString::fromStdString(why)));
+        }
         drawing->notifyChanged();
         std::vector<EntityId> alive;
         for (EntityId id : touched)

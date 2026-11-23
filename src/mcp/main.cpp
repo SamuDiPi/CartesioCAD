@@ -29,54 +29,181 @@ using namespace cartesio;
 namespace {
 
 // Strumenti offerti a Claude (nomi, descrizioni e parametri in JSON Schema).
-const char* const kTools = R"JSON([
-{
+const char* const kTools = R"JSON(
+[
+ {
   "name": "disegno_info",
   "description": "Informazioni sul disegno aperto in CartesioCAD (programma CAD 2D): nome e formato del file (DWG o DXF), unità, numero di oggetti, layer, selezione corrente e ingombro. Da chiamare per primo.",
-  "inputSchema": {"type": "object", "properties": {}}
-},
-{
+  "inputSchema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
   "name": "elenca_layer",
   "description": "Elenca i layer del disegno aperto: nome, colore (indice 1-255), acceso/spento, bloccato, numero di oggetti.",
-  "inputSchema": {"type": "object", "properties": {}}
-},
-{
-  "name": "leggi_oggetti",
-  "description": "Legge gli oggetti del disegno con id, tipo, layer, colore e geometria (coordinate nelle unità del disegno, angoli in gradi). Di default legge solo la selezione dell'utente: chiedere 'tutto' o un'area solo se serve. Gli id servono per proporre le modifiche.",
   "inputSchema": {
-    "type": "object",
-    "properties": {
-      "ambito": {"type": "string", "enum": ["selezione", "tutto", "area"], "description": "selezione (default), tutto lo spazio modello, oppure un'area rettangolare"},
-      "area": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4, "description": "[x1, y1, x2, y2] con ambito 'area'"},
-      "layer": {"type": "string", "description": "solo gli oggetti di questo layer"},
-      "tipo": {"type": "string", "description": "solo questo tipo: linea, cerchio, arco, polilinea, testo, testo_multilinea, blocco, tratteggio, quota..."},
-      "massimo": {"type": "integer", "minimum": 1, "maximum": 2000, "description": "numero massimo di oggetti (default 300)"}
-    }
+   "type": "object",
+   "properties": {}
   }
-},
-{
-  "name": "seleziona",
-  "description": "Seleziona ed evidenzia degli oggetti nel disegno, per mostrarli all'utente. Non li modifica.",
-  "inputSchema": {"type": "object", "properties": {"ids": {"type": "array", "items": {"type": "integer"}}}, "required": ["ids"]}
-},
-{
-  "name": "proponi_modifiche",
-  "description": "Propone delle modifiche al disegno. CartesioCAD le controlla e le mostra all'utente, che le applica o le rifiuta: la risposta dice cosa ha deciso. Applicate, si annullano tutte con un solo Ctrl+Z. Operazioni (campo 'op'): sposta {ids, dx, dy}; copia {ids, dx, dy}; ruota {ids, cx, cy, angolo in gradi antiorari}; scala {ids, cx, cy, fattore}; elimina {ids}; cambia_layer {ids, layer}; cambia_colore {ids, colore: 1-255, 256 = DaLayer}; modifica_testo {id, testo}; crea_layer {nome, colore?}; aggiungi_linea {da: [x,y], a: [x,y], layer?}; aggiungi_polilinea {punti: [[x,y],...], chiusa?, layer?}; aggiungi_cerchio {centro: [x,y], raggio, layer?}; aggiungi_testo {posizione: [x,y], altezza, testo, rotazione?, layer?}. Gli oggetti sui layer bloccati non si modificano.",
+ },
+ {
+  "name": "riepilogo",
+  "description": "Conta gli oggetti raggruppandoli per layer, tipo, blocco, colore, testo o valore di un attributo, senza leggerli uno per uno: il modo giusto per capire un disegno grande prima di una modifica massiva. Di default su tutto lo spazio modello; con un filtro o un ambito solo su quegli oggetti.",
   "inputSchema": {
-    "type": "object",
-    "properties": {
-      "descrizione": {"type": "string", "description": "frase breve per l'utente: cosa fa la proposta"},
-      "operazioni": {"type": "array", "items": {"type": "object"}, "minItems": 1}
+   "type": "object",
+   "properties": {
+    "per": {
+     "type": "string",
+     "enum": [
+      "layer",
+      "tipo",
+      "blocco",
+      "colore",
+      "testo",
+      "attributo"
+     ]
     },
-    "required": ["descrizione", "operazioni"]
+    "tag": {
+     "type": "string",
+     "description": "con per = attributo: il tag dell'attributo"
+    },
+    "ambito": {
+     "type": "string",
+     "enum": [
+      "selezione",
+      "tutto",
+      "area"
+     ]
+    },
+    "area": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 4,
+     "maxItems": 4
+    },
+    "filtro": {
+     "type": "object",
+     "description": "Filtro (oggetto con uno o più criteri, validi tutti insieme): layer (nome o elenco, con * e ?), tipo (linea, cerchio, arco, polilinea, testo, testo_multilinea, blocco, tratteggio, quota, direttrice, ellisse, spline, punto, solido, immagine, tabella... o elenco), colore (indice), testo (contiene, senza distinzione di maiuscole), testo_regex, blocco (nome con * e ?), attributo {tag, valore? con * e ?}, area [x1,y1,x2,y2] (oggetti che la toccano; con dentro: true solo quelli tutti dentro), selezione: true (solo gli oggetti selezionati dall'utente), spazio: \"tutti\" (anche i layout; di default solo il modello)."
+    },
+    "massimo": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 2000,
+     "description": "gruppi da restituire (default 200)"
+    }
+   },
+   "required": [
+    "per"
+   ]
   }
-},
-{
+ },
+ {
+  "name": "leggi_oggetti",
+  "description": "Legge gli oggetti del disegno con id, tipo, layer, colore e geometria (coordinate nelle unità del disegno, angoli in gradi), a pagine. Di default legge solo la selezione dell'utente; con un filtro cerca in tutto il modello. Per le modifiche massive non serve leggere tutti gli oggetti: basta un filtro in proponi_modifiche.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "ambito": {
+     "type": "string",
+     "enum": [
+      "selezione",
+      "tutto",
+      "area"
+     ],
+     "description": "selezione (default senza filtro), tutto (default con filtro), area"
+    },
+    "area": {
+     "type": "array",
+     "items": {
+      "type": "number"
+     },
+     "minItems": 4,
+     "maxItems": 4,
+     "description": "[x1, y1, x2, y2] con ambito 'area'"
+    },
+    "filtro": {
+     "type": "object",
+     "description": "Filtro (oggetto con uno o più criteri, validi tutti insieme): layer (nome o elenco, con * e ?), tipo (linea, cerchio, arco, polilinea, testo, testo_multilinea, blocco, tratteggio, quota, direttrice, ellisse, spline, punto, solido, immagine, tabella... o elenco), colore (indice), testo (contiene, senza distinzione di maiuscole), testo_regex, blocco (nome con * e ?), attributo {tag, valore? con * e ?}, area [x1,y1,x2,y2] (oggetti che la toccano; con dentro: true solo quelli tutti dentro), selezione: true (solo gli oggetti selezionati dall'utente), spazio: \"tutti\" (anche i layout; di default solo il modello)."
+    },
+    "da": {
+     "type": "integer",
+     "minimum": 0,
+     "description": "pagina: primo oggetto da restituire (default 0)"
+    },
+    "massimo": {
+     "type": "integer",
+     "minimum": 1,
+     "maximum": 2000,
+     "description": "oggetti per pagina (default 300)"
+    }
+   }
+  }
+ },
+ {
+  "name": "seleziona",
+  "description": "Seleziona ed evidenzia degli oggetti nel disegno (per id o con un filtro), per mostrarli all'utente. Non li modifica.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "ids": {
+     "type": "array",
+     "items": {
+      "type": "integer"
+     }
+    },
+    "filtro": {
+     "type": "object",
+     "description": "Filtro (oggetto con uno o più criteri, validi tutti insieme): layer (nome o elenco, con * e ?), tipo (linea, cerchio, arco, polilinea, testo, testo_multilinea, blocco, tratteggio, quota, direttrice, ellisse, spline, punto, solido, immagine, tabella... o elenco), colore (indice), testo (contiene, senza distinzione di maiuscole), testo_regex, blocco (nome con * e ?), attributo {tag, valore? con * e ?}, area [x1,y1,x2,y2] (oggetti che la toccano; con dentro: true solo quelli tutti dentro), selezione: true (solo gli oggetti selezionati dall'utente), spazio: \"tutti\" (anche i layout; di default solo il modello)."
+    }
+   }
+  }
+ },
+ {
+  "name": "proponi_modifiche",
+  "description": "Propone delle modifiche al disegno, anche massive. CartesioCAD le controlla, le mostra all'utente con il numero di oggetti interessati e le applica solo se l'utente preme OK: la risposta dice cosa ha deciso. Applicate, si annullano tutte con un solo Ctrl+Z. Le operazioni su oggetti esistenti li indicano con \"ids\" (elenco di id) OPPURE con \"filtro\" (CartesioCAD trova da sé tutti gli oggetti che lo rispettano: preferibile per modifiche su molti oggetti; i filtri guardano il disegno com'era prima della proposta; gli oggetti su layer bloccati si saltano). Filtro (oggetto con uno o più criteri, validi tutti insieme): layer (nome o elenco, con * e ?), tipo (linea, cerchio, arco, polilinea, testo, testo_multilinea, blocco, tratteggio, quota, direttrice, ellisse, spline, punto, solido, immagine, tabella... o elenco), colore (indice), testo (contiene, senza distinzione di maiuscole), testo_regex, blocco (nome con * e ?), attributo {tag, valore? con * e ?}, area [x1,y1,x2,y2] (oggetti che la toccano; con dentro: true solo quelli tutti dentro), selezione: true (solo gli oggetti selezionati dall'utente), spazio: \"tutti\" (anche i layout; di default solo il modello). Operazioni (campo 'op'): sposta {ids|filtro, dx, dy}; copia {ids|filtro, dx, dy}; ruota {ids|filtro, cx, cy, angolo in gradi antiorari}; scala {ids|filtro, cx, cy, fattore}; elimina {ids|filtro}; cambia_layer {ids|filtro, layer}; cambia_colore {ids|filtro, colore: 1-255, 256 = DaLayer}; cambia_proprieta {ids|filtro, layer?, colore?, tipo_linea? (nome caricato, DaLayer, DaBlocco), spessore? (mm 0-2.11, DaLayer, DaBlocco, Predefinito)}; modifica_testo {id, testo}; sostituisci_testo {ids|filtro, cerca, sostituisci, regex? (con \\1 per i gruppi), maiuscole_minuscole?} su testi, testi multilinea e valori degli attributi; maiuscole {ids|filtro, modo: maiuscolo|minuscolo}; altezza_testo {ids|filtro, altezza | fattore}; imposta_attributo {ids|filtro, tag, valore}; crea_layer {nome, colore?}; rinomina_layer {da, a}; aggiungi_linea {da: [x,y], a: [x,y], layer?}; aggiungi_polilinea {punti: [[x,y],...], chiusa?, layer?}; aggiungi_cerchio {centro: [x,y], raggio, layer?}; aggiungi_testo {posizione: [x,y], altezza, testo, rotazione?, layer?}. Al massimo 2000 operazioni e 500000 oggetti per proposta. Se una proposta non è valida la risposta spiega perché e niente viene mostrato all'utente.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "descrizione": {
+     "type": "string",
+     "description": "frase breve per l'utente: cosa fa la proposta"
+    },
+    "operazioni": {
+     "type": "array",
+     "items": {
+      "type": "object"
+     },
+     "minItems": 1
+    }
+   },
+   "required": [
+    "descrizione",
+    "operazioni"
+   ]
+  }
+ },
+ {
   "name": "salva_nuova_versione",
   "description": "Salva il disegno come nuova versione accanto al file aperto (es. pianta.dwg -> pianta-v2.dwg), nello stesso formato o in quello indicato. Il file originale non viene mai sovrascritto; dopo il salvataggio la scheda lavora sulla nuova versione.",
-  "inputSchema": {"type": "object", "properties": {"formato": {"type": "string", "enum": ["uguale", "dwg", "dxf"]}}}
-}
-])JSON";
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "formato": {
+     "type": "string",
+     "enum": [
+      "uguale",
+      "dwg",
+      "dxf"
+     ]
+    }
+   }
+  }
+ }
+]
+)JSON";
 
 const QStringList kProtocols = {QStringLiteral("2025-11-25"), QStringLiteral("2025-06-18"), QStringLiteral("2025-03-26"),
                                 QStringLiteral("2024-11-05")};
