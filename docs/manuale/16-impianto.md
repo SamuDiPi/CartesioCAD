@@ -52,7 +52,7 @@ Per ogni circuito:
 - **portata**: Ib ≤ In ≤ Iz'. Iz' parte dalla portata di tabella (IEC 60364-5-52 / CEI-UNEL 35024/1, rame, PVC o EPR secondo il tipo di cavo, 2 o 3 conduttori caricati) per il metodo di posa della tratta: tubo a vista B1/B2, incassato A1/A2, canale B1/B2, passerella E (multipolari) o C (unipolari, cautelativo); poi raggruppamento dei circuiti e temperatura ambiente. Vale la tratta più sfavorevole. La portata si può imporre a mano nel circuito;
 - **caduta di tensione**: con la lunghezza dello schema o, se manca, delle tratte disegnate; avviso oltre il 4%.
 
-L'esito è colorato nella tavolozza (verde, arancione, rosso) e il dettaglio va nella riga di comando. I valori sono indicativi: tabelle e diametri vanno verificati con le norme e i dati dei costruttori.
+L'esito è colorato nella tavolozza (verde, arancione, rosso) e il dettaglio va nella riga di comando. I valori sono indicativi: le tabelle di portata di CartesioCAD non sono ancora state confrontate con la norma (CEI 64-8 / IEC 60364-5-52) e, come i diametri, vanno verificate con le norme e i dati dei costruttori prima di usarle in un progetto. Lo ricordano una riga sotto la tabella dei circuiti e la fine di ogni verifica.
 
 ## Etichette in pianta (`ETICHETTETRATTE`)
 

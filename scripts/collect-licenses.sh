@@ -145,11 +145,12 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)"
         echo "  Licenza:   GPL-3.0-or-later"
         echo "  Sorgenti:  https://github.com/SamuDiPi/Canalo"
-        echo "  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD) e il CSS"
-        echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com). Alla prima importazione"
-        echo "  di un DWG o di un PDF la pagina scarica dalla rete LibreDWG-web (GPL-3.0-or-later,"
-        echo "  https://github.com/mlightcad/libredwg-web) e pdf.js (Apache-2.0, https://mozilla.github.io/pdf.js/):"
-        echo "  non sono inclusi in questa distribuzione."
+        echo "  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS"
+        echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js 3.11.174 (Mozilla Foundation,"
+        echo "  Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt)."
+        echo "  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web"
+        echo "  (@mlightcad/libredwg-web 0.1.3, dichiarato GPL-2.0-only, contiene GNU LibreDWG GPL-3.0-or-later):"
+        echo "  non è incluso né distribuito con CartesioCAD."
         cp -n "$TEXTS/MIT.txt" "$TEXTS/Apache-2.0.txt" "$DEST/licenze/testi/" 2>/dev/null || true
     fi
 

@@ -593,6 +593,7 @@ QStringList PlantPanel::checkAll()
         out << tr("Circuiti da rivedere (portata, protezione, caduta di tensione):");
         out << circuitLines;
     }
+    out << tr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con la norma (CEI 64-8 / IEC 60364-5-52). Verificarle prima di usarle in un progetto.");
     out.prepend(tr("Impianto %1: %2 tratte, %3 non verificate, %4 da controllare; %5 circuiti non verificati.")
                     .arg(projectName())
                     .arg(project_.runs.size())

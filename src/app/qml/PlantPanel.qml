@@ -175,8 +175,24 @@ Rectangle {
             height: content.height - y - buttons.height - 6
             visible: plant.hasProject
 
+            // Avviso sempre visibile sotto la tabella dei circuiti.
+            Text {
+                id: ampNote
+                visible: plant.currentTab === 0
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                wrapMode: Text.WordWrap
+                color: "#f0b040"
+                font.pixelSize: 11
+                text: qsTr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con la norma (CEI 64-8 / IEC 60364-5-52). Verificarle prima di usarle in un progetto.")
+            }
             Table {
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: ampNote.top
+                anchors.bottomMargin: 4
                 visible: plant.currentTab === 0
                 model: plant.currentTab === 0 ? plant.rows : []
                 selected: plant.selectedRow
