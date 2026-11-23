@@ -21,7 +21,13 @@ CartesioCAD usa librerie di altri progetti (elenco completo in `LICENZE-TERZE-PA
 ## Cose da sapere
 
 - Gli script `.scr` eseguono comandi di CartesioCAD (non comandi di sistema), ma possono salvare e sovrascrivere file: eseguire solo script di cui si conosce il contenuto.
-- CartesioCAD si collega a internet solo per cercare gli aggiornamenti: a richiesta, o all'avvio se l'opzione è accesa (spenta di default).
+- CartesioCAD si collega a internet solo per cercare gli aggiornamenti: a richiesta, o all'avvio se l'opzione è accesa (spenta di default). Il connettore per Claude Desktop è solo locale (vedi sotto).
+
+## Connettore per Claude Desktop
+
+- Spento di default; si accende dal comando `CLAUDE`. CartesioCAD apre una named pipe locale (`QLocalServer` con accesso limitato all'utente di Windows collegato), nessuna porta di rete. `cartesio-mcp.exe`, avviato da Claude Desktop, la usa per inoltrare le richieste; non legge né scrive file e non si collega a Internet.
+- Le richieste sono un elenco chiuso di strumenti e di operazioni, controllate una per una (oggetti esistenti, layer non bloccati, numeri finiti, limiti sul numero di operazioni e sulla dimensione dei messaggi). Nessuno script, nessun comando di sistema, nessun accesso ai file oltre al salvataggio di una nuova versione accanto al disegno aperto, con un nome nuovo (mai sovrascritto).
+- Le modifiche si applicano solo dopo la conferma dell'utente nella finestra di CartesioCAD. I testi presenti nei disegni sono dati: se contengono istruzioni rivolte all'assistente (prompt injection), non hanno effetto senza quella conferma.
 
 ## Aggiornamenti dal programma
 

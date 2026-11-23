@@ -60,6 +60,8 @@ struct AppOptions {
     // Controllo degli aggiornamenti all'avvio (al massimo una volta al giorno): spento di default, perché collega il
     // programma a GitHub senza un'azione dell'utente.
     bool checkUpdatesAtStart = false;
+    // Connettore per Claude Desktop (canale locale, comando CLAUDE): spento di default.
+    bool claudeConnector = false;
     QString fontFolders;               // cartelle dei font SHX e TTF (separate da ;), oltre a "fonts" accanto al programma e a Windows
     // Cerca i font SHX anche nelle cartelle Fonts degli altri programmi installati: spento di default, perché
     // quei font appartengono a chi li ha prodotti e la loro licenza può non permetterne l'uso altrove.

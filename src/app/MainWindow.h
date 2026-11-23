@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app/AppOptions.h"
+#include "app/ClaudeLink.h"
 #include "app/DraftSettings.h"
 #include "app/PlotDialog.h"
 #include "app/Updater.h"
@@ -9,6 +10,7 @@
 
 #include <QDateTime>
 #include <QMainWindow>
+#include <QPointer>
 #include <QSet>
 #include <QMap>
 #include <QStringList>
@@ -234,6 +236,15 @@ private:
     void scriptUpdateLocal(const QString& manifest, const QString& archive, const QString& folder);
     void scriptUpdateRollback(const QString& folder);
     void scriptUpdateDownload(const QString& folder);
+    // Connettore per Claude Desktop (MainWindowClaude.cpp): canale locale, strumenti sul disegno aperto,
+    // conferma delle modifiche proposte, finestra CLAUDE.
+    bool startClaude(QString* error);
+    void stopClaude();
+    void startupClaude();
+    void handleClaudeTool(const QString& tool, const QJsonObject& args, ClaudeLink::Reply reply);
+    void proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args, ClaudeLink::Reply reply);
+    QString configureClaudeDesktop();
+    void showClaudeDialog();
     // Plugin CanaloCAD (MainWindowCanalo.cpp).
     void setupCanalo(Ribbon* ribbon);
     // Scheda contestuale "Editor di testo" (MainWindowTextEditor.cpp) e il suo aggiornamento dallo stato dell'editor.
@@ -437,6 +448,9 @@ private:
     QDockWidget* libraryDock_ = nullptr;
     QAction* libraryAct_ = nullptr;
     std::map<QString, std::shared_ptr<DocSummary>> pendingSummaries_;   // riepiloghi dei DWG da verificare
+    ClaudeLink* claude_ = nullptr;
+    QPointer<QDialog> claudeProposal_;   // proposta di Claude in attesa della scelta dell'utente
+    bool claudeAutoApprove_ = false;     // solo script di prova: -CLAUDEATTIVA AUTO
     // Libreria simboli: inserisce un blocco (dal disegno o da un file libreria già letto).
     // `at`: rilasciato con il trascinamento in quel punto (scala 1, rotazione 0); altrimenti INSERT.
     void insertFromLibrary(const QString& source, const QString& name, std::optional<Vec2> at = {});

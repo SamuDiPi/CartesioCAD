@@ -128,6 +128,10 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowConvert.cpp
         src/app/MainWindowTransmit.cpp
         src/app/MainWindowUpdate.cpp
+        src/app/MainWindowClaude.cpp
+        src/app/ClaudeLink.h
+        src/app/ClaudeLink.cpp
+        src/app/ClaudeChannel.h
         src/app/PlantRoutes.cpp
         src/app/PlantRunImport.cpp
         src/app/Updater.cpp
@@ -233,6 +237,14 @@ if(CARTESIO_BUILD_APP)
     set_source_files_properties(src/app/MainWindowAbout.cpp PROPERTIES
         COMPILE_DEFINITIONS "CARTESIO_COMMIT=\"${CARTESIO_COMMIT}\"")
 
+    # Connettore per Claude Desktop (MCP su stdin/stdout): programma da console che inoltra le richieste a
+    # CartesioCAD sul canale locale dell'utente. Usa solo QtCore e QtNetwork, già distribuite.
+    add_executable(cartesio-mcp src/mcp/main.cpp src/app/ClaudeChannel.h)
+    target_include_directories(cartesio-mcp PRIVATE src)
+    target_link_libraries(cartesio-mcp PRIVATE Qt6::Core Qt6::Network)
+    target_compile_definitions(cartesio-mcp PRIVATE CARTESIO_VERSION="${PROJECT_VERSION}")
+    add_dependencies(CartesioCAD cartesio-mcp)
+
     # Supporto DWG: i convertitori di LibreDWG (scaricati con scripts/fetch-libredwg.sh) vengono
     # copiati nella cartella "libredwg" accanto all'eseguibile.
     set(CARTESIO_LIBREDWG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libredwg-0.14"
@@ -283,7 +295,7 @@ if(CARTESIO_BUILD_APP)
             COMMENT "Copia delle DLL accanto a CartesioCAD.exe"
             VERBATIM)
 
-        install(TARGETS CartesioCAD RUNTIME DESTINATION .)
+        install(TARGETS CartesioCAD cartesio-mcp RUNTIME DESTINATION .)
         install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\"
             \"-DEXE=\${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:CartesioCAD>\"
             \"-DPLATFORM_PLUGIN=$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>\"
