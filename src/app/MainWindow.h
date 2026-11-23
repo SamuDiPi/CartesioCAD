@@ -233,6 +233,7 @@ private:
     void scriptUpdateCheck();
     void scriptUpdateLocal(const QString& manifest, const QString& archive, const QString& folder);
     void scriptUpdateRollback(const QString& folder);
+    void scriptUpdateDownload(const QString& folder);
     // Plugin CanaloCAD (MainWindowCanalo.cpp).
     void setupCanalo(Ribbon* ribbon);
     // Scheda contestuale "Editor di testo" (MainWindowTextEditor.cpp) e il suo aggiornamento dallo stato dell'editor.

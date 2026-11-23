@@ -240,6 +240,34 @@ void MainWindow::scriptUpdateLocal(const QString& manifestPath, const QString& a
                    isMajorUpdate(Updater::currentVersion(), manifest->version, manifest->major) ? tr("sì") : tr("no")));
 }
 
+void MainWindow::scriptUpdateDownload(const QString& folder)
+{
+    QEventLoop loop;
+    std::optional<UpdateOffer> found;
+    QString error;
+    updater()->check([&](std::optional<UpdateOffer> offer, const QString& e) {
+        found = offer;
+        error = e;
+        loop.quit();
+    });
+    loop.exec();
+    if (!error.isEmpty() || !found) {
+        print(tr("-AGGIORNAMENTOSCARICA: %1").arg(error.isEmpty() ? tr("nessun aggiornamento") : error));
+        return;
+    }
+    updater()->download(*found, {}, [&](const QString& archive, std::optional<UpdateManifest> manifest, const QString& e) {
+        if (!e.isEmpty() || !manifest)
+            print(tr("-AGGIORNAMENTOSCARICA: %1").arg(e));
+        else if (QString installError; !Updater::install(archive, folder, &installError))
+            print(tr("-AGGIORNAMENTOSCARICA: %1").arg(installError));
+        else
+            print(tr("-AGGIORNAMENTOSCARICA: scaricata, verificata e installata la %1 in %2")
+                      .arg(QString::fromStdString(manifest->version.text()), QDir::toNativeSeparators(folder)));
+        loop.quit();
+    });
+    loop.exec();
+}
+
 void MainWindow::scriptUpdateRollback(const QString& folder)
 {
     const QString previous = Updater::previousVersion(folder);

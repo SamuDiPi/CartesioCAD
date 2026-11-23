@@ -1145,6 +1145,10 @@ bool MainWindow::runScript(const QString& path)
                 scriptUpdateLocal(manifest, archive, resolve(nextToken()));
                 continue;
             }
+            if (word == QLatin1String("-AGGIORNAMENTOSCARICA")) {   // tutto il percorso: GitHub, firma, installazione
+                scriptUpdateDownload(resolve(nextToken()));
+                continue;
+            }
             if (word == QLatin1String("-VERSIONEPRECEDENTE")) {
                 scriptUpdateRollback(resolve(nextToken()));
                 continue;
