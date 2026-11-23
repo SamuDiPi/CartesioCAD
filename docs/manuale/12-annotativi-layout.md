@@ -2,7 +2,7 @@
 
 ## Scale annotative (`CANNOSCALE`)
 
-**Dove:** barra di stato, accanto a MODELLO (la scala, per esempio 1:50); Annota > Scale di annotazione.
+**Dove:** barra di stato, accanto a MODELLO (la scala, per esempio 1:50); Testi e quote > Scale.
 
 Testi, testi multilinea, quote e direttrici creati con uno stile **annotativo** (casella *Annotativo* negli stili di testo, di quota e delle direttrici, o proprietà *Annotativo*) hanno le misure **sulla carta**: un testo alto 2,5 a 1:50 è alto 125 nel modello. Cambiando la scala di annotazione gli oggetti che la supportano si ridimensionano da soli, gli altri restano come sono; nei layout ogni finestra mostra alla sua scala quelli che la supportano, anche in stampa. Nessun oggetto si nasconde per la scala.
 
@@ -12,20 +12,20 @@ Solo memorizzata: si legge e si salva con il disegno, per i file che la contengo
 
 ## Scale degli oggetti (`OBJECTSCALE`, `SCALAOGGETTO`, `-OBJECTSCALE`)
 
-**Dove:** Annota > Scale di annotazione > Aggiungi/Elimina scale; *Aggiungi scala corrente*.
+**Dove:** Testi e quote > Scale > Aggiungi/Elimina scale; *Aggiungi scala corrente*.
 
 Aggiunge o toglie scale di annotazione agli oggetti annotativi selezionati: un oggetto con più scale si vede in tutte, ciascuna con la sua dimensione.
 
 ## Elenco delle scale (`SCALELISTEDIT`, `-SCALELISTEDIT`, `MODIFICAELENCOSCALE`)
 
-**Dove:** Annota > Scale di annotazione > Elenco scale.
+**Dove:** Testi e quote > Scale > Elenco scale.
 
 `[?/Aggiungi/Elimina/Reimposta]`: elenco, aggiungi (per esempio `1:75`), elimina (se non usata), torna all'elenco standard.
 
 ## Layout e spazio carta
 
 In basso ci sono le schede **Modello** e dei **layout** (le tavole da stampare). In un layout si vede il foglio con l'area stampabile; il modello si mostra attraverso le **finestre**.
-- **Nuovo layout**: Layout > Layout > Nuovo layout, o il **+** accanto alle schede. Formato, orientamento e margine del foglio dei layout nuovi si scelgono nelle Opzioni > Visualizza.
+- **Nuovo layout**: Tavola > Layout > Nuovo layout, o il **+** accanto alle schede. Formato, orientamento e margine del foglio dei layout nuovi si scelgono nelle Opzioni > Visualizza.
 - **Doppio clic dentro una finestra**: si lavora nel modello attraverso di essa (disegnare, modificare, zoom e pan); **doppio clic fuori** o `PSPACE` per tornare alla carta. Lo stesso con il pulsante MODELLO/CARTA della barra di stato.
 - Nella barra di stato, con una finestra scelta: la **scala** della finestra (1:1 … 1:1000) e il **blocco** (una finestra bloccata non cambia zoom).
 - Tasto destro su una scheda: *Rinomina*, *Elimina*, *Sposta nel gruppo*, *Raggruppa le schede dei layout*.
@@ -36,13 +36,13 @@ Con molti layout, il pulsante **≡** in basso a sinistra li elenca tutti per gr
 
 ## Finestra di layout (`MVIEW`, `MV`, `FINESTRA`)
 
-**Dove:** Layout > Finestre di layout > Finestra.
+**Dove:** Tavola > Finestre > Finestra.
 
 Nello spazio carta di un layout: due angoli della finestra, oppure `A` (adatta al foglio), `P` (poligonale), `O` (da un oggetto chiuso). Poi la scala si sceglie nella barra di stato o nelle Proprietà.
 
 ## Ritaglia finestra (`VPCLIP`, `RITAGLIAFINESTRA`)
 
-**Dove:** Layout > Finestre di layout > Ritaglia.
+**Dove:** Tavola > Finestre > Ritaglia.
 
 Ritaglia una finestra su un poligono o su un oggetto chiuso; `E` toglie il ritaglio.
 
@@ -56,12 +56,12 @@ Ritaglia una finestra su un poligono o su un oggetto chiuso; `E` toglie il ritag
 
 ## Cartiglio (`CARTIGLIO`, `CART`, `TITLEBLOCK`; `AGGCARTIGLIO`, `AGGIORNACARTIGLIO`, `UPDATEFIELD`)
 
-**Dove:** Layout > Cartiglio.
+**Dove:** Tavola > Cartiglio.
 
 Nello spazio carta: formato del foglio (A4…A0), cornice e cartiglio con attributi (titolo, autore, data, scala, formato, società, numero, revisione). *Aggiorna cartiglio* rimette nei cartigli scala, data e formato correnti.
 
 ## Impostazione pagina (`PAGESETUP`)
 
-**Dove:** Layout > Layout > Imposta pagina; Output > Stampa > Imposta pagina.
+**Dove:** Tavola > Layout > Imposta pagina; Stampa e PDF > Stampa > Imposta pagina.
 
 Gestisce le impostazioni di pagina con nome: nuova, modifica (le stesse voci della Stampa), imposta corrente, importa da un altro disegno, elimina. Si salvano nel DXF insieme al disegno.

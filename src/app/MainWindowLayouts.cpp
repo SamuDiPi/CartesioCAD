@@ -276,8 +276,8 @@ void MainWindow::refreshLayoutTabs()
 
     status_->setSpace(doc.activeSpace() == 0 ? tr("MODELLO") : tr("CARTA"), d->shownSpace() != 0);
     syncMainViews();
-    if (ribbon_) {   // scheda Layout: solo quando si è in un layout; Confronto: se il disegno è in confronto
-        ribbon_->showContextual(tr("Layout"), d->shownSpace() != 0, false);
+    if (ribbon_) {   // scheda Tavola: solo quando si è in un layout; Confronto: se il disegno è in confronto
+        ribbon_->showContextual(tr("Tavola"), d->shownSpace() != 0, false);
         ribbon_->showContextual(tr("Confronto"), d->view()->compare() != nullptr, false);
     }
     updateViewportStatus();

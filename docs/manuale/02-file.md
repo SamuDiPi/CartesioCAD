@@ -33,7 +33,7 @@ Chiudi chiude il disegno corrente (Ctrl+F4, o la × della scheda), Esci chiude C
 
 ## Inserisci da file (`INSERTFILE`)
 
-**Dove:** Inserisci > Riferimento > Inserisci da file.
+**Dove:** Inserimenti > File collegati > Inserisci da file.
 
 Inserisce un altro DWG o DXF come blocco nel disegno corrente: si sceglie il file, poi punto di inserimento, scala e rotazione. I blocchi e i layer del file arrivano nel disegno.
 
@@ -46,13 +46,13 @@ Converte tutti i DWG e DXF di una cartella (anche le sottocartelle, ricreate nel
 
 ## Controlla (`AUDIT`, `CONTROLLA`, `VERIFICA`)
 
-**Dove:** Gestisci > Ripulitura > Verifica; pulsante dell'applicazione > Utilità disegno.
+**Dove:** Strumenti > Pulizia > Verifica; pulsante dell'applicazione > Utilità disegno.
 
 Controlla il disegno: geometrie non valide, oggetti su layer, tipi di linea o stili inesistenti, blocchi mancanti, gruppi rotti, identificativi doppi. Chiede `Correggere gli errori rilevati? [Sì/No]`: con *Sì* corregge (si annulla con `U`).
 
 ## Recupera (`RECOVER`, `RECUPERA`)
 
-**Dove:** Gestisci > Ripulitura > Recupera; pulsante dell'applicazione > Utilità disegno.
+**Dove:** Strumenti > Pulizia > Recupera; pulsante dell'applicazione > Utilità disegno.
 
 Apre un file danneggiato e lo corregge con il controllo di `AUDIT`.
 
@@ -64,13 +64,13 @@ Crea un archivio ZIP da mandare a terzi: il disegno in DXF 2000, i riferimenti e
 
 ## Elimina inutilizzati (`PURGE`, `PU`, `ELIMINAINUTILIZZATI`)
 
-**Dove:** Gestisci > Ripulitura > Elimina.
+**Dove:** Strumenti > Pulizia > Elimina.
 
 Elimina dal disegno gli elementi non usati: `[Blocchi/LAyer/TIpi di linea/Stili di quota/Tutto]`. L'eliminazione dei layer non si annulla.
 
 ## Elimina duplicati (`OVERKILL`, `DOPPIONI`)
 
-**Dove:** Gestisci > Ripulitura > Elimina duplicati.
+**Dove:** Strumenti > Pulizia > Elimina duplicati.
 
 Selezionati gli oggetti, elimina quelli doppi e le linee contenute in altre linee.
 

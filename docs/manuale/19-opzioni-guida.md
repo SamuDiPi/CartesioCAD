@@ -2,7 +2,7 @@
 
 ## Opzioni (`OPTIONS`, `OPZIONI`, `OP`, `PREFERENCES`)
 
-**Dove:** pulsante dell'applicazione > Opzioni; Gestisci > Personalizzazione > Opzioni; menu del tasto destro.
+**Dove:** pulsante dell'applicazione > Opzioni; Strumenti > Personalizzazione > Opzioni; menu del tasto destro.
 
 - **Visualizza**: elementi del layout (schede Layout e Modello, area stampabile, sfondo e ombreggiatura della carta, Gestione impostazioni pagina e finestra nei layout nuovi); colori di sfondo del modello, dei layout e del foglio, colore della griglia (con uno sfondo chiaro gli oggetti bianchi si disegnano neri); formato, orientamento e margine del foglio dei layout nuovi; interfaccia moderna o classica; disegno dei testi TrueType.
 - **Apri e salva**: formato predefinito, salvataggio automatico (ogni quanti minuti), copie .bak, numero di file recenti, pagina Inizia all'avvio, convertitore DWG (LibreDWG o ODA File Converter), cartelle dei font SHX e TrueType (quelli degli altri programmi installati solo spuntando la casella apposita), cartelle dove cercare immagini e riferimenti, tipo di percorso dei file collegati, cartella dei modelli.

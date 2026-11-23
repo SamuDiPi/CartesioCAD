@@ -2,7 +2,7 @@
 
 ## Testo multilinea (`MTEXT`, `T`, `MT`, `TESTOM`)
 
-**Dove:** Inizio > Annotazione > Testo; Annota > Testo > Testo multilinea.
+**Dove:** Disegno > Annotazioni > Testo; Testi e quote > Testo > Testo multilinea.
 
 Testo con a capo automatico dentro un riquadro.
 1. Indicare il primo angolo e l'angolo opposto del riquadro (la larghezza decide dove si va a capo).
@@ -12,7 +12,7 @@ Mentre si scrive compare la scheda **Editor di testo** (vedi sotto). Sopra il te
 
 ## Testo su una riga (`TEXT`, `DT`, `DTEXT`, `TESTO`)
 
-**Dove:** Inizio > Annotazione > menu di Testo > Testo riga singola; Annota > Testo.
+**Dove:** Disegno > Annotazioni > menu di Testo > Testo riga singola; Testi e quote > Testo.
 
 1. Punto iniziale del testo.
 2. Altezza (proposta l'ultima usata, variabile `TEXTSIZE`).
@@ -46,7 +46,7 @@ Usa il correttore di Windows (italiano se è installata la lingua). Le parole sc
 
 ## Stili di testo (`STYLE`, `ST`, `STILE`; `TEXTSTYLE`)
 
-**Dove:** Annota > Testo > Stili di testo; Inizio > Annotazione > menu di Tabella.
+**Dove:** Testi e quote > Testo > Stili di testo; Disegno > Annotazioni > menu di Tabella.
 
 Gestione degli stili: nuovo, modifica (font SHX o TrueType, altezza, fattore di larghezza, obliquità, grassetto, corsivo, *Annotativo*), rinomina, elimina, imposta corrente. Le modifiche aggiornano i testi che usano lo stile e si annullano con Ctrl+Z. `TEXTSTYLE` imposta lo stile corrente dalla riga di comando; `TEXTSIZE` l'altezza proposta per i testi nuovi.
 
@@ -54,7 +54,7 @@ Gestione degli stili: nuovo, modifica (font SHX o TrueType, altezza, fattore di 
 
 ## Trova e sostituisci (`FIND`, `TROVA`)
 
-**Dove:** Annota > Testo > Trova testo.
+**Dove:** Testi e quote > Testo > Trova testo.
 
 Cerca (e sostituisce) in testi, testi multilinea, attributi, quote e direttrici: maiuscole/minuscole, parole intere, dove cercare. Zoom sul risultato; le sostituzioni si annullano con Ctrl+Z.
 

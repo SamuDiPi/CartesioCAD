@@ -20,7 +20,7 @@ namespace cartesio {
 void MainWindow::setupCompareTab(Ribbon* ribbon)
 {
     // Revisioni: Confronta disegni.
-    RibbonPanel* collaborate = ribbon->addPanel(tr("Revisioni"), tr("Confronta"));
+    RibbonPanel* collaborate = ribbon->addPanel(tr("Strumenti"), tr("Revisioni"));
     QAction* compareAct = makeAction(tr("Confronta\ndisegni"), glyphIcon(QStringLiteral("A|B"), true), {},
                                      tr("Confronta il disegno con un'altra revisione (DWG o DXF): differenze colorate"));
     connect(compareAct, &QAction::triggered, this, [this] { startCompare(); });
@@ -38,9 +38,9 @@ void MainWindow::setupCompareTab(Ribbon* ribbon)
     nav->addLargeButton(next);
     RibbonPanel* show = ribbon->addPanel(tab, tr("Mostra"));
     show->setPriority(8);
-    compareHereAct_ = makeAction(tr("Solo in questo (verde)"), glyphIcon(QStringLiteral("+")), {},
+    compareHereAct_ = makeAction(tr("Solo in questo (azzurro)"), glyphIcon(QStringLiteral("+")), {},
                                  tr("Oggetti che ci sono solo nel disegno corrente"));
-    compareThereAct_ = makeAction(tr("Solo nell'altro (rosso)"), glyphIcon(QStringLiteral("−")), {},
+    compareThereAct_ = makeAction(tr("Solo nell'altro (magenta)"), glyphIcon(QStringLiteral("−")), {},
                                   tr("Oggetti che c'erano solo nell'altra revisione"));
     for (QAction* a : {compareHereAct_, compareThereAct_}) {
         a->setCheckable(true);
@@ -89,7 +89,7 @@ void MainWindow::startCompare(QString path)
     compareThereAct_->setChecked(true);
     if (ribbon_)
         ribbon_->showContextual(tr("Confronto"), true);
-    print(tr("Confronto con %1: %2 oggetti solo qui (verde), %3 solo nell'altro (rosso), %4 uguali; %5 zone di modifica.")
+    print(tr("Confronto con %1: %2 oggetti solo qui (azzurro), %3 solo nell'altro (magenta), %4 uguali; %5 zone di modifica.")
               .arg(QFileInfo(path).fileName())
               .arg(diff.onlyHere.size())
               .arg(diff.onlyThere.size())

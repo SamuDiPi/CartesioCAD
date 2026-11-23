@@ -157,7 +157,7 @@ class TabsModel : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList tabs READ tabs NOTIFY tabsChanged)
     Q_PROPERTY(int currentIndex READ currentIndex NOTIFY currentChanged)
-    // Schede mostrate (le schede dei file si possono nascondere dalla scheda Vista).
+    // Schede mostrate (le schede dei file si possono nascondere dalla scheda Schermo).
     Q_PROPERTY(bool shown READ shown NOTIFY shownChanged)
 
 public:

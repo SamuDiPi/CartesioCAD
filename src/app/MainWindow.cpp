@@ -486,7 +486,7 @@ QWidget* MainWindow::buildTopArea()
         return main;
     };
 
-    RibbonPanel* draw = ribbon->addPanel(tr("Inizio"), tr("Disegna"));
+    RibbonPanel* draw = ribbon->addPanel(tr("Disegno"), tr("Linee e forme"));
     draw->setPriority(10);
     draw->addLargeButton(lineAct_);
     draw->addLargeButton(polylineAct_);
@@ -505,7 +505,7 @@ QWidget* MainWindow::buildTopArea()
     draw->addSmallColumn({withMenu(pointAct_, {pointAct_, divideAct, measureAlongAct}),
                           withMenu(xlineAct, {xlineAct, rayAct}), withMenu(revcloudAct, {revcloudAct, wipeoutAct, mlineAct})}, false);
 
-    RibbonPanel* modify = ribbon->addPanel(tr("Inizio"), tr("Edita"));
+    RibbonPanel* modify = ribbon->addPanel(tr("Disegno"), tr("Modifica"));
     QAction* lengthenAct = makeCommand(tr("Allunga"), icon(Icon::Extend), QStringLiteral("LENGTHEN"));
     QAction* alignAct = makeCommand(tr("Allinea"), icon(Icon::Move), QStringLiteral("ALIGN"));
     modify->setPriority(9);
@@ -517,7 +517,7 @@ QWidget* MainWindow::buildTopArea()
     modify->addSmallColumn({eraseAct_, explodeAct_, offsetAct_}, false);
     modify->addSmallColumn({withMenu(breakAct_, {breakAct_, breakAtPointAct}), withMenu(joinAct_, {joinAct_, peditAct_}), chamferAct_}, false);
 
-    RibbonPanel* annotation = ribbon->addPanel(tr("Inizio"), tr("Annotazione"));
+    RibbonPanel* annotation = ribbon->addPanel(tr("Disegno"), tr("Annotazioni"));
     annotation->setPriority(6);
     annotation->addLargeButton(withMenu(mtextAct_, {mtextAct_, textAct_}));
     QAction* dimAct = makeCommand(tr("Quota"), icon(Icon::DimLinear), QStringLiteral("DIMLINEAR"));
@@ -534,7 +534,7 @@ QWidget* MainWindow::buildTopArea()
                                                       dimOrdinateAct_, dimContinueAct_, dimBaselineAct_, qdimAct_, dimStyleAct_}),
                                 withMenu(leaderHome, {leaderAct_, leaderStyleAct}), withMenu(tableAct, {tableAct, textStyleAct})});
 
-    RibbonPanel* layerPanel = ribbon->addPanel(tr("Inizio"), tr("Layer"));
+    RibbonPanel* layerPanel = ribbon->addPanel(tr("Disegno"), tr("Layer"));
     layerPanel->setPriority(7);
     layerPanel->addLargeButton(layerPropsAct_);
     layerCombo_ = new ComboModel(240, this);
@@ -557,7 +557,7 @@ QWidget* MainWindow::buildTopArea()
                                 makeCommand(tr("Uguaglia layer"), icon(Icon::MatchProp), QStringLiteral("LAYMATCH"))});
 
     // Gruppi: crea, separa, selezione dei gruppi attiva/disattiva (PICKSTYLE).
-    RibbonPanel* groupsPanel = ribbon->addPanel(tr("Inizio"), tr("Gruppi"));
+    RibbonPanel* groupsPanel = ribbon->addPanel(tr("Disegno"), tr("Gruppi"));
     groupsPanel->setPriority(2);
     groupsPanel->addLargeButton(makeCommand(tr("Gruppo"), icon(Icon::GroupIcon), QStringLiteral("GROUP")));
     QAction* pickStyleAct = pickStyleAct_ = makeAction(tr("Selezione gruppi"), icon(Icon::GroupIcon), {},
@@ -571,7 +571,7 @@ QWidget* MainWindow::buildTopArea()
     groupsPanel->addSmallColumn({makeCommand(tr("Separa"), icon(Icon::UngroupIcon), QStringLiteral("UNGROUP")),
                                  pickStyleAct}, false);
 
-    RibbonPanel* homeBlock = ribbon->addPanel(tr("Inizio"), tr("Blocco"));
+    RibbonPanel* homeBlock = ribbon->addPanel(tr("Disegno"), tr("Blocchi"));
     homeBlock->setPriority(3);
     // Inserisci: i blocchi del disegno, oppure un altro DWG/DXF da inserire come blocco.
     auto* insertMenu = new QMenu(this);
@@ -611,7 +611,7 @@ QWidget* MainWindow::buildTopArea()
     homeBlock->addSmallColumn({blockAct_, makeCommand(tr("Modifica"), icon(Icon::BlockCreate), QStringLiteral("BEDIT")),
                                makeCommand(tr("Edita attributi"), icon(Icon::AttributeDef), QStringLiteral("EATTEDIT"))});
 
-    RibbonPanel* propsPanel = ribbon->addPanel(tr("Inizio"), tr("Proprietà"));
+    RibbonPanel* propsPanel = ribbon->addPanel(tr("Disegno"), tr("Proprietà"));
     propsPanel->setPriority(5);
     propsPanel->addLargeButton(matchPropAct_);
     colorCombo_ = new ComboModel(170, this);
@@ -623,21 +623,33 @@ QWidget* MainWindow::buildTopArea()
     propsPanel->addComboColumn({colorCombo_, linetypeCombo_, lineweightCombo_});
     propsPanel->addSmallColumn({propertiesAct_}, false);
 
-    RibbonPanel* utilities = ribbon->addPanel(tr("Inizio"), tr("Utilità"));
+    RibbonPanel* utilities = ribbon->addPanel(tr("Disegno"), tr("Misure"));
     utilities->setPriority(2);
     QAction* measureAct = makeCommand(tr("Misura"), icon(Icon::Measure), QStringLiteral("DIST"));
     utilities->addLargeButton(withMenu(measureAct, {distAct_, areaAct_, idAct_, listAct_}));
 
-    RibbonPanel* clipboardPanel = ribbon->addPanel(tr("Inizio"), tr("Appunti"));
+    RibbonPanel* clipboardPanel = ribbon->addPanel(tr("Disegno"), tr("Copia e incolla"));
     clipboardPanel->setPriority(1);
     clipboardPanel->addLargeButton(pasteAct_);
     clipboardPanel->addSmallColumn({copyClipAct_}, false);
 
-    // Inserisci, Annota, Vista, Gestisci, Output, Layout (contestuale): MainWindowRibbonTabs.cpp.
+    // Inserimenti, Testi e quote, Schermo, Strumenti, Stampa e PDF, Tavola (contestuale): MainWindowRibbonTabs.cpp.
     setupRibbonTabs(ribbon);
     setupCompareTab(ribbon);
     setupCanalo(ribbon);
     setupTextEditorTab(ribbon);   // contestuale: in fondo, compare solo mentre si scrive
+    // Organizzazione di CartesioCAD: dal disegno alla stampa, poi impianto, strumenti e schermo.
+    ribbon->arrange({tr("Disegno"), tr("Testi e quote"), tr("Inserimenti"), tr("Tavola"), tr("Stampa e PDF"), tr("Impianto"),
+                     tr("Strumenti"), tr("Schermo")},
+                    {{tr("Disegno"), {tr("Linee e forme"), tr("Modifica"), tr("Layer"), tr("Proprietà"), tr("Copia e incolla"),
+                                      tr("Blocchi"), tr("Gruppi"), tr("Annotazioni"), tr("Misure")}},
+                     {tr("Testi e quote"), {tr("Testo"), tr("Quote"), tr("Direttrici"), tr("Tabelle"), tr("Assi"),
+                                            tr("Scale"), tr("Revisione")}},
+                     {tr("Stampa e PDF"), {tr("PDF"), tr("Stampa")}},
+                     {tr("Impianto"), {tr("Impianti elettrici"), tr("CanaloCAD")}},
+                     {tr("Strumenti"), {tr("Revisioni"), tr("Pulizia"), tr("Personalizzazione")}},
+                     {tr("Schermo"), {tr("Pannelli"), tr("Elementi"), tr("Viste salvate"), tr("Finestre del modello"),
+                                      tr("Interfaccia")}}});
 
 
     // Elenco dei layer aperto: un clic sulle icone (acceso, congelato, bloccato, colore) cambia il layer senza
@@ -880,7 +892,7 @@ void MainWindow::guideAction(const QString& action)
         if (index >= 0)
             showPanel(index, true);
         if (index == MainView::Plant)
-            ribbon_->selectTab(tr("Plugin"));
+            ribbon_->selectTab(tr("Impianto"));
     } else if (action.startsWith(QLatin1String("cmd:"))) {
         if (!current() && arg != QLatin1String("OPEN") && arg != QLatin1String("OPTIONS")) {
             print(tr("Prima aprire o creare un disegno (Apri, Nuovo)."));

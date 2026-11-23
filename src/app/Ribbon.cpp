@@ -106,6 +106,22 @@ Ribbon::Ribbon(QWidget* parent) : QQuickWidget(parent)
     setFixedHeight(166);
 }
 
+void Ribbon::arrange(const QStringList& tabs, const QList<QPair<QString, QStringList>>& panels)
+{
+    const auto rank = [](const QStringList& order, const QString& name) {
+        const int i = order.indexOf(name);
+        return i < 0 ? static_cast<int>(order.size()) : i;
+    };
+    std::stable_sort(tabs_.begin(), tabs_.end(), [&](const Tab& a, const Tab& b) { return rank(tabs, a.title) < rank(tabs, b.title); });
+    for (const auto& [tab, order] : panels)
+        for (Tab& t : tabs_)
+            if (t.title == tab)
+                std::stable_sort(t.panels.begin(), t.panels.end(), [&](const RibbonPanel* a, const RibbonPanel* b) {
+                    return rank(order, a->title()) < rank(order, b->title());
+                });
+    emit changed();
+}
+
 RibbonPanel* Ribbon::addPanel(const QString& tab, const QString& title)
 {
     auto it = std::find_if(tabs_.begin(), tabs_.end(), [&tab](const Tab& t) { return t.title == tab; });

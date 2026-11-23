@@ -79,6 +79,9 @@ public:
     // Scheda contestuale (es. "Editor di testo"): nascosta finché non serve; mostrata, diventa quella selezionata,
     // nascosta torna la scheda di prima.
     void setContextual(const QString& tab);
+    // Ordine delle schede e, per ognuna, dei suoi pannelli (quelli non elencati restano in fondo, nell'ordine in cui
+    // sono stati creati).
+    void arrange(const QStringList& tabs, const QList<QPair<QString, QStringList>>& panels);
     void showContextual(const QString& tab, bool on, bool select = true);
     int selectedTab() const { return selectedTab_; }
     // Seleziona la scheda con questo nome (prove senza schermo).

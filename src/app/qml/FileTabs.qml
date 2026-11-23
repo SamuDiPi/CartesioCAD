@@ -1,4 +1,4 @@
-// Schede dei disegni aperti, con la scheda Inizio e il pulsante "+" (modello: TabsModel in C++).
+// Schede dei disegni aperti, con la scheda Disegno e il pulsante "+" (modello: TabsModel in C++).
 import QtQuick
 import CartesioCAD
 

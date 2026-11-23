@@ -6,7 +6,7 @@ Il database contiene solo tipologie, senza costruttori: per i cavi le designazio
 
 ## Canalina (`CANALINA`, `CANALINE`, `CABLETRAY`)
 
-**Dove:** Plugin > CanaloCAD > Canalina. Si apre una finestra a sé, che si sposta e si allarga (anche su un altro schermo) e resta aperta mentre si lavora nel disegno.
+**Dove:** Impianto > CanaloCAD > Canalina. Si apre una finestra a sé, che si sposta e si allarga (anche su un altro schermo) e resta aperta mentre si lavora nel disegno.
 
 1. **Disegnare la canalina**: la sezione (un rettangolo o un profilo a U di L×H, anche con i cerchi dei cavi e le sigle) e/o il percorso in pianta (linee, polilinee).
 2. **Selezionarla e premere Usa selezione.** Una sezione diventa una canalina con **le misure disegnate** (al millimetro: un rettangolo di 320×80 dà una canalina di 320×80) e i cavi letti dal disegno con l'importazione di CanaloCAD (cerchi = cavi, testi = sigle); al posto degli oggetti disegnati CanaloCAD ridisegna la sezione al vero: profilo, cavi con i conduttori, bandierine, quote, staffaggio (Ctrl+Z torna al disegno di prima). Un percorso in pianta si collega alla canalina scelta; un oggetto di una canalina la mostra. Ogni canalina ha un codice (CN1, CN2...).
@@ -34,7 +34,7 @@ Le canaline (dati e cavi) si salvano nel disegno (DWG/DXF) e ogni modifica si an
 
 ## Verifica sezione (`CANALOVERIFICA`, `CANALOCHECK`)
 
-**Dove:** Plugin > CanaloCAD > Verifica sezione. Apre la finestra Canalina con la canalina degli oggetti selezionati; una sezione disegnata non ancora collegata diventa una canalina nuova, come con Usa selezione.
+**Dove:** Impianto > CanaloCAD > Verifica sezione. Apre la finestra Canalina con la canalina degli oggetti selezionati; una sezione disegnata non ancora collegata diventa una canalina nuova, come con Usa selezione.
 
 Negli script: `-CANALOVERIFICA` (risultati nella riga di comando) e `-CANALOTAVOLA` (anche la tavola di CanaloCAD accanto alla sezione).
 

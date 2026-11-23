@@ -54,7 +54,7 @@ Riseleziona gli oggetti usati dall'ultimo comando.
 
 ## Seleziona simili (`SELECTSIMILAR`, `SIMILI`)
 
-**Dove:** Gestisci > Ripulitura > Seleziona simili; menu del tasto destro.
+**Dove:** Strumenti > Pulizia > Seleziona simili; menu del tasto destro.
 
 Partendo dagli oggetti selezionati, seleziona tutti gli oggetti dello stesso tipo e dello stesso layer.
 
@@ -68,7 +68,7 @@ Si seleziona un oggetto e si avvia il comando che lo crea con le stesse propriet
 
 ## Gruppi (`GROUP`, `G`, `GRUPPO`; `UNGROUP`, `SCIOGLIGRUPPO`; `PICKSTYLE`)
 
-**Dove:** Inizio > Gruppi.
+**Dove:** Disegno > Gruppi.
 
 `GROUP`: si selezionano gli oggetti e si dà un nome (Invio = gruppo senza nome). Poi un clic su un oggetto seleziona tutto il gruppo. `UNGROUP` scioglie il gruppo degli oggetti selezionati. *Selezione gruppi* (variabile `PICKSTYLE`) accende o spegne la selezione per gruppo.
 

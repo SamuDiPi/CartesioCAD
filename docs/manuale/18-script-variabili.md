@@ -2,7 +2,7 @@
 
 ## Script (`SCRIPT`, `SCR`)
 
-**Dove:** Gestisci > Personalizzazione > Esegui script. Anche trascinando un file `.scr` sulla finestra o passandolo all'avvio (`CartesioCAD.exe disegno.scr`).
+**Dove:** Strumenti > Personalizzazione > Esegui script. Anche trascinando un file `.scr` sulla finestra o passandolo all'avvio (`CartesioCAD.exe disegno.scr`).
 
 Uno script è un file di testo con i comandi da eseguire in fila, come se si scrivessero nella riga di comando:
 - spazi e a capo valgono come Invio;

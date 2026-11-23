@@ -16,19 +16,19 @@ Trascinando con la rotella premuta ci si sposta nel disegno in qualsiasi momento
 
 ## Viste con nome (`-VIEW`, `-V`, `-VISTA`)
 
-**Dove:** Vista > Viste con nome (Nuova vista, Gestione viste, elenco delle viste).
+**Dove:** Schermo > Viste salvate (Nuova vista, Gestione viste, elenco delle viste).
 
 Salva l'inquadratura corrente con un nome e la richiama: `[?/Salva/Ripristina/Elimina]`. Le viste si salvano nel DXF.
 
 ## Finestre del modello affiancate (`VPORTS`, `FINESTREMODELLO`)
 
-**Dove:** Vista > Finestre modello > Configurazione finestre.
+**Dove:** Schermo > Finestre del modello > Configurazione finestre.
 
 Divide lo spazio modello in più viste dello stesso disegno: una, due verticali, due orizzontali, tre (una grande a sinistra), quattro. Ogni vista ha il suo zoom; un clic su una vista la rende attiva (bordo azzurro). *Unisci* torna a una sola vista.
 
 ## Elementi della finestra
 
-**Dove:** Vista > Elementi della vista, Vista > Interfaccia.
+**Dove:** Schermo > Elementi, Schermo > Interfaccia.
 
 - *Icona degli assi* e *Pulsanti di navigazione*: si mostrano o si nascondono.
 - *Schede File* e *Schede Layout*: si mostrano o si nascondono le schede dei disegni e dei layout.

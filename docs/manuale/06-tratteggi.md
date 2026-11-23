@@ -2,7 +2,7 @@
 
 ## Tratteggio (`HATCH`, `H`, `TRATTEGGIO`, `TRATT`)
 
-**Dove:** Inizio > Disegna > Tratteggio.
+**Dove:** Disegno > Linee e forme > Tratteggio.
 
 Riempie un'area con un motivo o un colore pieno.
 1. Cliccare **dentro** l'area da tratteggiare: contorno e isole interne si trovano da soli, anche fra linee che si incrociano. Si possono cliccare più aree.

@@ -2,9 +2,9 @@
 
 ## Gestore proprietà layer (`LAYER`, `LA`)
 
-**Dove:** Inizio > Layer > Proprietà layer; Vista > Pannelli > Proprietà layer.
+**Dove:** Disegno > Layer > Proprietà layer; Schermo > Pannelli > Proprietà layer.
 
-Tavolozza con tutti i layer: acceso/spento, congelato, bloccato, colore, tipo e spessore di linea, stampabile, *Congela nella finestra* (nei layout), nuovo, rinomina, elimina, rendi corrente. Le modifiche si annullano con Ctrl+Z (non l'eliminazione). Nell'elenco dei layer della barra multifunzione (Inizio > Layer) le stesse icone si cliccano direttamente e si sceglie il layer corrente.
+Tavolozza con tutti i layer: acceso/spento, congelato, bloccato, colore, tipo e spessore di linea, stampabile, *Congela nella finestra* (nei layout), nuovo, rinomina, elimina, rendi corrente. Le modifiche si annullano con Ctrl+Z (non l'eliminazione). Nell'elenco dei layer della barra multifunzione (Disegno > Layer) le stesse icone si cliccano direttamente e si sceglie il layer corrente.
 
 ## Layer da riga di comando (`-LAYER`, `-LA`)
 
@@ -16,7 +16,7 @@ Salva con un nome la situazione di tutti i layer (accensione, congelamento, bloc
 
 ## Comandi rapidi sui layer degli oggetti
 
-**Dove:** Inizio > Layer.
+**Dove:** Disegno > Layer.
 
 | Comando | Alias | Cosa fa |
 |---|---|---|
@@ -33,7 +33,7 @@ Salva con un nome la situazione di tutti i layer (accensione, congelamento, bloc
 
 ## Tavolozza Proprietà (`PROPERTIES`, `PR`, `PROPRIETA`)
 
-**Dove:** Inizio > Proprietà; Vista > Pannelli > Proprietà; Ctrl+1; doppio clic su un oggetto che non è un testo.
+**Dove:** Disegno > Proprietà; Schermo > Pannelli > Proprietà; Ctrl+1; doppio clic su un oggetto che non è un testo.
 
 Mostra e modifica le proprietà degli oggetti selezionati:
 - la tendina in alto divide la selezione per tipo: scegliendo un tipo si modificano solo quelli;

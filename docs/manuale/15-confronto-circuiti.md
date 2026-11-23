@@ -2,10 +2,10 @@
 
 ## Confronto di revisioni (`COMPARE`, `DWGCOMPARE`, `CONFRONTADWG`, `CONFRONTA`)
 
-**Dove:** Revisioni > Confronta > Confronta disegni.
+**Dove:** Strumenti > Revisioni > Confronta disegni.
 
 Confronta il disegno aperto con un'altra revisione (si sceglie il file):
-- in **grigio** gli oggetti uguali, in **verde** quelli solo nel disegno corrente (aggiunti), in **rosso** quelli solo nell'altro (tolti);
+- in **grigio** gli oggetti uguali, in **azzurro** quelli solo nel disegno corrente (aggiunti), in **magenta** quelli solo nell'altro (tolti);
 - le **zone** delle modifiche sono riquadrate: nella scheda *Confronto*, *Precedente* e *Successiva* le percorrono una alla volta;
 - *Solo in questo* e *Solo nell'altro* mostrano o nascondono le due parti;
 - *Chiudi confronto* torna al disegno normale.
@@ -14,7 +14,7 @@ Il confronto tollera le piccole differenze dovute alla conversione dei formati (
 
 ## Circuiti (`CIRCUITI`, `CIRCUITS`)
 
-**Dove:** Plugin > Impianti elettrici > Circuiti.
+**Dove:** Impianto > Impianti elettrici > Circuiti.
 
 Tavolozza per le sigle dei circuiti elettrici in pianta, confrontate con lo schema unifilare dei quadri in PDF.
 

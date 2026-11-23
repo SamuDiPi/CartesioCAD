@@ -7,7 +7,7 @@
       "minuti": 5,
       "passi": [
         { "testo": "Serve un disegno aperto. Se non c'è, crealo con Nuovo (il primo pulsante in alto a sinistra) o Ctrl+N.", "fatto": { "tipo": "drawing" } },
-        { "testo": "Disegna un rettangolo: Inizio > Disegna > Rettangolo (evidenziato), poi un clic per il primo angolo e un clic per l'angolo opposto.", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
+        { "testo": "Disegna un rettangolo: Disegno > Linee e forme > Rettangolo (evidenziato), poi un clic per il primo angolo e un clic per l'angolo opposto.", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
         { "testo": "Disegna un cerchio dentro il rettangolo: Cerchio, un clic per il centro, poi un clic o un numero (Invio) per il raggio.", "pulsante": "Cerchio", "fatto": { "tipo": "entity", "kind": "Circle", "count": 1 } },
         { "testo": "Ora una linea dal centro del cerchio a un angolo del rettangolo. Con lo snap ad oggetto acceso (F3) avvicinandoti compare il marcatore: centro, punto finale. Linea, i due punti, poi Invio.", "pulsante": "Linea", "fatto": { "tipo": "entity", "kind": "Line", "count": 1 } },
         { "testo": "Seleziona il cerchio con un clic sul suo bordo: compaiono le maniglie (quadratini blu).", "fatto": { "tipo": "selection", "min": 1 } },
@@ -26,7 +26,7 @@
         { "testo": "Scrivi un testo: Testo, due clic per il riquadro, poi scrivi direttamente nel disegno. Invio va a capo, Ctrl+Invio (o un clic fuori) conferma. Intanto guarda la scheda Editor di testo che compare in alto.", "pulsante": "Testo", "fatto": { "tipo": "entity", "kind": "MText", "count": 1 } },
         { "testo": "Fai doppio clic sul testo: lo modifichi nello stesso modo, con cursore e selezione sulle lettere. Seleziona una parola e mettila in grassetto dalla scheda Editor di testo. Ctrl+Invio per confermare, poi Avanti.", "fatto": { "tipo": "next" } },
         { "testo": "Quota la linea: Quota, un clic su un estremo, un clic sull'altro (lo snap li aggancia), poi un clic dove mettere la linea di quota.", "pulsante": "Quota", "fatto": { "tipo": "entity", "kind": "Dimension", "count": 1 } },
-        { "testo": "Metti una direttrice: Annota > Direttrici > Direttrice; un clic sulla punta della freccia, un clic per il secondo punto, Invio, poi scrivi il testo e conferma con Ctrl+Invio.", "pulsante": "Direttrice", "fatto": { "tipo": "entity", "kind": "Leader", "count": 1 } }
+        { "testo": "Metti una direttrice: Testi e quote > Direttrici > Direttrice; un clic sulla punta della freccia, un clic per il secondo punto, Invio, poi scrivi il testo e conferma con Ctrl+Invio.", "pulsante": "Direttrice", "fatto": { "tipo": "entity", "kind": "Leader", "count": 1 } }
       ]
     },
     {
@@ -39,7 +39,7 @@
         { "testo": "Passa alla tavola: clicca la scheda Layout1 in basso, accanto a Modello. Vedi il foglio con l'area stampabile.", "fatto": { "tipo": "layout" } },
         { "testo": "Crea una finestra sul modello: Layout > Finestre di layout > Finestra, poi scrivi A e Invio per adattarla al foglio (oppure due angoli).", "pulsante": "Finestra", "fatto": { "tipo": "entity", "kind": "Viewport", "count": 1 } },
         { "testo": "Scegli la scala della finestra: selezionala e scegli la scala nella barra di stato (per esempio 1:50). Con un doppio clic dentro la finestra lavori nel modello, con un doppio clic fuori torni al foglio. Poi Avanti.", "fatto": { "tipo": "next" } },
-        { "testo": "Fai il PDF: Output > Esporta PDF. Nella finestra di stampa scegli foglio, scala e tabella stili, poi Stampa. Poi Avanti.", "pulsante": "Esporta PDF", "fatto": { "tipo": "next" } }
+        { "testo": "Fai il PDF: Stampa e PDF > Esporta PDF. Nella finestra di stampa scegli foglio, scala e tabella stili, poi Stampa. Poi Avanti.", "pulsante": "Esporta PDF", "fatto": { "tipo": "next" } }
       ]
     },
     {
@@ -48,13 +48,13 @@
       "minuti": 10,
       "passi": [
         { "testo": "Serve la pianta su cui disegnare i percorsi (Apri il disegno, o Nuovo per provare).", "fatto": { "tipo": "drawing" } },
-        { "testo": "Apri la tavolozza Impianto: scheda Plugin > Impianto.", "pulsante": "Impianto", "fatto": { "tipo": "panel", "name": "Plant" } },
+        { "testo": "Apri la tavolozza Impianto: scheda Impianto > Impianto.", "pulsante": "Impianto", "fatto": { "tipo": "panel", "name": "Plant" } },
         { "testo": "Crea il progetto: nella tavolozza, Nuovo... e salva il file .cdb accanto ai disegni. Tutte le piante dell'impianto useranno questo file. (Se ne hai già uno: Apri...)", "fatto": { "tipo": "plantProject" } },
         { "testo": "Aggiungi i circuiti: Importa schema PDF... legge lo schema unifilare; oppure, scheda Circuiti > Aggiungi..., scrivi sigla, tipo di cavo e formazione (per esempio FG16OM16 e 3G2,5) e la corrente Ib.", "fatto": { "tipo": "plantCircuits", "min": 1 } },
         { "testo": "Disegna il percorso di un tubo con una polilinea (Polilinea, i punti, Invio).", "pulsante": "Polilinea", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
         { "testo": "Seleziona la polilinea appena disegnata.", "fatto": { "tipo": "selection", "min": 1 } },
-        { "testo": "Plugin > Nuova tratta: tipo Tubo, diametro, posa; in fondo scrivi le sigle dei circuiti (o doppio clic nell'elenco). OK.", "pulsante": "Nuova tratta", "fatto": { "tipo": "plantRuns", "min": 1 } },
-        { "testo": "Verifica: Plugin > Verifica impianto. Nella scheda Tratte vedi l'esito colorato; il dettaglio è nella riga di comando (F2).", "pulsante": "Verifica impianto", "fatto": { "tipo": "counter", "name": "verify" } },
+        { "testo": "Impianto > Nuova tratta: tipo Tubo, diametro, posa; in fondo scrivi le sigle dei circuiti (o doppio clic nell'elenco). OK.", "pulsante": "Nuova tratta", "fatto": { "tipo": "plantRuns", "min": 1 } },
+        { "testo": "Verifica: Impianto > Verifica impianto. Nella scheda Tratte vedi l'esito colorato; il dettaglio è nella riga di comando (F2).", "pulsante": "Verifica impianto", "fatto": { "tipo": "counter", "name": "verify" } },
         { "testo": "Nella tavolozza, scheda Tratte: Etichette in pianta scrive accanto alla tratta misura ed esito.", "fatto": { "tipo": "tagged", "prefix": "etichetta:" } },
         { "testo": "Scegli la tratta nella tabella e premi Disegna sezione: compare la sezione con i cavi e la legenda.", "fatto": { "tipo": "tagged", "prefix": "sezione:" } },
         { "testo": "Infine Distinta...: i materiali per Excel o in una tabella nel disegno. Poi Avanti.", "fatto": { "tipo": "next" } }
@@ -67,7 +67,7 @@
       "passi": [
         { "testo": "Serve un disegno aperto (Nuovo).", "fatto": { "tipo": "drawing" } },
         { "testo": "Disegna la sezione della canalina: Rettangolo, un clic per il primo angolo, poi scrivi @300,75 e Invio (canalina 300×75 mm). Va bene anche il percorso in pianta, con linee o polilinee.", "pulsante": "Rettangolo", "fatto": { "tipo": "entity", "kind": "Polyline", "count": 1 } },
-        { "testo": "Plugin > Canalina: si apre la finestra Canalina (si può spostare e allargare, anche su un altro schermo).", "pulsante": "Canalina", "fatto": { "tipo": "panel", "name": "Canalo" } },
+        { "testo": "Impianto > Canalina: si apre la finestra Canalina (si può spostare e allargare, anche su un altro schermo).", "pulsante": "Canalina", "fatto": { "tipo": "panel", "name": "Canalo" } },
         { "testo": "Seleziona il rettangolo nel disegno e premi Usa selezione nella finestra: la canalina prende le misure disegnate e CanaloCAD ridisegna la sezione al suo posto.", "fatto": { "tipo": "canalo", "cables": 0 } },
         { "testo": "Scheda Cavi: scegli i cavi nel database a sinistra (categorie e ricerca), quantità, Terna a trifoglio per gli unipolari, poi Aggiungi o doppio clic. Aggiungine almeno tre: la sezione nel disegno si aggiorna a ogni cavo.", "fatto": { "tipo": "canalo", "cables": 3 } },
         { "testo": "In basso riempimento, Kr e segregazione; la scheda Riepilogo e tavola ha tutti i calcoli e la distinta di CanaloCAD (in rosso quello che non va, anche una canalina troppo piccola). Dati canalina... cambia misure, tipologia e staffaggio. Poi Avanti.", "fatto": { "tipo": "next" } },
@@ -80,7 +80,7 @@
       "minuti": 5,
       "passi": [
         { "testo": "Apri la pianta con i punti e le sigle dei circuiti.", "fatto": { "tipo": "drawing" } },
-        { "testo": "Plugin > Circuiti apre la tavolozza.", "pulsante": "Circuiti", "fatto": { "tipo": "panel", "name": "Circuits" } },
+        { "testo": "Impianto > Circuiti apre la tavolozza.", "pulsante": "Circuiti", "fatto": { "tipo": "panel", "name": "Circuits" } },
         { "testo": "Importa schema PDF...: scegli lo schema unifilare dei quadri. La tabella si riempie con i circuiti di tutti i quadri.", "fatto": { "tipo": "circuits" } },
         { "testo": "Verifica: confronta le sigle scritte in pianta con lo schema. Apri i gruppi e fai doppio clic su una voce per vederla nel disegno. Poi Avanti.", "fatto": { "tipo": "next" } },
         { "testo": "Per assegnare un circuito: seleziona i punti in pianta, scegli il circuito nella tabella e premi Assegna la sigla. Poi Avanti.", "fatto": { "tipo": "next" } }
@@ -92,8 +92,8 @@
       "minuti": 3,
       "passi": [
         { "testo": "Apri la revisione nuova del disegno.", "fatto": { "tipo": "drawing" } },
-        { "testo": "Revisioni > Confronta disegni e scegli la revisione vecchia.", "pulsante": "Confronta disegni", "fatto": { "tipo": "tab", "name": "Confronto" } },
-        { "testo": "Verde: c'è solo nel disegno aperto. Rosso: c'era solo nell'altro. Grigio: uguale. Usa Successiva e Precedente per passare da una zona modificata all'altra. Poi Avanti.", "fatto": { "tipo": "next" } },
+        { "testo": "Strumenti > Confronta disegni e scegli la revisione vecchia.", "pulsante": "Confronta disegni", "fatto": { "tipo": "tab", "name": "Confronto" } },
+        { "testo": "Azzurro: c'è solo nel disegno aperto. Magenta: c'era solo nell'altro. Grigio: uguale. Usa Successiva e Precedente per passare da una zona modificata all'altra. Poi Avanti.", "fatto": { "tipo": "next" } },
         { "testo": "Chiudi confronto torna al disegno normale. Poi Avanti.", "fatto": { "tipo": "next" } }
       ]
     }

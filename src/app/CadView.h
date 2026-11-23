@@ -81,7 +81,7 @@ public:
     Vec2 worldFromScreen(QPointF screen) const { return toWorld(screen); }
 
     // Confronto con un'altra revisione (scheda Confronto): nel modello gli oggetti uguali in grigio, quelli solo qui
-    // in verde, quelli solo nell'altro disegno sopra in rosso; le zone delle differenze riquadrate.
+    // in azzurro, quelli solo nell'altro disegno sopra in magenta; le zone delle differenze riquadrate in arancione.
     struct CompareView {
         std::unordered_set<EntityId> onlyHere;
         std::vector<std::shared_ptr<const Entity>> onlyThere;

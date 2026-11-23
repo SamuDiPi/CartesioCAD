@@ -2,7 +2,7 @@
 
 ## La finestra
 
-- **Barra multifunzione** in alto: le schede *Inizio, Inserisci, Annota, Vista, Gestisci, Output, Layout, Revisioni, Plugin* raccolgono i comandi per argomento. Alcune schede compaiono solo quando servono (*Editor di testo* mentre si scrive un testo, *Confronto* durante il confronto di due disegni). Se la finestra è stretta, i pannelli che non ci stanno si chiudono in un pulsante con il loro nome: cliccandolo si apre il menu con i comandi.
+- **Barra multifunzione** in alto: le schede *Disegno, Testi e quote, Inserimenti, Stampa e PDF, Impianto, Strumenti, Schermo* (più *Tavola* quando si lavora in un layout) raccolgono i comandi per argomento. Alcune schede compaiono solo quando servono (*Editor di testo* mentre si scrive un testo, *Confronto* durante il confronto di due disegni). Se la finestra è stretta, i pannelli che non ci stanno si chiudono in un pulsante con il loro nome: cliccandolo si apre il menu con i comandi.
 - **Pulsante dell'applicazione** (il logo rosso in alto a sinistra): Nuovo, Apri, Salva, Salva con nome, Utilità disegno (Controlla, Recupera, Archivia per l'invio), Documenti recenti, Opzioni, Guida, Informazioni, Chiudi, Esci.
 - **Barra di accesso rapido** accanto al logo: Nuovo, Apri, Salva, Salva con nome, Annulla, Ripristina.
 - **Schede dei disegni**: un disegno aperto per scheda; la scheda *Inizia* è la pagina iniziale. Si possono trascinare file DWG, DXF o script sulla finestra per aprirli.
@@ -10,7 +10,7 @@
 - **Riga di comando** sopra la barra di stato: qui si scrivono comandi, coordinate e opzioni e si leggono i messaggi.
 - **Schede Modello e Layout** in basso a sinistra.
 - **Barra di stato** in basso: coordinate del cursore, MODELLO/CARTA, scala di annotazione, aiuti al disegno.
-- **Pannelli** ai lati: Proprietà, Proprietà layer, Circuiti, Impianto, Blocchi, Guida. Si aprono dalla scheda *Vista > Pannelli* o con i loro comandi; si chiudono con la ×; il bordo si trascina per allargarle.
+- **Pannelli** ai lati: Proprietà, Proprietà layer, Circuiti, Impianto, Blocchi, Guida. Si aprono dalla scheda *Schermo > Pannelli* o con i loro comandi; si chiudono con la ×; il bordo si trascina per allargarle.
 
 ## La pagina Inizia
 
@@ -24,7 +24,7 @@
 - Scrivendo, compare l'**autocompletamento** dei comandi: frecce e Invio per scegliere.
 - **F2** (o `TEXTSCR`) apre la cronologia completa dei messaggi.
 - Il messaggio indica cosa serve (un punto, un numero, un'opzione); le opzioni tra `[ ]` si cliccano.
-- La riga si sposta trascinandola; si nasconde e si mostra da *Vista > Pannelli > Riga di comando* (Ctrl+9).
+- La riga si sposta trascinandola; si nasconde e si mostra da *Schermo > Pannelli > Riga di comando* (Ctrl+9).
 
 ## Coordinate e valori
 
@@ -73,7 +73,7 @@ Da sinistra: coordinate del cursore; **MODELLO/CARTA** (in un layout, passa fra 
 
 ## I pulsanti di navigazione
 
-In alto a destra sul disegno: Pan (manina), Zoom estensioni, Zoom avanti, Zoom indietro. Nell'angolo in basso a sinistra c'è l'icona degli assi X e Y. Si possono nascondere da *Vista > Elementi della vista* (Icona degli assi, Pulsanti di navigazione).
+In alto a destra sul disegno: Pan (manina), Zoom estensioni, Zoom avanti, Zoom indietro. Nell'angolo in basso a sinistra c'è l'icona degli assi X e Y. Si possono nascondere da *Schermo > Elementi* (Icona degli assi, Pulsanti di navigazione).
 
 ## Annullare e ripristinare (`UNDO`, `U`, `ANNULLA`; `REDO`, `RIPETI`)
 

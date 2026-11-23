@@ -757,7 +757,7 @@ std::optional<QColor> CadView::compareColor(const Entity& e) const
     if (!compare_ || e.space() != 0 || shownSpace_ != 0)
         return std::nullopt;
     if (compare_->onlyHere.count(e.id()))
-        return compare_->showHere ? QColor(70, 205, 95) : QColor(105, 110, 120);
+        return compare_->showHere ? QColor(60, 190, 240) : QColor(105, 110, 120);   // aggiunto: azzurro
     return QColor(105, 110, 120);   // uguale nei due disegni
 }
 
@@ -849,7 +849,7 @@ void CadView::drawOverlays(QPainter& p)
         p.setTransform(worldTransform());
         if (compare_->showThere) {
             Style removed;
-            removed.override = QColor(235, 70, 70);
+            removed.override = QColor(225, 85, 205);   // tolto: magenta
             for (const auto& e : compare_->onlyThere)
                 paintEntity(p, *e, removed);
         }

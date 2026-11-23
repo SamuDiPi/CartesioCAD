@@ -1,5 +1,5 @@
-// Schede della barra multifunzione dopo Inizio, con la stessa disposizione dei CAD diffusi: Inserisci, Annota,
-// Vista, Gestisci, Output e la scheda Layout (contestuale: solo nei layout).
+// Schede della barra multifunzione oltre a Disegno: Inserimenti, Testi e quote, Schermo, Strumenti, Stampa e PDF e
+// la scheda Tavola (contestuale: solo nei layout). L'ordine finale lo dà Ribbon::arrange in MainWindow.cpp.
 
 #include "app/MainWindow.h"
 
@@ -32,17 +32,17 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     };
 
     // ================================================================ Inserisci
-    RibbonPanel* blockPanel = ribbon->addPanel(tr("Inserisci"), tr("Blocco"));
+    RibbonPanel* blockPanel = ribbon->addPanel(tr("Inserimenti"), tr("Blocchi"));
     blockPanel->addLargeButton(insertAct_);
     QAction* eattedit = cmd(tr("Edita\nattributo"), icon(Icon::AttributeDef), "EATTEDIT");
     blockPanel->addLargeButton(withMenu(eattedit, {cmd(tr("Edita attributo"), icon(Icon::AttributeDef), "EATTEDIT"),
                                                    cmd(tr("Sincronizza attributi"), icon(Icon::AttributeDef), "ATTSYNC")}));
-    RibbonPanel* blockDef = ribbon->addPanel(tr("Inserisci"), tr("Definizione di un blocco"));
+    RibbonPanel* blockDef = ribbon->addPanel(tr("Inserimenti"), tr("Crea blocchi"));
     blockDef->addLargeButton(blockAct_);
     blockDef->addLargeButton(attdefAct_);
     blockDef->addLargeButton(cmd(tr("Gestisci\nattributi"), icon(Icon::AttributeDef), "BATTMAN"));
     blockDef->addLargeButton(cmd(tr("Editor\nblocchi"), icon(Icon::BlockCreate), "BEDIT"));
-    RibbonPanel* refPanel = ribbon->addPanel(tr("Inserisci"), tr("Riferimento"));
+    RibbonPanel* refPanel = ribbon->addPanel(tr("Inserimenti"), tr("File collegati"));
     QAction* attach = cmd(tr("Allega"), icon(Icon::BlockInsert), "XATTACH");
     refPanel->addLargeButton(withMenu(attach, {cmd(tr("Riferimento DWG/DXF (XATTACH)..."), icon(Icon::BlockInsert), "XATTACH"),
                                                cmd(tr("Immagine raster (IMAGEATTACH)..."), icon(Icon::BlockInsert), "IMAGEATTACH")}));
@@ -63,7 +63,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
                               cmd(tr("Inserisci da file"), icon(Icon::Open), "INSERTFILE")});
 
     // ================================================================ Annota
-    RibbonPanel* textPanel = ribbon->addPanel(tr("Annota"), tr("Testo"));
+    RibbonPanel* textPanel = ribbon->addPanel(tr("Testi e quote"), tr("Testo"));
     textPanel->addLargeButton(withMenu(cmd(tr("Testo\nmultilinea"), icon(Icon::TextMulti), "MTEXT"), {mtextAct_, textAct_}));
     annoTextStyleCombo_ = new ComboModel(170, this);
     annoTextStyleCombo_->setToolTip(tr("Stile di testo corrente"));
@@ -98,7 +98,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
         updateAnnotateCombos();
     });
 
-    RibbonPanel* dimPanel = ribbon->addPanel(tr("Annota"), tr("Quote"));
+    RibbonPanel* dimPanel = ribbon->addPanel(tr("Testi e quote"), tr("Quote"));
     QAction* dimAct = cmd(tr("Quota"), icon(Icon::DimLinear), "DIMLINEAR");
     dimPanel->addLargeButton(withMenu(dimAct, {dimLinearAct_, dimAlignedAct_, dimAngularAct_, dimRadiusAct_, dimDiameterAct_,
                                                dimOrdinateAct_}));
@@ -121,11 +121,11 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
                                                 dimOrdinateAct_}),
                               qdimAct_, withMenu(cont, {dimContinueAct_, dimBaselineAct_})});
 
-    RibbonPanel* centers = ribbon->addPanel(tr("Annota"), tr("Linee d'asse"));
+    RibbonPanel* centers = ribbon->addPanel(tr("Testi e quote"), tr("Assi"));
     centers->addLargeButton(cmd(tr("Centro"), glyphIcon(QStringLiteral("⊕")), "CENTERMARK"));
     centers->addLargeButton(cmd(tr("Linea d'asse"), glyphIcon(QStringLiteral("—·—")), "CENTERLINE"));
 
-    RibbonPanel* leaders = ribbon->addPanel(tr("Annota"), tr("Direttrici"));
+    RibbonPanel* leaders = ribbon->addPanel(tr("Testi e quote"), tr("Direttrici"));
     leaders->addLargeButton(leaderAct_);
     annoLeaderStyleCombo_ = new ComboModel(170, this);
     annoLeaderStyleCombo_->setToolTip(tr("Stile di direttrice corrente"));
@@ -143,14 +143,14 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
         d->notifyChanged();
     });
 
-    RibbonPanel* tables = ribbon->addPanel(tr("Annota"), tr("Tabelle"));
+    RibbonPanel* tables = ribbon->addPanel(tr("Testi e quote"), tr("Tabelle"));
     tables->addLargeButton(cmd(tr("Tabella"), icon(Icon::TableIcon), "TABLE"));
 
-    RibbonPanel* revision = ribbon->addPanel(tr("Annota"), tr("Revisione"));
+    RibbonPanel* revision = ribbon->addPanel(tr("Testi e quote"), tr("Revisione"));
     revision->addLargeButton(cmd(tr("Maschera"), icon(Icon::WipeoutIcon), "WIPEOUT"));
     revision->addLargeButton(cmd(tr("Nuvola di\nrevisione"), icon(Icon::Revcloud), "REVCLOUD"));
 
-    RibbonPanel* scales = ribbon->addPanel(tr("Annota"), tr("Scale di annotazione"));
+    RibbonPanel* scales = ribbon->addPanel(tr("Testi e quote"), tr("Scale"));
     QAction* addCurrent = makeAction(tr("Aggiungi\nscala corrente"), glyphIcon(QStringLiteral("1:n+")), {},
                                      tr("Aggiunge la scala di annotazione corrente agli oggetti annotativi selezionati"));
     connect(addCurrent, &QAction::triggered, this, [this] {
@@ -170,7 +170,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
                             cmd(tr("Aggiungi/Elimina scale"), glyphIcon(QStringLiteral("±")), "OBJECTSCALE")});
 
     // ================================================================ Vista
-    RibbonPanel* viewTools = ribbon->addPanel(tr("Vista"), tr("Elementi della vista"));
+    RibbonPanel* viewTools = ribbon->addPanel(tr("Schermo"), tr("Elementi"));
     const auto optionToggle = [this](const QString& text, const QIcon& ic, const QString& tip, bool AppOptions::*field) {
         QAction* a = makeAction(text, ic, {}, tip);
         a->setCheckable(true);
@@ -191,7 +191,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     viewTools->addLargeButton(optionToggle(tr("Pulsanti di\nnavigazione"), icon(Icon::Pan),
                                            tr("Pulsanti di navigazione sul disegno: pan e zoom"), &AppOptions::showNavigationBar));
 
-    RibbonPanel* views = ribbon->addPanel(tr("Vista"), tr("Viste con nome"));
+    RibbonPanel* views = ribbon->addPanel(tr("Schermo"), tr("Viste salvate"));
     viewsCombo_ = new ComboModel(180, this);
     viewsCombo_->setToolTip(tr("Viste salvate del disegno: sceglierne una per ripristinarla"));
     QAction* newView = makeAction(tr("Nuova vista"), icon(Icon::ZoomExtents), {}, tr("Salva con un nome quello che si vede ora"));
@@ -219,7 +219,7 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     });
 
     // Finestre del modello affiancate (VPORTS).
-    RibbonPanel* tilesPanel = ribbon->addPanel(tr("Vista"), tr("Finestre modello"));
+    RibbonPanel* tilesPanel = ribbon->addPanel(tr("Schermo"), tr("Finestre del modello"));
     auto* tilesMenu = new QMenu(this);
     const QStringList tileNames = {tr("Una"), tr("Due: verticali"), tr("Due: orizzontali"), tr("Tre: una grande a sinistra"),
                                    tr("Quattro")};
@@ -240,13 +240,13 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     });
     tilesPanel->addSmallColumn({joinTiles});
 
-    RibbonPanel* palettes = ribbon->addPanel(tr("Vista"), tr("Pannelli"));
+    RibbonPanel* palettes = ribbon->addPanel(tr("Schermo"), tr("Pannelli"));
     palettes->addLargeButton(propertiesAct_);
     palettes->addLargeButton(libraryAct_);
     palettes->addLargeButton(layerPropsAct_);
     palettes->addSmallColumn({commandLineAct_, historyAct_}, false);
 
-    RibbonPanel* uiPanel = ribbon->addPanel(tr("Vista"), tr("Interfaccia"));
+    RibbonPanel* uiPanel = ribbon->addPanel(tr("Schermo"), tr("Interfaccia"));
     auto* switchMenu = new QMenu(this);
     connect(switchMenu, &QMenu::aboutToShow, this, [this, switchMenu] {
         switchMenu->clear();
@@ -265,18 +265,18 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
                                          &AppOptions::showLayoutTabs));
 
     // ================================================================ Gestisci
-    RibbonPanel* custom = ribbon->addPanel(tr("Gestisci"), tr("Personalizzazione"));
+    RibbonPanel* custom = ribbon->addPanel(tr("Strumenti"), tr("Personalizzazione"));
     QAction* optionsAct = makeAction(tr("Opzioni"), icon(Icon::Properties), {}, tr("Opzioni del programma"));
     connect(optionsAct, &QAction::triggered, this, [this] { showOptions(); });
     custom->addLargeButton(optionsAct);
     custom->addLargeButton(scriptAct_);
-    RibbonPanel* cleanup = ribbon->addPanel(tr("Gestisci"), tr("Ripulitura"));
+    RibbonPanel* cleanup = ribbon->addPanel(tr("Strumenti"), tr("Pulizia"));
     cleanup->addSmallColumn({cmd(tr("Elimina"), icon(Icon::Erase), "PURGE"), cmd(tr("Elimina duplicati"), icon(Icon::Erase), "OVERKILL"),
                              cmd(tr("Verifica"), glyphIcon(QStringLiteral("✓"), true), "AUDIT")});
     cleanup->addSmallColumn({cmd(tr("Recupera"), icon(Icon::Open), "RECOVER"), cmd(tr("Seleziona simili"), icon(Icon::MatchProp), "SELECTSIMILAR")});
 
     // ================================================================ Output
-    RibbonPanel* plotPanel = ribbon->addPanel(tr("Output"), tr("Stampa"));
+    RibbonPanel* plotPanel = ribbon->addPanel(tr("Stampa e PDF"), tr("Stampa"));
     plotPanel->addLargeButton(plotAct_);
     plotPanel->addLargeButton(publishAct_);
     plotPanel->addLargeButton(previewAct_);
@@ -292,20 +292,20 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     QAction* plotters = makeAction(tr("Gestione plotter"), icon(Icon::PlotIcon), {}, tr("Stampanti e tabelle stili di stampa (Opzioni)"));
     connect(plotters, &QAction::triggered, this, [this] { showOptions(2); });
     plotPanel->addSmallColumn({pageSetupAct_, plotLog, plotters});
-    RibbonPanel* exportPanel = ribbon->addPanel(tr("Output"), tr("Esporta in PDF"));
+    RibbonPanel* exportPanel = ribbon->addPanel(tr("Stampa e PDF"), tr("PDF"));
     exportPanel->addLargeButton(pdfAct_);
 
     // ================================================================ Layout (contestuale)
-    RibbonPanel* layoutPanel = ribbon->addPanel(tr("Layout"), tr("Layout"));
+    RibbonPanel* layoutPanel = ribbon->addPanel(tr("Tavola"), tr("Layout"));
     layoutPanel->addLargeButton(layoutNewAct_);
     layoutPanel->addLargeButton(pageSetupAct_);
-    RibbonPanel* viewportsPanel = ribbon->addPanel(tr("Layout"), tr("Finestre di layout"));
+    RibbonPanel* viewportsPanel = ribbon->addPanel(tr("Tavola"), tr("Finestre"));
     viewportsPanel->addLargeButton(mviewAct_);
     viewportsPanel->addSmallColumn({vpclipAct_});
-    RibbonPanel* titlePanel = ribbon->addPanel(tr("Layout"), tr("Cartiglio"));
+    RibbonPanel* titlePanel = ribbon->addPanel(tr("Tavola"), tr("Cartiglio"));
     titlePanel->addLargeButton(titleBlockAct_);
     titlePanel->addSmallColumn({titleUpdateAct_});
-    ribbon->setContextual(tr("Layout"));
+    ribbon->setContextual(tr("Tavola"));
 }
 
 void MainWindow::chooseTiles()

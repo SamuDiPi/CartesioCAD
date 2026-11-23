@@ -1,4 +1,4 @@
-// Plugin CanaloCAD nella finestra principale: scheda "Plugin" della barra multifunzione, comandi
+// Plugin CanaloCAD nella finestra principale: scheda "Impianto" della barra multifunzione, comandi
 // CANALOCAD, CANALOINVIA, CANALOINS, CANALOULTIMA, CANALOVERIFICA (calcoli sulla sezione selezionata) e
 // sorveglianza della cartella di scambio.
 #include "app/MainWindow.h"
@@ -64,7 +64,7 @@ void MainWindow::setupCanalo(Ribbon* ribbon)
                                 "linee = canalina, testi = sigle) e calcoli di CanaloCAD\nComando: CANALOVERIFICA"));
     connect(check, &QAction::triggered, this, [this] { canaloCheck(true); });
     drawingActions_ << send << insert << latest << check << trays;
-    RibbonPanel* panel = ribbon->addPanel(tr("Plugin"), tr("CanaloCAD"));
+    RibbonPanel* panel = ribbon->addPanel(tr("Impianto"), tr("CanaloCAD"));
     panel->addLargeButton(trays);
     panel->addLargeButton(check);
     panel->addLargeButton(open);
@@ -76,7 +76,7 @@ void MainWindow::setupCanalo(Ribbon* ribbon)
     connect(circuits, &QAction::triggered, this, [this] {
         showPanel(MainView::Circuits);
     });
-    RibbonPanel* electric = ribbon->addPanel(tr("Plugin"), tr("Impianti elettrici"));
+    RibbonPanel* electric = ribbon->addPanel(tr("Impianto"), tr("Impianti elettrici"));
     electric->addLargeButton(circuits);
 
     // Impianto: database di progetto (circuiti, tratte, cavi) e verifiche di tubi, canali e passerelle.
@@ -281,7 +281,7 @@ void MainWindow::updateCanaloWatch()
             if (path.isEmpty())
                 return;
             canaloSeen_ = QFileInfo(path).lastModified();
-            print(tr("CanaloCAD ha esportato %1: CANALOULTIMA (o Plugin > Ultima tavola) per inserirla.")
+            print(tr("CanaloCAD ha esportato %1: CANALOULTIMA (o Impianto > Ultima tavola) per inserirla.")
                       .arg(QFileInfo(path).fileName()));
         });
     }

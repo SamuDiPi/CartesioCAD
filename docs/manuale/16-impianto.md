@@ -4,7 +4,7 @@ L'Impianto è il database del progetto elettrico, condiviso da tutte le piante: 
 
 ## La tavolozza Impianto (`IMPIANTO`)
 
-**Dove:** Plugin > Impianti elettrici > Impianto.
+**Dove:** Impianto > Impianti elettrici > Impianto.
 
 In alto: *Nuovo...*, *Apri...*, *Importa schema PDF...*, *Verifica*, **?** (apre la guida dell'Impianto). Sotto: nome del progetto e riepilogo (circuiti, tratte, quante non verificate). Tre schede: **Circuiti**, **Tratte**, **Cavi propri**. Doppio clic su una riga per modificarla; *Aggiungi*, *Modifica*, *Elimina* in basso.
 
@@ -26,7 +26,7 @@ Tipi di cavo che mancano nel catalogo: codice, tipo, formazione, diametro, peso 
 
 ## Tratte (`TRATTA`)
 
-**Dove:** Plugin > Impianti elettrici > Nuova tratta; Impianto > Tratte > *Nuova tratta dalla selezione...*
+**Dove:** Impianto > Impianti elettrici > Nuova tratta; Impianto > Tratte > *Nuova tratta dalla selezione...*
 
 1. Disegnare il percorso del tubo, del canale o della passerella con linee o polilinee (anche più pezzi).
 2. Selezionarlo.
@@ -40,7 +40,7 @@ La lunghezza della tratta si **misura dal disegno**. *Aggiungi la selezione* uni
 
 ## Verifiche (`VERIFICAIMPIANTO`)
 
-**Dove:** Plugin > Impianti elettrici > Verifica impianto; Impianto > *Verifica*.
+**Dove:** Impianto > Impianti elettrici > Verifica impianto; Impianto > *Verifica*.
 
 Per ogni tratta:
 - **tubo**: diametro interno di almeno **1,3 volte il fascio** di cavi (il cerchio più piccolo che li contiene); se non basta indica il diametro giusto;
