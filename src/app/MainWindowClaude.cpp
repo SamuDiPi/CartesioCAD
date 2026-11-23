@@ -594,6 +594,7 @@ void MainWindow::startupClaude()
 
 void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, ClaudeLink::Reply reply)
 {
+    ++claudeCalls_;
     DrawingWidget* d = current();
     if (!d) {
         reply(false, tr("In CartesioCAD non c'è nessun disegno aperto."));
@@ -742,6 +743,7 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
         }
         print(tr("Claude: salvata la nuova versione %1 (l'originale %2 non è stato toccato).")
                   .arg(QDir::toNativeSeparators(target), QFileInfo(original).fileName()));
+        ++claudeSaved_;
         saveThumbnail(d, target);
         addRecentFile(target);
         if (dwg) {
@@ -808,6 +810,7 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
             if (doc.find(id))
                 alive.push_back(id);
         drawing->setSelection(alive);
+        ++claudeApplied_;
         return {};
     };
 

@@ -73,6 +73,9 @@ void MainWindow::guideStepEntered()
     guideSnap_.circuits = static_cast<int>(plant_->project().circuits.size());
     guideSnap_.verify = plant_->verifyCount();
     guideSnap_.canalo = canaloChecks_;
+    guideSnap_.claudeCalls = claudeCalls_;
+    guideSnap_.claudeApplied = claudeApplied_;
+    guideSnap_.claudeSaved = claudeSaved_;
     if (!guideTimer_) {
         guideTimer_ = new QTimer(this);
         guideTimer_->setInterval(300);
@@ -159,6 +162,17 @@ void MainWindow::guideCheckStep()
                 ok = true;
     } else if (type == QLatin1String("circuits")) {
         ok = !circuits_->circuits().empty();
+    } else if (type == QLatin1String("claude")) {
+        // Connettore per Claude: attivo, una richiesta di Claude, modifiche applicate, nuova versione salvata.
+        const QString state = done.value(QStringLiteral("stato")).toString();
+        if (state == QLatin1String("attivo"))
+            ok = claude_ && claude_->running();
+        else if (state == QLatin1String("richiesta"))
+            ok = claudeCalls_ > guideSnap_.claudeCalls;
+        else if (state == QLatin1String("modifiche"))
+            ok = claudeApplied_ > guideSnap_.claudeApplied;
+        else if (state == QLatin1String("versione"))
+            ok = claudeSaved_ > guideSnap_.claudeSaved;
     }
     if (ok)
         guide_->markDone();

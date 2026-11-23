@@ -270,6 +270,11 @@ void MainWindow::setupRibbonTabs(Ribbon* ribbon)
     connect(optionsAct, &QAction::triggered, this, [this] { showOptions(); });
     custom->addLargeButton(optionsAct);
     custom->addLargeButton(scriptAct_);
+    RibbonPanel* assistant = ribbon->addPanel(tr("Strumenti"), tr("Assistente"));
+    QAction* claudeAct = makeAction(tr("Claude"), glyphIcon(QStringLiteral("AI"), true), {},
+                                    tr("Connettore per Claude Desktop: Claude legge il disegno e propone modifiche"));
+    connect(claudeAct, &QAction::triggered, this, [this] { showClaudeDialog(); });
+    assistant->addLargeButton(claudeAct);
     RibbonPanel* cleanup = ribbon->addPanel(tr("Strumenti"), tr("Pulizia"));
     cleanup->addSmallColumn({cmd(tr("Elimina"), icon(Icon::Erase), "PURGE"), cmd(tr("Elimina duplicati"), icon(Icon::Erase), "OVERKILL"),
                              cmd(tr("Verifica"), glyphIcon(QStringLiteral("✓"), true), "AUDIT")});

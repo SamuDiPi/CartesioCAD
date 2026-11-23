@@ -1,5 +1,5 @@
 {
-  "nota": "Percorsi guidati della Guida. Ogni passo: testo, pulsante da evidenziare nella barra multifunzione (testo del pulsante), condizione che lo chiude da sola. Condizioni: drawing (un disegno aperto), entity (kind = tipo di oggetto o *, count = quanti nuovi), selection (min), command (name = comando finito con una modifica), undo (qualcosa da ripristinare), saved, layout (si lavora in un layout), tab (name), panel (name: Properties, Layers, Circuits, Library, Plant, Guide, Canalo), plantProject, plantCircuits (min), plantRuns (min), tagged (prefix: oggetti dell'impianto), counter (name: canalo, verify), canalo (cables: una canalina del disegno con almeno tanti cavi), circuits (schema caricato), next (si va avanti con il pulsante).",
+  "nota": "Percorsi guidati della Guida. Ogni passo: testo, pulsante da evidenziare nella barra multifunzione (testo del pulsante), condizione che lo chiude da sola. Condizioni: drawing (un disegno aperto), entity (kind = tipo di oggetto o *, count = quanti nuovi), selection (min), command (name = comando finito con una modifica), undo (qualcosa da ripristinare), saved, layout (si lavora in un layout), tab (name), panel (name: Properties, Layers, Circuits, Library, Plant, Guide, Canalo), plantProject, plantCircuits (min), plantRuns (min), tagged (prefix: oggetti dell'impianto), counter (name: canalo, verify), canalo (cables: una canalina del disegno con almeno tanti cavi), circuits (schema caricato), claude (stato: attivo = connettore acceso, richiesta = Claude ha usato uno strumento, modifiche = proposta applicata, versione = nuova versione salvata), next (si va avanti con il pulsante).",
   "percorsi": [
     {
       "titolo": "Il primo disegno",
@@ -95,6 +95,21 @@
         { "testo": "Strumenti > Confronta disegni e scegli la revisione vecchia.", "pulsante": "Confronta disegni", "fatto": { "tipo": "tab", "name": "Confronto" } },
         { "testo": "Azzurro: c'è solo nel disegno aperto. Magenta: c'era solo nell'altro. Grigio: uguale. Usa Successiva e Precedente per passare da una zona modificata all'altra. Poi Avanti.", "fatto": { "tipo": "next" } },
         { "testo": "Chiudi confronto torna al disegno normale. Poi Avanti.", "fatto": { "tipo": "next" } }
+      ]
+    },
+    {
+      "titolo": "Lavorare con Claude",
+      "descrizione": "Collegare Claude Desktop, chiedere una modifica, controllarla e salvare una nuova versione senza toccare l'originale.",
+      "minuti": 10,
+      "passi": [
+        { "testo": "Serve Claude Desktop, l'app di Anthropic (claude.ai/download), con il proprio account: installala e accedi, poi chiudila. CartesioCAD non chiede password né chiavi: l'accesso a Claude resta in Claude Desktop. Quando è pronta, premi Avanti.", "fatto": { "tipo": "next" } },
+        { "testo": "Apri il disegno su cui lavorare (Apri o Ctrl+O), DWG o DXF. Il file aperto non verrà mai sovrascritto: Claude salva solo nuove versioni accanto.", "fatto": { "tipo": "drawing" } },
+        { "testo": "Strumenti > Assistente > Claude (evidenziato). Nella finestra spunta \"Attiva il connettore\": è un canale solo locale, per il tuo utente di Windows. Leggi la nota sulla privacy: quello che Claude legge passa ad Anthropic secondo le condizioni del tuo account; con i disegni dei clienti verifica di poterli condividere.", "pulsante": "Claude", "fatto": { "tipo": "claude", "stato": "attivo" } },
+        { "testo": "Nella stessa finestra premi \"Configura Claude Desktop\" (basta la prima volta), poi chiudi del tutto Claude Desktop (anche dall'icona vicino all'orologio) e riaprilo: fra gli strumenti della chat compare \"cartesiocad\". Quando lo vedi, premi Avanti.", "pulsante": "Claude", "fatto": { "tipo": "next" } },
+        { "testo": "Seleziona nel disegno gli oggetti su cui vuoi lavorare: Claude di default legge solo la selezione. Poi in Claude Desktop scrivi cosa vuoi, per esempio \"Leggi gli oggetti selezionati e dimmi su che layer sono\". Il passo si chiude quando Claude legge il disegno.", "fatto": { "tipo": "claude", "stato": "richiesta" } },
+        { "testo": "Chiedi una modifica, per esempio \"Sposta i testi selezionati sul layer Testi\". In CartesioCAD si apre la finestra \"Claude propone delle modifiche\" con l'elenco delle operazioni e gli oggetti interessati selezionati: controllali e premi OK (Annulla per scartarle). Niente cambia senza OK.", "fatto": { "tipo": "claude", "stato": "modifiche" } },
+        { "testo": "Guarda il risultato nel disegno. Se non va bene, Ctrl+Z annulla tutte le modifiche di Claude in un colpo solo; poi puoi chiedere a Claude di riprovare. Premi Avanti quando il disegno è come vuoi.", "fatto": { "tipo": "next" } },
+        { "testo": "Chiedi a Claude \"Salva una nuova versione\": CartesioCAD scrive pianta-v2.dwg (o .dxf) accanto al file aperto, lo ricontrolla e da lì in poi lavora sulla nuova versione. L'originale resta com'era.", "fatto": { "tipo": "claude", "stato": "versione" } }
       ]
     }
   ]

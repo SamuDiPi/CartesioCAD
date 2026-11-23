@@ -1680,6 +1680,11 @@ bool MainWindow::runScript(const QString& path)
                 QCoreApplication::processEvents();
                 continue;
             }
+            if (word == QLatin1String("-GUIDAAVANTI")) {   // prove: come il pulsante Avanti
+                guide_->next();
+                QCoreApplication::processEvents();
+                continue;
+            }
             if (word == QLatin1String("-GUIDASTATO")) {   // prove: stato del percorso nella riga di comando
                 guideCheckStep();
                 print(QStringLiteral("-GUIDASTATO percorso %1 passo %2 di %3 %4%5 evidenziato [%6]")

@@ -433,6 +433,8 @@ private:
     bool updateBusy_ = false;
     QTimer* guideTimer_ = nullptr;
     int canaloChecks_ = 0;
+    // Attività del connettore per Claude (percorsi guidati): richieste, modifiche applicate, versioni salvate.
+    int claudeCalls_ = 0, claudeApplied_ = 0, claudeSaved_ = 0;
     // Stato all'inizio del passo del percorso guidato.
     struct GuideSnapshot {
         std::map<int, int> entities;   // per tipo di oggetto
@@ -442,6 +444,7 @@ private:
         std::string activeCommand;
         std::uint64_t commandRevision = 0;
         std::map<std::string, int> finishedCommands;
+        int claudeCalls = 0, claudeApplied = 0, claudeSaved = 0;
     } guideSnap_;
     void guideCommandFinished(const QString& name, bool cancelled);
     BlockLibrary* library_ = nullptr;
