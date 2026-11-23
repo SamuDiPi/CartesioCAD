@@ -6,6 +6,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QBuffer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -200,6 +201,8 @@ void Updater::get(const QString& url, qint64 limit, std::function<void(QByteArra
     }
     QNetworkRequest request(target);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("CartesioCAD-aggiornamenti"));
+    // Solo HTTP/1.1: le vulnerabilità note del client HTTP/2 di Qt (2026) non si possono raggiungere.
+    request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     request.setRawHeader("Accept", url.contains(QLatin1String("api.github.com")) ? "application/vnd.github+json"
                                                                                   : "application/octet-stream");
     QNetworkReply* reply = net_->get(request);
@@ -325,6 +328,7 @@ void Updater::download(const UpdateOffer& offer, std::function<void(qint64, qint
                 return;
             }
             request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("CartesioCAD-aggiornamenti"));
+            request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
             QNetworkReply* reply = net_->get(request);
             active_ = reply;
             const qint64 limit = manifest->size;
@@ -374,7 +378,7 @@ void Updater::cancel()
         active_->abort();
 }
 
-bool Updater::install(const QString& archive, const QString& appDir, QString* error)
+bool Updater::install(const QString& archive, const UpdateManifest& manifest, const QString& appDir, QString* error)
 {
     const auto fail = [error](const QString& why) {
         if (error)
@@ -394,9 +398,23 @@ bool Updater::install(const QString& archive, const QString& appDir, QString* er
     }
 
     // 1. Scompattato in una cartella di lavoro accanto al programma (stesso disco: si sposta senza copiare).
+    // Archivio letto una volta in memoria e verificato: da qui si lavora solo su questa copia.
+    QByteArray bytes;
+    {
+        QFile file(archive);
+        if (!file.open(QIODevice::ReadOnly) || file.size() != manifest.size)
+            return fail(QObject::tr("l'archivio non ha la dimensione indicata nel manifesto firmato"));
+        bytes = file.readAll();
+    }
+    if (bytes.size() != manifest.size
+        || QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex() != manifest.sha256)
+        return fail(QObject::tr("l'impronta SHA-256 dell'archivio non corrisponde al manifesto firmato"));
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::ReadOnly);
+
     const QString staging = app.filePath(QString::fromLatin1(kStaging));
     QDir(staging).removeRecursively();
-    QZipReader zip(archive);
+    QZipReader zip(&buffer);
     if (!zip.isReadable() || zip.status() != QZipReader::NoError)
         return fail(QObject::tr("archivio non leggibile"));
     QStringList files;

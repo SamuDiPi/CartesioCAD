@@ -150,7 +150,7 @@ void MainWindow::downloadAndInstall(const UpdateOffer& offer)
                 return;
             }
             QString installError;
-            if (!Updater::install(archive, appDirectory(), &installError)) {
+            if (!Updater::install(archive, *manifest, appDirectory(), &installError)) {
                 print(tr("Aggiornamento non installato: %1").arg(installError));
                 QMessageBox::warning(this, tr("Aggiornamento"), tr("Aggiornamento non installato: %1").arg(installError));
                 return;
@@ -231,7 +231,7 @@ void MainWindow::scriptUpdateLocal(const QString& manifestPath, const QString& a
         print(tr("-AGGIORNAMENTOLOCALE: %1").arg(error));
         return;
     }
-    if (!Updater::install(archive, folder, &error)) {
+    if (!Updater::install(archive, *manifest, folder, &error)) {
         print(tr("-AGGIORNAMENTOLOCALE: %1").arg(error));
         return;
     }
@@ -258,7 +258,7 @@ void MainWindow::scriptUpdateDownload(const QString& folder)
     updater()->download(*found, {}, [&](const QString& archive, std::optional<UpdateManifest> manifest, const QString& e) {
         if (!e.isEmpty() || !manifest)
             print(tr("-AGGIORNAMENTOSCARICA: %1").arg(e));
-        else if (QString installError; !Updater::install(archive, folder, &installError))
+        else if (QString installError; !Updater::install(archive, *manifest, folder, &installError))
             print(tr("-AGGIORNAMENTOSCARICA: %1").arg(installError));
         else
             print(tr("-AGGIORNAMENTOSCARICA: scaricata, verificata e installata la %1 in %2")

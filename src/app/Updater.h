@@ -73,8 +73,10 @@ public:
                   std::function<void(QString, std::optional<UpdateManifest>, QString)> done);
     void cancel();
 
-    // Installa l'archivio (già verificato) nella cartella del programma.
-    static bool install(const QString& archive, const QString& appDir, QString* error);
+    // Installa l'archivio nella cartella del programma. L'archivio si legge una volta sola in memoria, si verifica
+    // (dimensione e SHA-256 del manifesto firmato) e si scompatta da quella copia: nessuno può sostituire il file
+    // fra la verifica e l'installazione.
+    static bool install(const QString& archive, const UpdateManifest& manifest, const QString& appDir, QString* error);
     // Torna alla versione precedente (quella in "versione-precedente").
     static bool rollback(const QString& appDir, QString* error);
     // Versione salvata in "versione-precedente" (vuota se non c'è).
