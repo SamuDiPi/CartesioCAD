@@ -234,6 +234,7 @@ Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`
 3. Firmare: `scripts/sign-release.sh CartesioCAD-X.Y.Z-win64.zip <chiave privata .pem> [--major]`. Scrive `CartesioCAD-X.Y.Z-aggiornamento.json` e la sua firma `.json.sig`.
 4. Installatore: `scripts/build-installer.sh dist/CartesioCAD <cartella di uscita>` (Inno Setup 7) crea `CartesioCAD-X.Y.Z-installazione.exe`: installazione in Programmi con i diritti di amministratore, collegamento nel menu Start, nessuna associazione di file; la disinstallazione toglie la cartella del programma e il connettore dell'Assistente IA da Claude Desktop e chiede se cancellare le impostazioni.
 5. Pubblicare la versione su GitHub (tag `vX.Y.Z`) allegando i cinque file: installatore, archivio, sorgenti di terze parti, manifesto e firma. Senza manifesto e firma la versione non si installa dal programma.
+6. Linux: il flusso `.github/workflows/flatpak.yml` costruisce `CartesioCAD-X.Y.Z.flatpak` a ogni tag `v*` (e a ogni push sul ramo `flatpak`), esegue i test e una prova senza schermo; il file esce come artefatto dell'esecuzione e si allega alla versione, insieme all'archivio dei sorgenti di Poppler usato dal pacchetto se non è già fra i sorgenti di terze parti.
 
 La chiave privata non va mai nel repository (`.gitignore` esclude `*.pem`): senza di lei non si possono pubblicare aggiornamenti installabili dal programma, quindi va conservata con una copia di sicurezza. Se andasse persa o fosse compromessa, serve una versione con una chiave pubblica nuova, da scaricare a mano.
 
@@ -271,6 +272,21 @@ CartesioCAD torna da solo al disegno con QPainter; lo si può forzare con la var
 Su Linux: `sudo apt install build-essential cmake ninja-build qt6-base-dev qt6-base-private-dev qt6-declarative-dev`,
 poi gli stessi comandi
 (per il DWG servono `dwg2dxf` e `dxf2dwg` di LibreDWG, indicati con la variabile `CARTESIO_LIBREDWG_DIR`).
+
+## Linux (Flatpak)
+
+Dalla pagina Releases si scarica `CartesioCAD-X.Y.Z.flatpak` e si installa, con Flatpak e il deposito Flathub configurati:
+
+```
+flatpak install --user CartesioCAD-X.Y.Z.flatpak
+flatpak run io.github.samudipi.CartesioCAD
+```
+
+Alla prima installazione Flatpak scarica da Flathub il runtime `org.kde.Platform` 6.11 (Qt). Il pacchetto contiene CartesioCAD, Poppler e i convertitori di GNU LibreDWG, compilati dai sorgenti indicati in `packaging/flatpak/io.github.samudipi.CartesioCAD.yml`. Vede le cartelle dell'utente e i dischi montati (i disegni e i loro riferimenti esterni stanno ovunque) e le stampanti; non ha accesso alla rete.
+
+Differenze dalla versione per Windows: non c'è l'aggiornamento dal programma (la versione nuova si installa dal file nuovo), non c'è l'Assistente IA, e mancano le parti legate a Windows (correttore ortografico di sistema, anteprima degli oggetti OLE). Si disinstalla con `flatpak uninstall io.github.samudipi.CartesioCAD`.
+
+Per costruirlo: `flatpak-builder --user --install-deps-from=flathub --repo=repo --force-clean build packaging/flatpak/io.github.samudipi.CartesioCAD.yml`.
 
 ## Architettura
 
