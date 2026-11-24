@@ -247,10 +247,12 @@ La chiave privata non va mai nel repository (`.gitignore` esclude `*.pem`): senz
                       mingw-w64-ucrt-x86_64-qt6-declarative \
                       mingw-w64-ucrt-x86_64-poppler   # facoltativo: schemi unifilari in PDF
    ```
-2. Per il supporto DWG scarica LibreDWG (verifica l'impronta SHA-256 del pacchetto ufficiale):
+2. Per il supporto DWG compila i convertitori di LibreDWG dai sorgenti ufficiali (impronta SHA-256 verificata) con le
+   correzioni di sicurezza di `patches/libredwg/`; escono eseguibili autonomi, senza DLL (qualche minuto):
    ```sh
-   scripts/fetch-libredwg.sh
+   scripts/build-libredwg.sh
    ```
+   In alternativa `scripts/fetch-libredwg.sh` scarica i binari ufficiali, senza quelle correzioni.
 3. Compila e prova:
    ```sh
    cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -344,7 +346,7 @@ src/
 - **Collegamenti a internet solo su richiesta.** Il programma si collega a GitHub solo quando si cercano gli aggiornamenti (menu dell'applicazione > *Controlla aggiornamenti*, comando `AGGIORNAMENTI`) o se si accende nelle Opzioni il controllo all'avvio (spento di default; al massimo una volta al giorno). GitHub vede l'indirizzo IP del computer; non viene mandato nient'altro. Apre un sito nel browser solo se lo si chiede (per esempio *Sorgenti* nella finestra Informazioni).
 - **Connettore per Claude Desktop (spento di default).** Con l'Assistente IA (comando `ASSISTENTE`) si può collegare il disegno aperto all'app Claude Desktop, dove l'utente accede con il proprio account: CartesioCAD apre solo un canale locale (named pipe dell'utente di Windows, nessuna porta di rete) usato dal connettore `cartesio-mcp.exe`. Quello che Claude legge (di default gli oggetti selezionati) passa a Claude Desktop e ad Anthropic secondo le condizioni dell'account dell'utente; le modifiche si applicano solo con OK nel programma e il salvataggio crea sempre una nuova versione accanto al file originale. Dettagli nel manuale (Guida > Manuale > Assistente IA).
 - **Cosa resta sul computer:** le opzioni e l'elenco dei file recenti (nel registro di Windows, chiave `HKEY_CURRENT_USER\Software\CartesioCAD`), le copie del salvataggio automatico e i file che si salvano. I dati nei disegni (per esempio i nomi nei cartigli) li tratta chi usa il programma.
-- **File da fonti affidabili.** DWG, DXF, PDF e script `.scr` vanno aperti solo se vengono da fonti di cui ci si fida. I DWG si leggono con GNU LibreDWG 0.14.8413 in un programma separato (`libredwg/dwg2dxf.exe`): è l'istantanea successiva alla 0.14 stabile che corregge le vulnerabilità note della 0.14 (CVE-2026-15520, CVE-2026-62250); LibreDWG resta il componente più esposto ai file costruiti apposta. Il plugin CanaloCAD legge i PDF con pdf.js 6.5.438, nel browser.
+- **File da fonti affidabili.** DWG, DXF, PDF e script `.scr` vanno aperti solo se vengono da fonti di cui ci si fida. I DWG si leggono con GNU LibreDWG 0.14.8413 in un programma separato (`libredwg/dwg2dxf.exe`): è l'istantanea successiva alla 0.14 stabile che corregge le vulnerabilità note della 0.14 (CVE-2026-15520, CVE-2026-62250), compilata con in più la correzione di CVE-2026-111167, non ancora pubblicata da LibreDWG; LibreDWG resta il componente più esposto ai file costruiti apposta. Il plugin CanaloCAD legge i PDF con pdf.js 6.5.438, nel browser.
 - **Segnalare una vulnerabilità:** vedi [SECURITY.md](SECURITY.md).
 
 ## Licenza

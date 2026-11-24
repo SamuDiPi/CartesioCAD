@@ -78,6 +78,9 @@ modules:
       - type: archive
         url: https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz
         sha256: 7a1103de47fdc191882586a515d577876a71264ba607369e57751cd29cb2e0f4
+      # Correzioni di sicurezza non ancora pubblicate da LibreDWG (le stesse della versione per Windows).
+      - type: patch
+        path: ../../patches/libredwg/0001-acds-bound-schema-prop-type-CVE-2026-111167.patch
 
   - name: cartesiocad
     buildsystem: cmake-ninja

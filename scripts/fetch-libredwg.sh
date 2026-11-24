@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Scarica i convertitori DWG di LibreDWG (GNU, GPL-3.0) per Windows e li mette in
+# Alternativa a scripts/build-libredwg.sh (quello usato per le versioni pubblicate): binari ufficiali, SENZA le
+# correzioni di patches/libredwg. Scarica i convertitori DWG di LibreDWG (GNU, GPL-3.0) per Windows e li mette in
 # third_party/libredwg-<versione>, da dove CMake li copia accanto a CartesioCAD.exe.
 #
 # Uso (da MSYS2 o Git Bash, nella cartella del progetto):  scripts/fetch-libredwg.sh
@@ -23,6 +24,7 @@ echo "Verifico l'impronta SHA-256"
 echo "${SHA256}  ${WORK}/${ARCHIVE}" | sha256sum -c -
 
 mkdir -p "${DEST}"
-unzip -q -o -j "${WORK}/${ARCHIVE}" dwg2dxf.exe dxf2dwg.exe libredwg-0.dll -d "${DEST}"
+# Anche libiconv-2.dll: senza, i convertitori non partono su un PC senza MSYS2 nel PATH.
+unzip -q -o -j "${WORK}/${ARCHIVE}" dwg2dxf.exe dxf2dwg.exe libredwg-0.dll libiconv-2.dll -d "${DEST}"
 echo "LibreDWG ${VERSION} pronta in ${DEST}"
 echo "Ora riconfigurare e ricompilare:  cmake -S . -B build && cmake --build build"

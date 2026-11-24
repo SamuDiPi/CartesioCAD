@@ -135,13 +135,21 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
     if [ -d "$DEST/libredwg" ]; then
         echo
         echo "LibreDWG 0.14.8413 (GNU; istantanea successiva alla 0.14 stabile, con le correzioni di sicurezza)"
-        echo "  File:      libredwg/dwg2dxf.exe libredwg/dxf2dwg.exe libredwg/libredwg-0.dll"
+        echo "  File:      $(cd "$DEST" && ls libredwg/*.exe libredwg/*.dll 2>/dev/null | tr '\n' ' ')"
         echo "             (programmi separati, usati per leggere e scrivere i file DWG)"
-        echo "  Licenza:   GPL-3.0-or-later"
+        echo "  Licenza:   GPL-3.0-or-later (testo in licenze/libredwg/COPYING)"
         echo "  Sito:      https://www.gnu.org/software/libredwg/"
         echo "  Sorgenti:  https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz"
-        echo "             (binari: https://github.com/LibreDWG/libredwg/releases/tag/0.14.8413)"
+        echo "             con le correzioni in patches/libredwg/ del repository di CartesioCAD (CVE-2026-111167,"
+        echo "             non ancora corretta nelle versioni di LibreDWG); compilati con scripts/build-libredwg.sh"
         cp -n "$TEXTS/GPL-3.0-only.txt" "$DEST/licenze/testi/" || true
+        if [ -f "$DEST/libredwg/COPYING" ]; then
+            mkdir -p "$DEST/licenze/libredwg"
+            mv "$DEST/libredwg/COPYING" "$DEST/licenze/libredwg/COPYING"
+        fi
+        if [ -n "$SOURCES" ]; then
+            cp -n "$ROOT"/patches/libredwg/*.patch "$SOURCES/" 2>/dev/null || true
+        fi
         if [ -n "$SOURCES" ]; then
             [ -f "$SOURCES/libredwg-0.14.8413.tar.xz" ] || curl -fsSL -o "$SOURCES/libredwg-0.14.8413.tar.xz" "https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz"
         fi
@@ -156,10 +164,18 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js 6.5.438 (Mozilla Foundation,"
         echo "  Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt)."
         echo "  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web"
-        echo "  (@mlightcad/libredwg-web 0.1.3, dichiarato GPL-2.0-only, contiene GNU LibreDWG GPL-3.0-or-later):"
+        echo "  (@mlightcad/libredwg-web 0.9.3, GPL-3.0, contiene GNU LibreDWG GPL-3.0-or-later):"
         echo "  non è incluso né distribuito con CartesioCAD."
         cp -n "$TEXTS/MIT.txt" "$TEXTS/Apache-2.0.txt" "$DEST/licenze/testi/" 2>/dev/null || true
     fi
+
+    echo
+    echo "Inno Setup (solo nell'installatore CartesioCAD-X.Y.Z-installazione.exe, non nel programma)"
+    echo "  Copyright (C) 1997-2026 Jordan Russell. Portions Copyright (C) 2000-2026 Martijn Laan."
+    echo "  Licenza:   licenza di Inno Setup (testo in licenze/inno-setup/license.txt)"
+    echo "  Sito:      https://jrsoftware.org/isinfo.php"
+    mkdir -p "$DEST/licenze/inno-setup"
+    cp "$ROOT/installer/inno-setup-license.txt" "$DEST/licenze/inno-setup/license.txt"
 
     echo
     echo "------------------------------------------------------------------------------------------------"

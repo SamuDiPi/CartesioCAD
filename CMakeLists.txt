@@ -246,15 +246,19 @@ if(CARTESIO_BUILD_APP)
     target_compile_definitions(cartesio-mcp PRIVATE CARTESIO_VERSION="${PROJECT_VERSION}")
     add_dependencies(CartesioCAD cartesio-mcp)
 
-    # Supporto DWG: i convertitori di LibreDWG (scaricati con scripts/fetch-libredwg.sh) vengono
-    # copiati nella cartella "libredwg" accanto all'eseguibile.
+    # Supporto DWG: i convertitori di LibreDWG (compilati con le correzioni da scripts/build-libredwg.sh, o
+    # quelli ufficiali di scripts/fetch-libredwg.sh) vengono copiati nella cartella "libredwg" accanto all'eseguibile.
     set(CARTESIO_LIBREDWG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libredwg-0.14.8413"
-        CACHE PATH "Cartella con dwg2dxf, dxf2dwg e libredwg-0.dll")
+        CACHE PATH "Cartella con dwg2dxf e dxf2dwg (e libredwg-0.dll se non sono statici)")
     if(WIN32 AND EXISTS "${CARTESIO_LIBREDWG_DIR}/dwg2dxf.exe")
         set(libredwg_files
             "${CARTESIO_LIBREDWG_DIR}/dwg2dxf.exe"
-            "${CARTESIO_LIBREDWG_DIR}/dxf2dwg.exe"
-            "${CARTESIO_LIBREDWG_DIR}/libredwg-0.dll")
+            "${CARTESIO_LIBREDWG_DIR}/dxf2dwg.exe")
+        foreach(extra libredwg-0.dll libiconv-2.dll COPYING)
+            if(EXISTS "${CARTESIO_LIBREDWG_DIR}/${extra}")
+                list(APPEND libredwg_files "${CARTESIO_LIBREDWG_DIR}/${extra}")
+            endif()
+        endforeach()
         add_custom_command(TARGET CartesioCAD POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:CartesioCAD>/libredwg"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different ${libredwg_files} "$<TARGET_FILE_DIR:CartesioCAD>/libredwg"
@@ -332,6 +336,8 @@ if(CARTESIO_BUILD_APP)
         install(TARGETS CartesioCAD RUNTIME DESTINATION ${CARTESIO_APP_DEST})
         install(FILES LICENSE DESTINATION ${CARTESIO_APP_DEST} RENAME LICENSE.txt)
         install(FILES packaging/linux/LICENZE-TERZE-PARTI.txt DESTINATION ${CARTESIO_APP_DEST})
+        install(FILES packaging/linux/licenze/Apache-2.0.txt packaging/linux/licenze/MIT.txt
+                DESTINATION ${CARTESIO_APP_DEST}/licenze/testi)
         install(FILES packaging/linux/${CARTESIO_APP_ID}.desktop DESTINATION share/applications)
         install(FILES packaging/linux/${CARTESIO_APP_ID}.metainfo.xml DESTINATION share/metainfo)
         install(FILES src/app/icons/cartesiocad.png DESTINATION share/icons/hicolor/256x256/apps

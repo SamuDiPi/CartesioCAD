@@ -14,14 +14,16 @@ forniamo i sorgenti anche direttamente, per almeno tre anni dalla distribuzione 
 ------------------------------------------------------------------------------------------------
 
 Poppler 26.11.0 (lettura dei PDF degli schemi; libreria libpoppler-cpp)
-  Licenza:   GPL-2.0-or-later
+  Licenza:   GPL-2.0-or-later (testi in licenze/poppler)
   Sito:      https://poppler.freedesktop.org
   Sorgenti:  https://poppler.freedesktop.org/poppler-26.11.0.tar.xz
 
 LibreDWG 0.14.8413 (GNU; programmi separati dwg2dxf e dxf2dwg, usati per leggere e scrivere i file DWG)
-  Licenza:   GPL-3.0-or-later
+  Licenza:   GPL-3.0-or-later (testo in licenze/libredwg/COPYING)
   Sito:      https://www.gnu.org/software/libredwg/
   Sorgenti:  https://github.com/LibreDWG/libredwg/releases/download/0.14.8413/libredwg-0.14.8413.tar.xz
+             con le correzioni di sicurezza in patches/libredwg/ del repository di CartesioCAD
+             (CVE-2026-111167, non ancora corretta nelle versioni di LibreDWG)
 
 Font Hershey (caratteri del font a tratti incorporato in CartesioCAD)
   Licenza:   uso libero per qualsiasi scopo, con queste attribuzioni:
@@ -36,10 +38,10 @@ CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)
   Licenza:   GPL-3.0-or-later
   Sorgenti:  https://github.com/SamuDiPi/Canalo
   Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS
-  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js (Mozilla Foundation, Apache-2.0,
-  https://mozilla.github.io/pdf.js/).
+  generato con Tailwind CSS (MIT, https://tailwindcss.com; testo in licenze/testi/MIT.txt) e pdf.js
+  (Mozilla Foundation, Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt).
   Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web
-  (@mlightcad/libredwg-web, dichiarato GPL-2.0-only, contiene GNU LibreDWG GPL-3.0-or-later):
+  (@mlightcad/libredwg-web 0.9.3, GPL-3.0, contiene GNU LibreDWG GPL-3.0-or-later):
   non è incluso né distribuito con CartesioCAD.
 
 Non sono dentro il pacchetto, ma servono per eseguirlo e arrivano dal runtime org.kde.Platform 6.11

@@ -21,7 +21,7 @@ CMakeUserPresets.json
 # Cartella di distribuzione (cmake --install)
 dist/
 
-# LibreDWG scaricata da scripts/fetch-libredwg.sh
+# LibreDWG compilata da scripts/build-libredwg.sh (o scaricata da scripts/fetch-libredwg.sh)
 third_party/
 
 # Chiavi (quella privata per firmare gli aggiornamenti non va mai nel repository)
