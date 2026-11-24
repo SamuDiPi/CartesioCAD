@@ -133,8 +133,8 @@ RunCheck checkRun(const Project& project, const Run& run, double lengthM = 0.0);
 
 // Fasi del circuito dalla formazione: 3 (4G, 5G, tre o più unipolari) oppure 1.
 int phasesOf(const Circuit& circuit);
-// Coefficiente di riduzione per più circuiti raggruppati in tubo o canale (CEI-UNEL 35024/1, IEC 60364-5-52
-// tab. B.52.17): 1 circuito 1,00; 2 0,80; 3 0,70; 4 0,65; 5 0,60; 6 0,57; 7 0,54; 8 0,52; 9 0,50; 12 0,45; 16 0,41;
+// Coefficiente di riduzione per più circuiti raggruppati in tubo o canale (IEC 60364-5-52:2009 tab. B.52.17, riga 1;
+// CEI 64-8:2024 Cap. 52; CEI-UNEL 35024/1): 1 circuito 1,00; 2 0,80; 3 0,70; 4 0,65; 5 0,60; 6 0,57; 7 0,54; 8 0,52; 9 0,50; 12 0,45; 16 0,41;
 // 20 e oltre 0,38.
 double groupingFactor(int circuits);
 

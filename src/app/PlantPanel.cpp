@@ -591,7 +591,7 @@ QStringList PlantPanel::checkAll()
         out << tr("Circuiti da rivedere (portata, protezione, caduta di tensione):");
         out << circuitLines;
     }
-    out << tr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con la norma (CEI 64-8 / IEC 60364-5-52). Verificarle prima di usarle in un progetto.");
+    out << tr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con il testo della norma (CEI 64-8:2024 Cap. 52 = IEC 60364-5-52:2009; CEI-UNEL 35024/1). Verificarle prima di usarle in un progetto.");
     out.prepend(tr("Impianto %1: %2 tratte, %3 non verificate, %4 da controllare; %5 circuiti non verificati.")
                     .arg(projectName())
                     .arg(project_.runs.size())
@@ -724,7 +724,7 @@ bool PlantPanel::editCircuit(plant::Circuit& c, bool isNew)
     d.number(tr("Corrente d'impiego Ib"), 0, 5000, 1, ib, QStringLiteral(" A"));
     d.number(tr("Corrente nominale In"), 0, 6300, 1, in, QStringLiteral(" A"));
     d.number(tr("Portata di riferimento Iz"), 0, 5000, 0, izRef, QStringLiteral(" A"));
-    d.note(tr("Iz 0 = dalle tabelle IEC 60364-5-52 / CEI-UNEL 35024/1 per la posa della tratta (rame, 30 °C); la verifica applica "
+    d.note(tr("Iz 0 = dalle tabelle della IEC 60364-5-52 (CEI 64-8:2024 Cap. 52) / CEI-UNEL 35024/1 per la posa della tratta (rame, 30 °C); la verifica applica "
               "raggruppamento e temperatura. Scrivere qui la portata solo per imporla."));
     d.number(tr("Lunghezza"), 0, 10000, 1, length, QStringLiteral(" m"));
     d.note(tr("Lunghezza 0 = somma delle tratte disegnate che contengono il circuito."));

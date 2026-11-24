@@ -1,8 +1,13 @@
 #pragma once
 
-// Portate dei cavi in rame secondo le tabelle IEC 60364-5-52 (da cui derivano le CEI-UNEL 35024/1): isolante PVC
-// (70 °C) o EPR/XLPE (90 °C), metodi di posa A1, A2, B1, B2, C ed E, 2 o 3 conduttori caricati, temperatura ambiente
-// di riferimento 30 °C. Valori da confrontare con la norma: la portata di un circuito si può sempre imporre a mano.
+// Portate dei cavi in rame secondo le tabelle della IEC 60364-5-52:2009 (con il corrigendum 2011), che la CEI 64-8
+// (edizione 2024, Parte 5, Capitolo 52) riprende; in Italia le portate sono date anche dalla CEI-UNEL 35024/1
+// nell'edizione in vigore (che sostituisce la 35024/1:1997 e la 35024/2; per i cavi interrati la CEI-UNEL 35026, qui
+// non usata). Isolante PVC (70 °C) o EPR/XLPE (90 °C), metodi di posa A1, A2, B1, B2, C (tab. B.52.2 - B.52.5) ed E
+// (multipolari in aria libera, tab. B.52.10 e B.52.12), 2 o 3 conduttori caricati, temperatura ambiente di
+// riferimento 30 °C (fattori della tab. B.52.14). Con 2 conduttori caricati mancano le sezioni da 150 mm² in su;
+// non ci sono i metodi D1/D2, F e G né la riduzione per le armoniche (Allegato E). Valori ricontrollati il
+// 2026-11-24 a memoria, non ancora sul testo della norma: la portata di un circuito si può sempre imporre a mano.
 
 #include <optional>
 #include <string>

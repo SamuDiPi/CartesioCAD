@@ -185,7 +185,7 @@ Rectangle {
                 wrapMode: Text.WordWrap
                 color: "#f0b040"
                 font.pixelSize: 11
-                text: qsTr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con la norma (CEI 64-8 / IEC 60364-5-52). Verificarle prima di usarle in un progetto.")
+                text: qsTr("Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con il testo della norma (CEI 64-8:2024 Cap. 52 = IEC 60364-5-52:2009; CEI-UNEL 35024/1). Verificarle prima di usarle in un progetto.")
             }
             Table {
                 anchors.left: parent.left
