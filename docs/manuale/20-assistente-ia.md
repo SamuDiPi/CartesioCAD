@@ -25,6 +25,16 @@ Il connettore resta acceso ai prossimi avvii finché non si toglie la spunta. Se
 - **Modifiche massive**: invece di elencare gli oggetti, Claude può indicarli con un **filtro** (layer, tipo, colore, testo contenuto o espressione regolare, nome del blocco, valore di un attributo, area, selezione), e CartesioCAD li trova tutti da sé; la finestra di conferma dice quanti sono e con quale filtro. Esempi di richieste: *"sostituisci Q1 con QE1 in tutti i testi"*, *"porta tutte le linee del layer Muri su Pareti con spessore 0,5"*, *"imposta il circuito C9 in tutte le prese che oggi hanno C1"*, *"rinomina il layer Testi in Testi-Locali e raddoppia l'altezza dei testi"*. Gli oggetti sui layer bloccati restano esclusi (la finestra lo dice). Fino a 500.000 oggetti per proposta.
 - **Salvare una nuova versione**: accanto al file aperto, con il nome successivo (`pianta.dwg` → `pianta-v2.dwg` → `pianta-v3.dwg`), nello stesso formato o in DXF (sempre DXF 2000, che conserva testi multilinea, tratteggi e spline). **Il file originale non viene mai sovrascritto**; dopo il salvataggio la scheda lavora sulla nuova versione. Per i DWG CartesioCAD passa da un DXF temporaneo e poi rilegge il DWG salvato per controllarlo, come in Salva con nome.
 
+### Canaline con CanaloCAD
+
+- **Cercare i cavi** nel database di CanaloCAD (tipologie generiche e cavi propri): tipo, formazione, diametro, peso, sezione.
+- **Calcolare una canalina** con i cavi indicati, senza toccare il disegno: misura scelta dai cavi con la riserva voluta (30% di default) oppure verifica di una misura data (se è piccola dice la larghezza minima), riempimento, Kr, segregazione CEI 64-8 art. 528.1, peso, tiro di posa e distinta. Esempio: *"che passerella serve per 2 FG16 4G10, 4 FG16 3G2,5 e 10 cavi Cat6?"*.
+- **Leggere le canaline del disegno** (CN1, CN2...): misure, cavi, riempimento, segregazione, e quelle troppo piccole per i loro cavi.
+- **Proporre una canalina**: nuova, con la sezione disegnata al vero, oppure con nuovi cavi e misura per una canalina esistente. Come per le altre modifiche, CartesioCAD apre una finestra con misure e risultati dei calcoli e applica solo con **OK** (Ctrl+Z la annulla).
+- **Scheda CanaloCAD** (Windows): aprirla, inviarle la sezione selezionata e leggere cavi e risultati della scheda canalina su cui si sta lavorando. La tavola torna nel disegno solo quando la si inserisce (*Esporta > Inserisci nel disegno*).
+
+I calcoli sono quelli di CanaloCAD: valori indicativi che il progettista deve verificare.
+
 Claude non può aprire, cercare o cancellare file, non esegue script e non usa la rete per conto di CartesioCAD.
 
 ### Privacy e sicurezza

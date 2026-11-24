@@ -8,7 +8,11 @@
 // - Il salvataggio crea sempre un file nuovo accanto all'originale (mai sovrascritto).
 
 #include "app/AppOptions.h"
+#include "app/CanaloPanel.h"
+#include "app/CanaloTab.h"
 #include "app/ClaudeLink.h"
+#include "app/QmlUi.h"
+#include "app/WebView2Host.h"
 #include "app/DrawingWidget.h"
 #include "app/DwgConverter.h"
 #include "app/FormDialog.h"
@@ -31,10 +35,13 @@
 #include <QPointer>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QStackedWidget>
 #include <QStandardPaths>
 #include <QTimer>
 
+#include <algorithm>
 #include <cmath>
+#include <memory>
 #include <functional>
 #include <map>
 #include <set>
@@ -1139,6 +1146,10 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
 {
     ++claudeCalls_;
     DrawingWidget* d = current();
+    if (!d && isCanaloTab(fileTabs_->currentIndex()))
+        d = canaloFrom_;   // dalla scheda CanaloCAD: il disegno da cui ci si è arrivati
+    if (tool.startsWith(QLatin1String("canalo_")) && handleCanaloTool(tool, args, d, reply))
+        return;
     if (!d) {
         reply(false, tr("In CartesioCAD non c'è nessun disegno aperto."));
         return;
@@ -1503,6 +1514,211 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
     dialog->raise();
     dialog->activateWindow();
     QApplication::alert(this);
+}
+
+// ------------------------------------------------------------------ strumenti di CanaloCAD
+
+bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, DrawingWidget* d, ClaudeLink::Reply& reply)
+{
+    canalo_->setDrawing(d);
+
+    if (tool == QLatin1String("canalo_cerca_cavi")) {
+        const int limit = std::clamp(args.value(QStringLiteral("massimo")).toInt(30), 1, 200);
+        const QJsonArray found = canalo_->searchCables(args.value(QStringLiteral("testo")).toString().left(100),
+                                                       args.value(QStringLiteral("categoria")).toString(), limit);
+        reply(true, json(QJsonObject{{QStringLiteral("cavi"), found},
+                                     {QStringLiteral("nota"), found.isEmpty()
+                                          ? tr("Nessun cavo trovato: provare con meno parole o un'altra categoria.")
+                                          : tr("Usare il campo id nei cavi di canalo_calcola e canalo_proponi_canalina.")}}));
+        return true;
+    }
+
+    if (tool == QLatin1String("canalo_calcola")) {
+        QString error;
+        const QJsonObject st = canalo_->stateFor(args.value(QStringLiteral("cavi")).toArray(), args, &error);
+        if (st.isEmpty())
+            reply(false, error);
+        else
+            reply(true, json(canalo_->analyze(st)));
+        return true;
+    }
+
+    if (tool == QLatin1String("canalo_canaline")) {
+        if (!d) {
+            reply(false, tr("In CartesioCAD non c'è nessun disegno aperto."));
+            return true;
+        }
+        const QString id = args.value(QStringLiteral("codice")).toString().trimmed().toUpper();
+        if (id.isEmpty()) {
+            const QJsonArray list = canalo_->trayList();
+            reply(true, json(QJsonObject{{QStringLiteral("canaline"), list},
+                                         {QStringLiteral("nota"), list.isEmpty()
+                                              ? tr("Nel disegno non ci sono canaline di CanaloCAD (si creano con canalo_proponi_canalina "
+                                                   "o dalla finestra Canalina).")
+                                              : tr("Con codice si ottengono cavi e riepilogo completo di una canalina.")}}));
+            return true;
+        }
+        const QJsonObject st = canalo_->trayState(id);
+        if (st.isEmpty()) {
+            reply(false, tr("Nessuna canalina %1 nel disegno (elenco con canalo_canaline senza codice).").arg(id));
+            return true;
+        }
+        QJsonObject a = canalo_->analyze(st);
+        a.insert(QStringLiteral("codice"), id);
+        a.insert(QStringLiteral("titolo"), st.value(QStringLiteral("title")).toString());
+        reply(true, json(a));
+        return true;
+    }
+
+    if (tool == QLatin1String("canalo_proponi_canalina")) {
+        if (!d) {
+            reply(false, tr("In CartesioCAD non c'è nessun disegno aperto."));
+            return true;
+        }
+        if (claudeProposal_) {
+            reply(false, tr("C'è già una proposta in attesa della scelta dell'utente."));
+            return true;
+        }
+        const QString existing = args.value(QStringLiteral("canalina")).toString().trimmed().toUpper();
+        if (!existing.isEmpty() && canalo_->trayState(existing).isEmpty()) {
+            reply(false, tr("Nessuna canalina %1 nel disegno.").arg(existing));
+            return true;
+        }
+        QString error;
+        const QJsonObject st = canalo_->stateFor(args.value(QStringLiteral("cavi")).toArray(), args, &error);
+        if (st.isEmpty()) {
+            reply(false, tr("Proposta non valida, niente è stato mostrato all'utente. %1").arg(error));
+            return true;
+        }
+        const QJsonObject analysis = canalo_->analyze(st);
+        const QString description = args.value(QStringLiteral("descrizione")).toString().left(300);
+        QPointer<DrawingWidget> drawing(d);
+        auto apply = [this, drawing, st, existing]() -> QString {
+            if (!drawing)
+                return tr("Il disegno è stato chiuso.");
+            if (drawing->commands().isActive())
+                drawing->cancel();
+            canalo_->setDrawing(drawing);
+            QString id = existing;
+            if (existing.isEmpty())
+                id = canalo_->addTray(st);
+            else if (!canalo_->replaceTray(existing, st))
+                return tr("La canalina %1 non c'è più.").arg(existing);
+            if (id.isEmpty())
+                return tr("Canalina non creata.");
+            ++claudeApplied_;
+            return {};
+        };
+        const QString title = description.isEmpty() ? (existing.isEmpty() ? tr("Canalina nuova proposta dall'assistente IA")
+                                                                          : tr("Canalina %1: cavi e misura proposti dall'assistente IA").arg(existing))
+                                                     : description;
+        auto done = [this, existing, analysis](const QString& failure) {
+            if (!failure.isEmpty())
+                return tr("Non applicata: %1").arg(failure);
+            const QJsonObject c = analysis.value(QStringLiteral("canalina")).toObject();
+            const QString size = tr("%1 × %2 mm").arg(c.value(QStringLiteral("larghezza_mm")).toDouble()).arg(c.value(QStringLiteral("altezza_mm")).toDouble());
+            return existing.isEmpty()
+                ? tr("L'utente ha applicato la proposta: canalina %1 (%2) creata con la sezione disegnata (Ctrl+Z la toglie).")
+                      .arg(canalo_->hasTray() ? canalo_->trayTitle().section(QStringLiteral(" — "), 0, 0) : QString(), size)
+                : tr("L'utente ha applicato la proposta: canalina %1 aggiornata (%2).").arg(existing, size);
+        };
+        if (claudeAutoApprove_) {   // solo negli script di prova (-ASSISTENTEATTIVA AUTO)
+            const QString failure = apply();
+            print(tr("Assistente IA (prova, applicata senza conferma): %1").arg(title));
+            reply(failure.isEmpty(), done(failure));
+            return true;
+        }
+        auto* dialog = new FormDialog(tr("Canalina proposta dall'assistente IA"), FormDialog::Ok | FormDialog::Cancel, this);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->group(title);
+        dialog->note(tr("Disegno: %1. %2 La canalina si applica solo con OK (con la sezione disegnata) e si annulla con Ctrl+Z. "
+                        "Calcoli di CanaloCAD: valori indicativi da verificare.")
+                         .arg(d->displayName(), existing.isEmpty() ? tr("Viene creata una canalina nuova.")
+                                                                   : tr("Cambiano cavi e misura della canalina %1.").arg(existing)));
+        QStringList lines;
+        for (const QJsonValue& v : analysis.value(QStringLiteral("riepilogo")).toArray())
+            lines << v.toString();
+        dialog->list(lines, 0, [](int) {});
+        dialog->setSize(620, 460);
+        claudeProposal_ = dialog;
+        auto replied = std::make_shared<bool>(false);
+        auto shared = std::make_shared<ClaudeLink::Reply>(std::move(reply));
+        auto answer = [shared, replied](bool ok, const QString& text) {
+            if (!*replied) {
+                *replied = true;
+                (*shared)(ok, text);
+            }
+        };
+        connect(dialog, &QDialog::accepted, this, [this, apply, answer, done, title] {
+            const QString failure = apply();
+            if (failure.isEmpty())
+                print(tr("Assistente IA: applicata \"%1\" (Ctrl+Z per annullarla).").arg(title));
+            answer(failure.isEmpty(), done(failure));
+        });
+        connect(dialog, &QDialog::rejected, this, [answer] { answer(false, tr("L'utente ha rifiutato la proposta: il disegno non è cambiato.")); });
+        QTimer::singleShot(kProposalSeconds * 1000, dialog, [dialog, answer] {
+            answer(false, tr("Nessuna risposta dall'utente entro %1 minuti: proposta ritirata, il disegno non è cambiato.").arg(kProposalSeconds / 60));
+            dialog->close();
+        });
+        dialog->show();
+        dialog->raise();
+        dialog->activateWindow();
+        QApplication::alert(this);
+        return true;
+    }
+
+    if (tool == QLatin1String("canalo_scheda")) {
+        const QString action = args.value(QStringLiteral("azione")).toString();
+        QString why;
+        if (!canaloEmbedded()) {
+            reply(false, tr("La scheda CanaloCAD non è disponibile su questo computer (serve Windows con Microsoft Edge "
+                            "WebView2): usare gli altri strumenti canalo_*."));
+            return true;
+        }
+        if (action == QLatin1String("apri")) {
+            canaloShowTab();
+            reply(true, tr("Scheda CanaloCAD aperta."));
+            return true;
+        }
+        if (action == QLatin1String("invia_selezione")) {
+            if (!d || d->selection().empty()) {
+                reply(false, tr("Nessun oggetto selezionato nel disegno: selezionare la sezione (anche con lo strumento seleziona)."));
+                return true;
+            }
+            fileTabs_->setCurrentIndex(stack_->indexOf(d));
+            if (!canaloSend()) {
+                reply(false, tr("Sezione non inviata a CanaloCAD (vedi la riga di comando)."));
+                return true;
+            }
+            reply(true, tr("Sezione inviata alla scheda CanaloCAD: si apre in una scheda canalina nuova della pagina. "
+                           "Con azione leggi si ottengono cavi e risultati."));
+            return true;
+        }
+        if (action == QLatin1String("leggi")) {
+            if (!canaloTab_ || !canaloReady_) {
+                reply(false, tr("La scheda CanaloCAD non è aperta (azione apri)."));
+                return true;
+            }
+            auto shared = std::make_shared<ClaudeLink::Reply>(std::move(reply));
+            canaloTab_->host()->runAsync(QStringLiteral("window.CanaloHost.state()"),
+                                         [this, shared](const QJsonValue& value, const QString& error) {
+                if (!error.isEmpty() || !value.isObject()) {
+                    (*shared)(false, tr("Scheda CanaloCAD non letta: %1").arg(error));
+                    return;
+                }
+                const QJsonObject st = value.toObject();
+                QJsonObject a = canalo_->analyze(st);
+                a.insert(QStringLiteral("titolo"), st.value(QStringLiteral("title")).toString());
+                a.insert(QStringLiteral("nota"), tr("Scheda canalina attiva nella pagina di CanaloCAD (non ancora nel disegno: per "
+                                                    "riportarla l'utente usa Esporta > Inserisci nel disegno)."));
+                (*shared)(true, json(a));
+            });
+            return true;
+        }
+        reply(false, tr("Azione sconosciuta: %1 (apri, invia_selezione, leggi).").arg(action));
+        return true;
+    }
+    return false;
 }
 
 // ------------------------------------------------------------------ finestra "Assistente IA"

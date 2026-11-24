@@ -76,6 +76,21 @@ public:
     // Risultati della canalina corrente come righe di testo (riga di comando, script).
     QStringList reportLines() const;
 
+    // Per l'assistente IA (connettore per Claude Desktop). Il disegno è quello passato con setDrawing.
+    // Stato di una canalina dai cavi del database ([{id, quantita, trifoglio}]) e dalle opzioni (tipologia, larghezza,
+    // altezza, riserva): con larghezza e altezza la misura è quella, altrimenti la sceglie CanaloCAD dai cavi.
+    QJsonObject stateFor(const QJsonArray& cables, const QJsonObject& options, QString* error);
+    // Calcoli di CanaloCAD su uno stato, senza toccare il disegno: misure, cavi, risultati e righe del riepilogo.
+    QJsonObject analyze(const QJsonObject& state);
+    // Canaline del disegno: codice, misure, numero di cavi, esito in breve; con un codice, l'analisi completa.
+    QJsonArray trayList();
+    QJsonObject trayState(const QString& id) const;
+    // Canalina nuova dallo stato, con la sezione disegnata (Ctrl+Z la toglie); oppure cavi e misure di una esistente.
+    QString addTray(const QJsonObject& state);
+    bool replaceTray(const QString& id, QJsonObject state);
+    // Il catalogo dei cavi (con i cavi propri), filtrato per testo e categoria.
+    QJsonArray searchCables(const QString& text, const QString& category, int limit);
+
     // Dal QML (e dai comandi).
     // Gli oggetti selezionati: una canalina già collegata si mostra; una sezione disegnata (profilo, cerchi, sigle)
     // diventa una canalina nuova con le sue misure; un percorso in pianta si collega alla canalina corrente (o a una
@@ -131,6 +146,7 @@ protected:
 
 private:
     QJsonObject state() const;   // della canalina corrente (o quello iniziale)
+    QVariantList summaryOf(const QJsonObject& state, const QJsonObject& metrics) const;
     // Nel documento, annullabile in un passo: misura automatica, poi la sezione disegnata (se c'è) aggiornata.
     void store(QJsonObject state, const QString& what);
     QString createTray(QJsonObject state);

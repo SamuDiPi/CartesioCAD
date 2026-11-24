@@ -30,6 +30,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <map>
 #include <cmath>
 #include <set>
 
@@ -641,11 +642,14 @@ QVariantList CanaloPanel::cableRows() const
 
 QVariantList CanaloPanel::summary() const
 {
-    QVariantList out;
     if (trayId_.isEmpty() || metrics_.isEmpty())
-        return out;
-    const QJsonObject st = state();
-    const QJsonObject& m = metrics_;
+        return {};
+    return summaryOf(state(), metrics_);
+}
+
+QVariantList CanaloPanel::summaryOf(const QJsonObject& st, const QJsonObject& m) const
+{
+    QVariantList out;
     auto row = [&](const QString& label, const QString& value, int level = 0) {
         out.append(QVariantMap{{QStringLiteral("label"), label}, {QStringLiteral("value"), value}, {QStringLiteral("level"), level}});
     };
@@ -1505,6 +1509,223 @@ bool CanaloPanel::composeFromIds(const QString& list, QString* error)
     trayId_.clear();
     createTray(st);
     drawSection();
+    return true;
+}
+
+// ---------------------------------------------------------------- per l'assistente IA
+
+namespace {
+
+QString trayTypeKey(const QString& given)
+{
+    const QString t = given.trimmed().toLower();
+    if (t.contains(QStringLiteral("ciec")) || t == QLatin1String("solid"))
+        return QStringLiteral("solid");
+    if (t.contains(QStringLiteral("filo")) || t == QLatin1String("mesh"))
+        return QStringLiteral("mesh");
+    if (t.contains(QStringLiteral("scala")) || t == QLatin1String("ladder"))
+        return QStringLiteral("ladder");
+    return QStringLiteral("perforated");
+}
+
+} // namespace
+
+QJsonArray CanaloPanel::searchCables(const QString& text, const QString& category, int limit)
+{
+    CanaloEngine& engine = CanaloEngine::instance();
+    engine.setOwnCables(ownCablesJson());
+    const QJsonArray all = engine.database().value(QStringLiteral("cables")).toArray();
+    const QStringList words = text.toLower().split(u' ', Qt::SkipEmptyParts);
+    QJsonArray out;
+    for (const QJsonValue& v : all) {
+        const QJsonObject c = v.toObject();
+        if (!category.isEmpty() && sv(c, "cat") != category)
+            continue;
+        const QString hay = (sv(c, "id") + u' ' + sv(c, "code") + u' ' + sv(c, "type") + u' ' + sv(c, "form") + u' ' + sv(c, "desc")).toLower();
+        if (!std::all_of(words.begin(), words.end(), [&](const QString& w) { return hay.contains(w); }))
+            continue;
+        out.append(QJsonObject{{QStringLiteral("id"), sv(c, "id")},
+                               {QStringLiteral("tipo"), sv(c, "type")},
+                               {QStringLiteral("formazione"), sv(c, "form")},
+                               {QStringLiteral("descrizione"), sv(c, "desc")},
+                               {QStringLiteral("diametro_mm"), dv(c, "d")},
+                               {QStringLiteral("peso_kg_m"), dv(c, "w")},
+                               {QStringLiteral("sezione_mm2"), dv(c, "sec")},
+                               {QStringLiteral("sistema"), systemName(sv(c, "sys"))},
+                               {QStringLiteral("categoria"), sv(c, "cat")}});
+        if (out.size() >= limit)
+            break;
+    }
+    return out;
+}
+
+QJsonObject CanaloPanel::stateFor(const QJsonArray& cables, const QJsonObject& options, QString* error)
+{
+    auto fail = [error](const QString& why) {
+        if (error)
+            *error = why;
+        return QJsonObject();
+    };
+    if (cables.isEmpty())
+        return fail(tr("Nessun cavo: indicare almeno un cavo del database (id da canalo_cerca_cavi)."));
+    if (cables.size() > 60)
+        return fail(tr("Troppi tipi di cavo (massimo 60)."));
+    CanaloEngine& engine = CanaloEngine::instance();
+    engine.setOwnCables(ownCablesJson());
+    QJsonObject st = engine.defaultState();
+    if (options.contains(QStringLiteral("tipologia")))
+        st.insert(QStringLiteral("trayType"), trayTypeKey(options.value(QStringLiteral("tipologia")).toString()));
+    for (const QJsonValue& v : cables) {
+        const QJsonObject c = v.toObject();
+        const QString id = c.value(QStringLiteral("id")).toString().trimmed();
+        const int qty = std::clamp(c.value(QStringLiteral("quantita")).toInt(1), 1, 200);
+        const bool trefoil = c.value(QStringLiteral("trifoglio")).toBool(false);
+        const auto before = st.value(QStringLiteral("cables")).toArray().size();
+        QJsonObject next = engine.addCable(st, id, qty, trefoil);
+        if (next.value(QStringLiteral("cables")).toArray().size() == before)
+            next = engine.addCable(st, id.toUpper(), qty, trefoil);
+        if (next.value(QStringLiteral("cables")).toArray().size() == before)
+            return fail(tr("Il cavo \"%1\" non è nel database di CanaloCAD (cercarlo con canalo_cerca_cavi).").arg(id));
+        st = next;
+    }
+    const double reserve = std::clamp(options.value(QStringLiteral("riserva")).toDouble(30.0), 0.0, 90.0);
+    st.insert(QStringLiteral("cartesioReserve"), reserve);
+    const double w = options.value(QStringLiteral("larghezza")).toDouble(0.0), h = options.value(QStringLiteral("altezza")).toDouble(0.0);
+    if (w > 0 && h > 0) {
+        if (w > 2000 || h > 500)
+            return fail(tr("Misura fuori dai limiti (larghezza fino a 2000 mm, altezza fino a 500 mm)."));
+        st.insert(QStringLiteral("width"), w);
+        st.insert(QStringLiteral("height"), h);
+        st.insert(QStringLiteral("cartesioAutoSize"), false);
+        st = engine.calculate(st);
+    } else {
+        st.insert(QStringLiteral("cartesioAutoSize"), true);
+        st = engine.autoSize(st, reserve);
+    }
+    if (st.isEmpty())
+        return fail(tr("Calcolo di CanaloCAD non riuscito: %1").arg(engine.error()));
+    return st;
+}
+
+QJsonObject CanaloPanel::analyze(const QJsonObject& state)
+{
+    QJsonObject m;
+    const QJsonObject st = CanaloEngine::instance().calculate(state, &m);
+    if (st.isEmpty())
+        return {{QStringLiteral("errore"), tr("Calcolo di CanaloCAD non riuscito: %1").arg(CanaloEngine::instance().error())}};
+    m.insert(QStringLiteral("cartesioMinWidth"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false) ? 0 : minimumWidth(st, m));
+    // Cavi raggruppati per sigla del catalogo (la pagina aggiunge la fase: "FG16OM16-4G10 - L1").
+    QJsonArray cables;
+    std::map<QString, int> index;
+    for (const QJsonValue& v : st.value(QStringLiteral("cables")).toArray()) {
+        const QJsonObject c = v.toObject();
+        const QString code = sv(c, "code").section(QStringLiteral(" - "), 0, 0).trimmed();
+        const QString phase = sv(c, "code").section(QStringLiteral(" - "), 1).trimmed();
+        if (auto it = index.find(code); it != index.end()) {
+            QJsonObject row = cables[it->second].toObject();
+            row.insert(QStringLiteral("quantita"), row.value(QStringLiteral("quantita")).toInt() + 1);
+            if (!phase.isEmpty()) {
+                QJsonArray phases = row.value(QStringLiteral("fasi")).toArray();
+                phases.append(phase);
+                row.insert(QStringLiteral("fasi"), phases);
+            }
+            cables[it->second] = row;
+            continue;
+        }
+        index[code] = static_cast<int>(cables.size());
+        QJsonObject row{{QStringLiteral("sigla"), code}, {QStringLiteral("diametro_mm"), dv(c, "d")},
+                        {QStringLiteral("sezione_mm2"), dv(c, "sec")}, {QStringLiteral("quantita"), 1}};
+        if (!phase.isEmpty())
+            row.insert(QStringLiteral("fasi"), QJsonArray{phase});
+        cables.append(row);
+    }
+    QJsonArray lines;
+    for (const QVariant& v : summaryOf(st, m)) {
+        const QVariantMap r = v.toMap();
+        lines.append(r.value(QStringLiteral("label")).toString() + QStringLiteral(": ") + r.value(QStringLiteral("value")).toString());
+    }
+    QJsonObject results{{QStringLiteral("riempimento_pct"), dv(m, "fillPct")},
+                        {QStringLiteral("riserva_pct"), dv(m, "sparePct")},
+                        {QStringLiteral("kr"), dv(m, "kr")},
+                        {QStringLiteral("segregazione_conforme"), m.value(QStringLiteral("segConform")).toBool(true)},
+                        {QStringLiteral("segregazione"), sv(m, "segDetail")},
+                        {QStringLiteral("peso_kg_m"), dv(m, "totalKgM")},
+                        {QStringLiteral("tiro_daN"), dv(m, "pullDaN")},
+                        {QStringLiteral("tiro_max_daN"), dv(m, "maxPullDaN")}};
+    if (const int need = m.value(QStringLiteral("cartesioMinWidth")).toInt(); need > 0)
+        results.insert(QStringLiteral("larghezza_minima_mm"), need);
+    if (!sv(m, "deratingFailCode").isEmpty())
+        results.insert(QStringLiteral("portata_insufficiente"), sv(m, "deratingFailCode"));
+    return {{QStringLiteral("canalina"), QJsonObject{{QStringLiteral("tipologia"), trayTypeName(sv(st, "trayType"))},
+                                                     {QStringLiteral("larghezza_mm"), dv(st, "width")},
+                                                     {QStringLiteral("altezza_mm"), dv(st, "height")},
+                                                     {QStringLiteral("spessore_mm"), dv(st, "thk")},
+                                                     {QStringLiteral("misura_dai_cavi"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false)},
+                                                     {QStringLiteral("riserva_voluta_pct"), dv(st, "cartesioReserve", 30)}}},
+            {QStringLiteral("cavi"), cables},
+            {QStringLiteral("risultati"), results},
+            {QStringLiteral("riepilogo"), lines},
+            {QStringLiteral("avvertenza"), tr("Calcoli di CanaloCAD: valori indicativi da verificare con le norme e con i dati dei costruttori.")}};
+}
+
+QJsonObject CanaloPanel::trayState(const QString& id) const
+{
+    if (drawing_)
+        if (const std::string* json = drawing_->document().canaloTray(id.toStdString()))
+            return QJsonDocument::fromJson(QByteArray::fromStdString(*json)).object();
+    return {};
+}
+
+QJsonArray CanaloPanel::trayList()
+{
+    QJsonArray out;
+    if (!drawing_)
+        return out;
+    for (const auto& [id, json] : drawing_->document().canaloTrays()) {
+        const QJsonObject st = QJsonDocument::fromJson(QByteArray::fromStdString(json)).object();
+        const QJsonObject a = analyze(st);
+        const QJsonObject r = a.value(QStringLiteral("risultati")).toObject();
+        QJsonObject row{{QStringLiteral("codice"), QString::fromStdString(id)},
+                        {QStringLiteral("titolo"), sv(st, "title")},
+                        {QStringLiteral("canalina"), a.value(QStringLiteral("canalina"))},
+                        {QStringLiteral("cavi"), static_cast<int>(st.value(QStringLiteral("cables")).toArray().size())},
+                        {QStringLiteral("riempimento_pct"), r.value(QStringLiteral("riempimento_pct"))},
+                        {QStringLiteral("segregazione_conforme"), r.value(QStringLiteral("segregazione_conforme"))}};
+        if (r.contains(QStringLiteral("larghezza_minima_mm")))
+            row.insert(QStringLiteral("larghezza_minima_mm"), r.value(QStringLiteral("larghezza_minima_mm")));
+        if (st.contains(QStringLiteral("lengthM")))
+            row.insert(QStringLiteral("lunghezza_m"), dv(st, "lengthM"));
+        out.append(row);
+        if (out.size() >= 200)
+            break;
+    }
+    return out;
+}
+
+QString CanaloPanel::addTray(const QJsonObject& state)
+{
+    if (!drawing_)
+        return {};
+    trayId_.clear();
+    const QString id = createTray(state);
+    drawSection();
+    refresh();
+    return id;
+}
+
+bool CanaloPanel::replaceTray(const QString& id, QJsonObject state)
+{
+    QJsonObject current = trayState(id);
+    if (current.isEmpty())
+        return false;
+    // Della canalina esistente restano posizione della sezione, percorso, titolo e dati di progetto: cambiano cavi,
+    // tipologia e misura.
+    for (const char* key : {"cables", "trayType", "width", "height", "thk", "cartesioAutoSize", "cartesioReserve"})
+        if (state.contains(QLatin1String(key)))
+            current.insert(QLatin1String(key), state.value(QLatin1String(key)));
+    trayId_ = id;
+    store(current, tr("Canalina %1 aggiornata dall'assistente IA.").arg(id));
+    refresh();
     return true;
 }
 

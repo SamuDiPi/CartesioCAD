@@ -527,7 +527,18 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
                 }
                 else
                     print(tr("-CANALOSCHEDA: tavola non ottenuta %1").arg(error2));
-                loop.quit();
+                // Come canalo_scheda "leggi" dell'assistente IA: lo stato della pagina ricalcolato da CartesioCAD.
+                host.runAsync(QStringLiteral("window.CanaloHost.state()"), [&](const QJsonValue& st, const QString& error3) {
+                    const QJsonObject a = error3.isEmpty() ? canalo_->analyze(st.toObject()) : QJsonObject();
+                    const QJsonObject res = a.value(QStringLiteral("risultati")).toObject();
+                    if (a.isEmpty() || a.contains(QStringLiteral("errore")))
+                        print(tr("-CANALOSCHEDA: stato della pagina non letto %1").arg(error3));
+                    else
+                        print(tr("-CANALOSCHEDA: stato della pagina letto: %1 tipi di cavo, riempimento %2%")
+                                  .arg(a.value(QStringLiteral("cavi")).toArray().size())
+                                  .arg(res.value(QStringLiteral("riempimento_pct")).toDouble()));
+                    loop.quit();
+                });
             });
         });
     });
