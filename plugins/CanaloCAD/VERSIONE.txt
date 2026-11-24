@@ -1,3 +1,3 @@
 CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
-Commit: 8832d10 Dentro CartesioCAD: Esporta > Copia come blocco (la tavola negli appunti del programma, con caratteri e stili)
+Commit: f203567 Canalina da una lista di cavi in Excel o CSV; Copia come immagine dentro CartesioCAD
 Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.

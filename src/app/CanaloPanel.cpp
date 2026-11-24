@@ -1607,6 +1607,73 @@ QJsonObject CanaloPanel::stateFor(const QJsonArray& cables, const QJsonObject& o
     return st;
 }
 
+QJsonObject CanaloPanel::stateFromCables(const std::vector<canalo::Cable>& cables, const QJsonObject& options, QString* error)
+{
+    auto fail = [error](const QString& why) {
+        if (error)
+            *error = why;
+        return QJsonObject();
+    };
+    if (cables.empty())
+        return fail(tr("Nessun cavo."));
+    if (cables.size() > 400)
+        return fail(tr("Troppi cavi (massimo 400)."));
+    CanaloEngine& engine = CanaloEngine::instance();
+    engine.setOwnCables(ownCablesJson());
+    QJsonObject st = engine.defaultState();
+    if (options.contains(QStringLiteral("tipologia")))
+        st.insert(QStringLiteral("trayType"), trayTypeKey(options.value(QStringLiteral("tipologia")).toString()));
+    QJsonArray list;
+    int n = 0;
+    for (const canalo::Cable& c : cables)
+        list.append(QJsonObject{{QStringLiteral("id"), n++},
+                                {QStringLiteral("code"), QString::fromStdString(c.code)},
+                                {QStringLiteral("desc"), QString::fromStdString(c.desc)},
+                                {QStringLiteral("type"), QString::fromStdString(c.type)},
+                                {QStringLiteral("form"), QString::fromStdString(c.form)},
+                                {QStringLiteral("d"), c.d},
+                                {QStringLiteral("w"), c.w},
+                                {QStringLiteral("sec"), c.sec},
+                                {QStringLiteral("cores"), c.cores},
+                                {QStringLiteral("iz0"), c.iz0},
+                                {QStringLiteral("ib"), c.ib},
+                                {QStringLiteral("bendK"), c.bendK},
+                                {QStringLiteral("sys"), QString::fromStdString(c.sys)},
+                                {QStringLiteral("x"), 0.0},
+                                {QStringLiteral("y"), 0.0}});
+    st.insert(QStringLiteral("cables"), list);
+    if (options.contains(QStringLiteral("lunghezza_m")))
+        st.insert(QStringLiteral("lengthM"), std::max(1.0, options.value(QStringLiteral("lunghezza_m")).toDouble()));
+    const double reserve = std::clamp(options.value(QStringLiteral("riserva")).toDouble(30.0), 0.0, 90.0);
+    st.insert(QStringLiteral("cartesioReserve"), reserve);
+    const double w = options.value(QStringLiteral("larghezza")).toDouble(0.0), h = options.value(QStringLiteral("altezza")).toDouble(0.0);
+    if (w > 0 && h > 0) {
+        st.insert(QStringLiteral("width"), std::min(w, 2000.0));
+        st.insert(QStringLiteral("height"), std::min(h, 500.0));
+        st.insert(QStringLiteral("cartesioAutoSize"), false);
+        st = engine.calculate(st);
+    } else {
+        st.insert(QStringLiteral("cartesioAutoSize"), true);
+        st = engine.autoSize(st, reserve);
+    }
+    if (st.isEmpty())
+        return fail(tr("Calcolo di CanaloCAD non riuscito: %1").arg(engine.error()));
+    return st;
+}
+
+void CanaloPanel::linkRoute(const QString& id, const std::vector<EntityId>& route, double lengthM)
+{
+    if (!drawing_ || trayState(id).isEmpty() || route.empty())
+        return;
+    trayId_ = id;
+    tag(route, QString());
+    QJsonObject st = state();
+    if (lengthM > 0)
+        st.insert(QStringLiteral("lengthM"), std::max(1.0, std::round(lengthM * 10.0) / 10.0));
+    store(st, tr("Percorso collegato alla canalina %1.").arg(id));
+    refresh();
+}
+
 QJsonObject CanaloPanel::analyze(const QJsonObject& state)
 {
     QJsonObject m;

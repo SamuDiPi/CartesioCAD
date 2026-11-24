@@ -11,7 +11,9 @@
 #include "app/CanaloPanel.h"
 #include "app/CanaloTab.h"
 #include "app/ClaudeLink.h"
+#include "app/PlantPanel.h"
 #include "app/QmlUi.h"
+#include "core/Plant.h"
 #include "app/WebView2Host.h"
 #include "app/DrawingWidget.h"
 #include "app/DwgConverter.h"
@@ -1148,7 +1150,7 @@ void MainWindow::handleClaudeTool(const QString& tool, const QJsonObject& args, 
     DrawingWidget* d = current();
     if (!d && isCanaloTab(fileTabs_->currentIndex()))
         d = canaloFrom_;   // dalla scheda CanaloCAD: il disegno da cui ci si è arrivati
-    if (tool.startsWith(QLatin1String("canalo_")) && handleCanaloTool(tool, args, d, reply))
+    if ((tool.startsWith(QLatin1String("canalo_")) || tool == QLatin1String("impianto_tratte")) && handleCanaloTool(tool, args, d, reply))
         return;
     if (!d) {
         reply(false, tr("In CartesioCAD non c'è nessun disegno aperto."));
@@ -1521,6 +1523,110 @@ void MainWindow::proposeClaudeChanges(DrawingWidget* d, const QJsonObject& args,
 bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, DrawingWidget* d, ClaudeLink::Reply& reply)
 {
     canalo_->setDrawing(d);
+    if (d)
+        plant_->setDrawing(d);
+
+    // Stato della canalina dagli argomenti: cavi del database ("cavi") oppure i cavi dei circuiti di una tratta
+    // dell'Impianto ("tratta"; misura della tratta, o dai cavi con misura: dai_cavi). runId riceve la tratta.
+    auto buildState = [this, &args](QString* error, QString* runId) -> QJsonObject {
+        const QString runCode = args.value(QStringLiteral("tratta")).toString().trimmed().toUpper();
+        if (runCode.isEmpty())
+            return canalo_->stateFor(args.value(QStringLiteral("cavi")).toArray(), args, error);
+        if (!plant_->hasProject()) {
+            *error = tr("Il disegno non ha un progetto dell'impianto aperto (tavolozza Impianto): niente tratte.");
+            return {};
+        }
+        const plant::Project& project = plant_->project();
+        const plant::Run* run = project.run(runCode.toStdString());
+        if (!run) {
+            *error = tr("Nessuna tratta %1 nel progetto (elenco con impianto_tratte).").arg(runCode);
+            return {};
+        }
+        if (run->kind == plant::RunKind::Tube) {
+            *error = tr("La tratta %1 è un tubo: le canaline di CanaloCAD sono per canali e passerelle.").arg(runCode);
+            return {};
+        }
+        std::vector<canalo::Cable> cables;
+        for (const std::string& code : run->circuits)
+            if (const plant::Circuit* c = project.circuit(code))
+                for (canalo::Cable& cable : plant::cablesOf(project, *c))
+                    cables.push_back(std::move(cable));
+        if (cables.empty()) {
+            *error = tr("La tratta %1 non ha circuiti con un cavo riconosciuto.").arg(runCode);
+            return {};
+        }
+        QJsonObject options = args;
+        if (!options.contains(QStringLiteral("tipologia")))
+            options.insert(QStringLiteral("tipologia"), run->kind == plant::RunKind::Duct ? QStringLiteral("cieco") : QStringLiteral("asolata"));
+        if (args.value(QStringLiteral("misura")).toString(QStringLiteral("tratta")) == QLatin1String("tratta")
+            && !options.contains(QStringLiteral("larghezza"))) {
+            options.insert(QStringLiteral("larghezza"), run->width);
+            options.insert(QStringLiteral("altezza"), run->height);
+        }
+        if (const double length = plant_->runLengthM(run->id); length > 0)
+            options.insert(QStringLiteral("lunghezza_m"), length);
+        *runId = runCode;
+        return canalo_->stateFromCables(cables, options, error);
+    };
+
+    if (tool == QLatin1String("impianto_tratte")) {
+        if (!d || !plant_->hasProject()) {
+            reply(false, tr("Il disegno non ha un progetto dell'impianto aperto (tavolozza Impianto)."));
+            return true;
+        }
+        const plant::Project& project = plant_->project();
+        const auto levelName = [](plant::Level l) {
+            return l == plant::Level::Error ? QStringLiteral("errore") : l == plant::Level::Warning ? QStringLiteral("avviso") : QStringLiteral("ok");
+        };
+        const QString code = args.value(QStringLiteral("codice")).toString().trimmed().toUpper();
+        QJsonArray runs;
+        for (const plant::Run& run : project.runs) {
+            if (!code.isEmpty() && QString::fromStdString(run.id) != code)
+                continue;
+            const double length = plant_->runLengthM(run.id);
+            const plant::RunCheck rc = plant::checkRun(project, run, length);
+            QJsonObject row{{QStringLiteral("codice"), QString::fromStdString(run.id)},
+                            {QStringLiteral("nome"), QString::fromStdString(run.name)},
+                            {QStringLiteral("tipo"), QString::fromLatin1(plant::runKindName(run.kind))},
+                            {QStringLiteral("misure"), run.kind == plant::RunKind::Tube
+                                                           ? tr("tubo Ø%1 mm").arg(run.tubeOuter)
+                                                           : tr("%1 × %2 mm").arg(run.width).arg(run.height)},
+                            {QStringLiteral("lunghezza_m"), std::round(length * 10.0) / 10.0},
+                            {QStringLiteral("circuiti"), static_cast<int>(run.circuits.size())},
+                            {QStringLiteral("cavi"), rc.cableCount},
+                            {QStringLiteral("riempimento_pct"), std::round(rc.fillPct * 10.0) / 10.0},
+                            {QStringLiteral("esito"), levelName(rc.level)},
+                            {QStringLiteral("oggetti_disegnati"), static_cast<int>(plant_->runEntities(run.id).size())}};
+            if (!code.isEmpty()) {
+                QJsonArray circuits, findings, missing;
+                for (const std::string& c : run.circuits)
+                    if (const plant::Circuit* ci = project.circuit(c))
+                        circuits.append(QJsonObject{{QStringLiteral("sigla"), QString::fromStdString(ci->code)},
+                                                    {QStringLiteral("descrizione"), QString::fromStdString(ci->description)},
+                                                    {QStringLiteral("tipo_cavo"), QString::fromStdString(ci->cableType)},
+                                                    {QStringLiteral("formazione"), QString::fromStdString(ci->formation)},
+                                                    {QStringLiteral("sistema"), QString::fromLatin1(plant::systemName(ci->system))},
+                                                    {QStringLiteral("ib_A"), ci->ib}});
+                for (const plant::Finding& f : rc.findings)
+                    findings.append(levelName(f.level) + QStringLiteral(": ") + QString::fromStdString(f.text));
+                for (const std::string& m : rc.missing)
+                    missing.append(QString::fromStdString(m));
+                row.insert(QStringLiteral("circuiti_dettaglio"), circuits);
+                row.insert(QStringLiteral("verifiche"), findings);
+                if (!missing.isEmpty())
+                    row.insert(QStringLiteral("sigle_senza_circuito"), missing);
+            }
+            runs.append(row);
+        }
+        if (!code.isEmpty() && runs.isEmpty()) {
+            reply(false, tr("Nessuna tratta %1 nel progetto.").arg(code));
+            return true;
+        }
+        reply(true, json(code.isEmpty() ? QJsonValue(QJsonObject{{QStringLiteral("progetto"), QString::fromStdString(project.name)},
+                                                                {QStringLiteral("tratte"), runs}})
+                                        : runs.first()));
+        return true;
+    }
 
     if (tool == QLatin1String("canalo_cerca_cavi")) {
         const int limit = std::clamp(args.value(QStringLiteral("massimo")).toInt(30), 1, 200);
@@ -1534,8 +1640,8 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
     }
 
     if (tool == QLatin1String("canalo_calcola")) {
-        QString error;
-        const QJsonObject st = canalo_->stateFor(args.value(QStringLiteral("cavi")).toArray(), args, &error);
+        QString error, runId;
+        const QJsonObject st = buildState(&error, &runId);
         if (st.isEmpty())
             reply(false, error);
         else
@@ -1584,8 +1690,8 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             reply(false, tr("Nessuna canalina %1 nel disegno.").arg(existing));
             return true;
         }
-        QString error;
-        const QJsonObject st = canalo_->stateFor(args.value(QStringLiteral("cavi")).toArray(), args, &error);
+        QString error, runId;
+        const QJsonObject st = buildState(&error, &runId);
         if (st.isEmpty()) {
             reply(false, tr("Proposta non valida, niente è stato mostrato all'utente. %1").arg(error));
             return true;
@@ -1604,7 +1710,7 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             at = Vec2{p[0].toDouble(), p[1].toDouble()};
         QPointer<DrawingWidget> drawing(d);
         auto created = std::make_shared<QString>();
-        auto apply = [this, drawing, st, existing, withSection, withSheet, at, created]() -> QString {
+        auto apply = [this, drawing, st, existing, withSection, withSheet, at, created, runId]() -> QString {
             if (!drawing)
                 return tr("Il disegno è stato chiuso.");
             if (drawing->commands().isActive())
@@ -1618,6 +1724,10 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             if (id.isEmpty())
                 return tr("Canalina non creata.");
             *created = id;
+            if (existing.isEmpty() && !runId.isEmpty()) {   // la canalina segue il percorso disegnato della tratta
+                plant_->setDrawing(drawing);
+                canalo_->linkRoute(id, plant_->runEntities(runId.toStdString()), plant_->runLengthM(runId.toStdString()));
+            }
             if (withSheet) {   // la tavola: dove indicato, oppure accanto alla sezione
                 canalo_->selectTray(id);
                 canalo_->insertSheetAt(canalo_->sheetPosition(withSection ? std::nullopt : at));

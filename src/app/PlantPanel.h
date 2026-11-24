@@ -83,6 +83,9 @@ public:
     // Circuiti letti dalla tavolozza Circuiti: entrano nel progetto aperto.
     void mergeFromSchema(const std::vector<cartesio::Circuit>& schema, const QString& path);
     const plant::Project& project() const { return project_; }
+    // Lunghezza in metri delle linee e polilinee disegnate di una tratta, e quegli oggetti.
+    double runLengthM(const std::string& id) const;
+    std::vector<EntityId> runEntities(const std::string& id) const;
     // Finestra di un cavo proprio (codice, tipo, formazione, diametro, peso, sezione, portata, sistema): usata anche
     // dalla libreria personale della Sezione da catalogo. Imposta id "CST_" e "Cavo del progetto".
     static bool editCableType(canalo::CableType& t, bool isNew, QWidget* parent);
@@ -132,12 +135,10 @@ private:
     bool editCircuit(plant::Circuit& c, bool isNew);
     bool editRun(plant::Run& r, bool isNew);
     bool editCable(canalo::CableType& t, bool isNew);
-    double runLengthM(const std::string& id) const;
     std::map<std::string, double> runLengths() const;
     std::map<std::string, plant::RunGeometry> runGeometry() const;
     double labelHeight() const;
     void replaceTagged(const std::string& prefix, std::vector<std::unique_ptr<Entity>> added);
-    std::vector<EntityId> runEntities(const std::string& id) const;
     std::vector<EntityId> selectedPathObjects() const;
     void tagObjects(const std::vector<EntityId>& ids, const std::string& runId);
     QString resolvedPath(const QString& stored) const;

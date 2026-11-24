@@ -13,6 +13,7 @@
 // (Document::canaloTrays); gli oggetti hanno il codice (Entity::canaloTray: "CN1" per il percorso, "CN1/sezione" per
 // la sezione). Si salva nel DWG/DXF e si annulla con Ctrl+Z.
 
+#include "core/Canalo.h"
 #include "core/Entity.h"
 
 #include <QJsonArray>
@@ -82,6 +83,10 @@ public:
     // Stato di una canalina dai cavi del database ([{id, quantita, trifoglio}]) e dalle opzioni (tipologia, larghezza,
     // altezza, riserva): con larghezza e altezza la misura è quella, altrimenti la sceglie CanaloCAD dai cavi.
     QJsonObject stateFor(const QJsonArray& cables, const QJsonObject& options, QString* error);
+    // Lo stesso con cavi già pronti (per esempio quelli dei circuiti di una tratta dell'Impianto).
+    QJsonObject stateFromCables(const std::vector<canalo::Cable>& cables, const QJsonObject& options, QString* error);
+    // Percorso in pianta (linee, polilinee) collegato alla canalina, con la lunghezza del tratto in metri.
+    void linkRoute(const QString& id, const std::vector<EntityId>& route, double lengthM);
     // Calcoli di CanaloCAD su uno stato, senza toccare il disegno: misure, cavi, risultati e righe del riepilogo.
     QJsonObject analyze(const QJsonObject& state);
     // Canaline del disegno: codice, misure, numero di cavi, esito in breve; con un codice, l'analisi completa.

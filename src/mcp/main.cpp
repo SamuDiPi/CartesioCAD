@@ -227,7 +227,7 @@ const char* const kTools = R"JSON(
  },
  {
   "name": "canalo_calcola",
-  "description": "CanaloCAD: calcola una canalina portacavi con i cavi indicati, senza toccare il disegno. Senza larghezza e altezza CanaloCAD sceglie la misura dai cavi con la riserva voluta (30% di default); con larghezza e altezza verifica quella misura e dice se serve più larga. Restituisce misure, cavi, riempimento, riserva, Kr (riduzione di portata), segregazione CEI 64-8 art. 528.1, peso, tiro di posa e il riepilogo completo con la distinta. Valori indicativi da far verificare al progettista.",
+  "description": "CanaloCAD: calcola una canalina portacavi con i cavi indicati (o con quelli dei circuiti di una tratta dell'Impianto), senza toccare il disegno. Senza larghezza e altezza CanaloCAD sceglie la misura dai cavi con la riserva voluta (30% di default); con larghezza e altezza verifica quella misura e dice se serve più larga. Restituisce misure, cavi, riempimento, riserva, Kr (riduzione di portata), segregazione CEI 64-8 art. 528.1, peso, tiro di posa e il riepilogo completo con la distinta. Valori indicativi da far verificare al progettista.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -248,9 +248,10 @@ const char* const kTools = R"JSON(
     "tipologia": {"type": "string", "enum": ["asolata", "cieco", "filo", "scala"], "description": "passerella asolata (default), canale cieco, passerella a filo, passerella a scala"},
     "larghezza": {"type": "number", "description": "mm"},
     "altezza": {"type": "number", "description": "mm"},
-    "riserva": {"type": "number", "minimum": 0, "maximum": 90, "description": "riserva di spazio voluta in %, default 30"}
-   },
-   "required": ["cavi"]
+    "riserva": {"type": "number", "minimum": 0, "maximum": 90, "description": "riserva di spazio voluta in %, default 30"},
+    "tratta": {"type": "string", "description": "in alternativa a cavi: codice di una tratta dell'Impianto (T1, T2...; elenco con impianto_tratte), i cavi vengono dai suoi circuiti"},
+    "misura": {"type": "string", "enum": ["tratta", "dai_cavi"], "description": "con tratta: verifica la misura della tratta (default) o sceglie la misura dai cavi"}
+   }
   }
  },
  {
@@ -265,7 +266,7 @@ const char* const kTools = R"JSON(
  },
  {
   "name": "canalo_proponi_canalina",
-  "description": "CanaloCAD: propone una canalina nuova, da inserire direttamente nel disegno, oppure (con canalina) nuovi cavi e misura per una canalina esistente. Va bene anche partendo da una lista di cavi scritta dall'utente: ogni voce si traduce prima in un id del database con canalo_cerca_cavi. Nel disegno va la sezione al vero (default), la tavola completa di CanaloCAD (sezione quotata, tabella cavi, distinta, cartiglio) o entrambe; posizione in unità del disegno, altrimenti a destra di quello che c'è. CartesioCAD mostra all'utente misure e risultati dei calcoli e applica solo se l'utente preme OK; la risposta dice cosa ha deciso. Si annulla con Ctrl+Z. Stessi parametri di canalo_calcola: conviene calcolare prima.",
+  "description": "CanaloCAD: propone una canalina nuova, da inserire direttamente nel disegno, oppure (con canalina) nuovi cavi e misura per una canalina esistente. Va bene anche partendo da una lista di cavi scritta dall'utente (ogni voce si traduce prima in un id del database con canalo_cerca_cavi) oppure da una tratta dell'Impianto (tratta): i cavi vengono dai circuiti della tratta e la canalina nuova si collega al percorso disegnato, con la sua lunghezza. Nel disegno va la sezione al vero (default), la tavola completa di CanaloCAD (sezione quotata, tabella cavi, distinta, cartiglio) o entrambe; posizione in unità del disegno, altrimenti a destra di quello che c'è. CartesioCAD mostra all'utente misure e risultati dei calcoli e applica solo se l'utente preme OK; la risposta dice cosa ha deciso. Si annulla con Ctrl+Z. Stessi parametri di canalo_calcola: conviene calcolare prima.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -290,9 +291,21 @@ const char* const kTools = R"JSON(
     "altezza": {"type": "number"},
     "riserva": {"type": "number", "minimum": 0, "maximum": 90},
     "inserisci": {"type": "string", "enum": ["sezione", "tavola", "sezione_e_tavola"], "description": "cosa mettere nel disegno, default sezione"},
-    "posizione": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[x, y] della sezione (o della tavola se solo tavola)"}
+    "posizione": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[x, y] della sezione (o della tavola se solo tavola)"},
+    "tratta": {"type": "string", "description": "in alternativa a cavi: codice di una tratta dell'Impianto (T1, T2...; elenco con impianto_tratte), i cavi vengono dai suoi circuiti"},
+    "misura": {"type": "string", "enum": ["tratta", "dai_cavi"], "description": "con tratta: verifica la misura della tratta (default) o sceglie la misura dai cavi"}
    },
-   "required": ["descrizione", "cavi"]
+   "required": ["descrizione"]
+  }
+ },
+ {
+  "name": "impianto_tratte",
+  "description": "Impianto (progetto dell'impianto collegato al disegno): le tratte di tubi, canali e passerelle con codice, tipo, misure, lunghezza disegnata, numero di circuiti e cavi, riempimento ed esito delle verifiche. Con codice: anche i circuiti (sigla, descrizione, tipo di cavo, formazione, sistema, Ib) e le verifiche una per una. Le tratte di canale e passerella si possono trasformare in canaline di CanaloCAD con canalo_proponi_canalina e tratta.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "codice": {"type": "string", "description": "es. T3"}
+   }
   }
  },
  {

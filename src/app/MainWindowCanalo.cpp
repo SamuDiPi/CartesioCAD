@@ -17,13 +17,17 @@
 #include "app/Ribbon.h"
 #include "app/CanaloTab.h"
 #include "app/WebView2Host.h"
+#include "app/PlotEngine.h"
+#include "app/Theme.h"
 #include "core/Import.h"
 #include "core/commands/CommandManager.h"
 
 #include <QAction>
 #include <QCryptographicHash>
 #include <QDate>
+#include <QBuffer>
 #include <QClipboard>
+#include <QMimeData>
 #include <QDesktopServices>
 #include <QDockWidget>
 #include <QDir>
@@ -449,6 +453,26 @@ void MainWindow::canaloMessage(const QJsonValue& value)
             f();
         return;
     }
+    if (kind == QLatin1String("immagine")) {   // negli appunti di Windows, da incollare in Word o in una relazione
+        QString error;
+        const QImage image = canaloSheetImage(QByteArray::fromBase64(msg.value(QStringLiteral("dxf")).toString().toLatin1()), &error);
+        if (image.isNull()) {
+            print(tr("CanaloCAD: immagine della tavola non creata: %1").arg(error));
+            return;
+        }
+        auto* data = new QMimeData;
+        data->setImageData(image);
+        QByteArray png;
+        QBuffer buffer(&png);
+        buffer.open(QIODevice::WriteOnly);
+        image.save(&buffer, "PNG");
+        data->setData(QStringLiteral("image/png"), png);
+        data->setData(QStringLiteral("PNG"), png);
+        QGuiApplication::clipboard()->setMimeData(data);
+        print(tr("Tavola di CanaloCAD negli appunti come immagine (%1 × %2 pixel, 300 dpi): si incolla in Word, in una "
+                 "relazione o in una mail con Ctrl+V.").arg(image.width()).arg(image.height()));
+        return;
+    }
     if (kind == QLatin1String("copia")) {
         QString error;
         const QString block = canaloCopyAsBlock(QByteArray::fromBase64(msg.value(QStringLiteral("dxf")).toString().toLatin1()),
@@ -535,6 +559,81 @@ QString MainWindow::canaloCopyAsBlock(const QByteArray& dxf, const QString& file
     return name;
 }
 
+QImage MainWindow::canaloSheetImage(const QByteArray& dxf, QString* error)
+{
+    const QString path = QDir::tempPath() + QStringLiteral("/cartesio-canalo-immagine.dxf");
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly) || file.write(dxf) != dxf.size()) {
+            if (error)
+                *error = tr("file temporaneo non scritto");
+            return {};
+        }
+    }
+    // La tavola in un disegno nascosto, stampata con il motore di stampa: fondo bianco, colori degli oggetti,
+    // riempimenti e caratteri; foglio con le proporzioni della tavola, largo 297 mm, a 300 dpi.
+    DrawingWidget sheet(settings_, QStringLiteral("tavola"));
+    sheet.setAttribute(Qt::WA_DontShowOnScreen);
+    QStringList notes;
+    const bool loaded = sheet.load(path, error, &notes);
+    QFile::remove(path);
+    if (!loaded)
+        return {};
+    // I colori molto chiari (pensati per lo sfondo scuro del CAD) su carta bianca non si leggono: diventano grigio scuro.
+    Document& doc = sheet.document();
+    const auto lightRgb = [](int rgb) { return rgb >= 0 && QColor::fromRgb(QRgb(rgb)).lightnessF() > 0.78; };
+    const auto lightAci = [](int aci) { return aci >= 1 && aci <= 255 && aci != 7 && theme::aciColor(aci).lightnessF() > 0.78; };
+    const auto darken = [&](Entity& e) {
+        bool changed = false;
+        if (lightRgb(e.trueColor())) {
+            e.setTrueColor(-1);
+            e.setColor(250);
+            changed = true;
+        } else if (e.trueColor() < 0 && lightAci(e.color())) {
+            e.setColor(250);
+            changed = true;
+        }
+        return changed;
+    };
+    for (int i = 0; i < static_cast<int>(doc.layers().size()); ++i) {
+        Layer& layer = doc.layer(i);
+        if (lightRgb(layer.trueColor) || (layer.trueColor < 0 && lightAci(layer.color))) {
+            layer.trueColor = -1;
+            layer.color = 250;
+        }
+    }
+    for (const auto& def : doc.blocks())
+        for (auto& e : def->entities)
+            darken(*e);
+    std::vector<std::unique_ptr<Entity>> replaced;
+    std::vector<EntityId> removed;
+    for (const auto& e : doc.entities()) {
+        auto copy = e->clone();
+        if (darken(*copy)) {
+            removed.push_back(e->id());
+            replaced.push_back(std::move(copy));
+        }
+    }
+    if (!removed.empty())
+        doc.commit(std::move(replaced), removed);
+    const BBox box = doc.extents();
+    if (!box.isValid()) {
+        if (error)
+            *error = tr("tavola vuota");
+        return {};
+    }
+    PlotJob job = plotJobFor(sheet, 0);
+    job.settings = PlotSettings::forModel();
+    job.settings.styleSheet.clear();
+    job.settings.mediaName.clear();
+    const double width = 297.0, margin = 4.0;
+    job.settings.paperWidth = width;
+    job.settings.paperHeight = std::clamp(width * box.height() / std::max(1e-9, box.width()), 40.0, 1200.0);
+    job.settings.marginLeft = job.settings.marginBottom = job.settings.marginRight = job.settings.marginTop = margin;
+    job.stamp = false;
+    return renderPlotPreview(sheet, job, 300.0 / 25.4, error);
+}
+
 void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
 {
 #ifdef Q_OS_WIN
@@ -588,6 +687,12 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
                     const QString block = canaloCopyAsBlock(dxf.toLatin1(), out.toObject().value(QStringLiteral("nome")).toString(), &copyError);
                     print(block.isEmpty() ? tr("-CANALOSCHEDA: copia come blocco non riuscita: %1").arg(copyError)
                                           : tr("-CANALOSCHEDA: tavola negli appunti come blocco %1").arg(block));
+                    // Come "Copia come immagine": l'immagine si salva accanto alla tavola per controllarla.
+                    const QImage image = canaloSheetImage(dxf.toLatin1(), &copyError);
+                    const QString png = QFileInfo(sheet).absolutePath() + QLatin1Char('/') + QFileInfo(sheet).completeBaseName() + QStringLiteral(".png");
+                    print(!image.isNull() && image.save(png)
+                              ? tr("-CANALOSCHEDA: immagine %1 × %2 salvata in %3").arg(image.width()).arg(image.height()).arg(QDir::toNativeSeparators(png))
+                              : tr("-CANALOSCHEDA: immagine non creata: %1").arg(copyError));
                 }
                 else
                     print(tr("-CANALOSCHEDA: tavola non ottenuta %1").arg(error2));

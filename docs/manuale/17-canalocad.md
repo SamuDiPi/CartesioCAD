@@ -48,7 +48,9 @@ Apre l'applicazione CanaloCAD (la copia inclusa in CartesioCAD, o quella indicat
 
 ## Invia sezione (`CANALOINVIA`, `CANALOSEND`)
 
-Con la scheda CanaloCAD gli oggetti selezionati si aprono direttamente in CanaloCAD, in una scheda canalina nuova. Per riportare la tavola nel disegno: in CanaloCAD *Esporta > Inserisci nel disegno*; la tavola si inserisce nel disegno da cui si è partiti (e una copia va nella cartella di scambio). Oppure *Esporta > Copia come blocco*: la tavola va negli appunti di CartesioCAD come blocco, con i caratteri e gli stili di testo scelti nelle opzioni di esportazione, e Ctrl+V la incolla in qualsiasi disegno aperto (anche un DWG, dove resta un blocco quando lo si salva).
+Con la scheda CanaloCAD gli oggetti selezionati si aprono direttamente in CanaloCAD, in una scheda canalina nuova. Per riportare la tavola nel disegno: in CanaloCAD *Esporta > Inserisci nel disegno*; la tavola si inserisce nel disegno da cui si è partiti (e una copia va nella cartella di scambio). Oppure *Esporta > Copia come blocco*: la tavola va negli appunti di CartesioCAD come blocco, con i caratteri e gli stili di testo scelti nelle opzioni di esportazione, e Ctrl+V la incolla in qualsiasi disegno aperto (anche un DWG, dove resta un blocco quando lo si salva). *Esporta > Copia come immagine* mette invece la tavola negli appunti di Windows come immagine a 300 dpi su fondo bianco (i colori troppo chiari per la carta diventano grigio scuro), da incollare in Word, in una relazione o in una mail.
+
+In CanaloCAD *Importa > Canalina dai cavi di uno schema o di una lista* legge anche una **lista di cavi in Excel (.xlsx) o CSV**: una riga per linea, con colonne come Sigla, Descrizione, Tipo, Formazione, Quantità, Lunghezza, Ib, Quadro (riconosciute dal nome, anche in inglese; tipo e formazione possono stare nella stessa cella, per esempio "FG16OM16 5G2,5"). Si legge il primo foglio; il vecchio formato .xls va salvato come .xlsx o .csv.
 
 Senza la scheda (browser) salva gli oggetti selezionati in un DXF in millimetri da importare in CanaloCAD; il percorso del file va negli appunti.
 
