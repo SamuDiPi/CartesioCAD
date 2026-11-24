@@ -9,12 +9,14 @@
 #include "core/Vec2.h"
 
 #include <QDateTime>
+#include <QJsonValue>
 #include <QMainWindow>
 #include <QPointer>
 #include <QSet>
 #include <QMap>
 #include <QStringList>
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -52,6 +54,7 @@ class CanaloPanel;
 class GuidePanel;
 class Ribbon;
 class StartPage;
+class CanaloTab;
 class BlockLibrary;
 struct DocSummary;
 
@@ -311,6 +314,21 @@ private:
     bool canaloInsert(const QString& source = {});
     void canaloInsertLatest();
     void updateCanaloWatch();
+    // Scheda CanaloCAD (WebView2, solo Windows): la pagina tra le schede dei disegni. "then" parte a pagina pronta.
+    bool canaloEmbedded() const;
+    void canaloShowTab(std::function<void()> then = {});
+    bool isCanaloTab(int index) const;
+    void closeCanaloTab();
+    void positionCanaloTab();
+    void canaloMessage(const QJsonValue& value);
+    // Prova senza schermo (-CANALOSCHEDA sezione.dxf tavola.dxf): la pagina in una finestra nascosta importa la
+    // sezione e restituisce la tavola, come fanno "Invia sezione" e "Inserisci nel disegno" nella scheda.
+    void canaloTabSelfTest(const QString& section, const QString& sheet);
+    QWidget* canaloPlaceholder_ = nullptr;     // pagina dello stack per la scheda CanaloCAD
+    CanaloTab* canaloTab_ = nullptr;           // finestra nativa con la pagina
+    QPointer<DrawingWidget> canaloFrom_;       // disegno in cui inserire la tavola
+    bool canaloReady_ = false;
+    std::vector<std::function<void()>> canaloPending_;
     QFileSystemWatcher* canaloWatcher_ = nullptr;
     QDateTime canaloSeen_;
     void layerFromObject();

@@ -15,6 +15,8 @@
 #include "app/CanaloPanel.h"
 #include "app/Icons.h"
 #include "app/Ribbon.h"
+#include "app/CanaloTab.h"
+#include "app/WebView2Host.h"
 
 #include <QAction>
 #include <QDate>
@@ -31,13 +33,26 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QUrl>
+#include <QEventLoop>
+#include <QJsonObject>
+#include <QStackedWidget>
+#include <QStandardPaths>
+#include <QTimer>
+
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace cartesio {
 
 void MainWindow::setupCanalo(Ribbon* ribbon)
 {
     auto* open = makeAction(tr("Apri\nCanaloCAD"), icon(Icon::Open), {},
-                            tr("Apre CanaloCAD (progettazione canaline) nel browser\nComando: CANALOCAD"));
+                            tr("Apre CanaloCAD (progettazione canaline) in una scheda accanto ai disegni (su Windows; altrimenti nel "
+                               "browser)\nComando: CANALOCAD"));
     auto* send = makeAction(tr("Invia sezione"), icon(Icon::SaveAs), {},
                             tr("Salva gli oggetti selezionati in un DXF da importare in CanaloCAD\nComando: CANALOINVIA"));
     auto* insert = makeAction(tr("Inserisci tavola"), icon(Icon::BlockInsert), {},
@@ -105,6 +120,10 @@ void MainWindow::canaloOpen()
         showOptions(6);   // scheda Plugin
         return;
     }
+    if (canaloEmbedded()) {
+        canaloShowTab();
+        return;
+    }
     QDesktopServices::openUrl(QUrl::fromLocalFile(html));
     print(tr("CanaloCAD aperto nel browser. Le tavole esportate in DXF in %1 si inseriscono con CANALOULTIMA.")
               .arg(QDir::toNativeSeparators(canaloExchangeFolder())));
@@ -128,6 +147,31 @@ bool MainWindow::canaloSend(const QString& target)
         else
             QMessageBox::information(this, tr("CanaloCAD"), error);
         return false;
+    }
+    // Scheda CanaloCAD: la sezione si apre direttamente nella pagina, niente percorsi da incollare.
+    if (!fromScript && canaloEmbedded() && !canaloHtmlPath().isEmpty()) {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly)) {
+            const QString name = QFileInfo(path).fileName();
+            const QString data = QString::fromLatin1(file.readAll().toBase64());
+            canaloFrom_ = d;
+            canaloShowTab([this, name, data] {
+                canaloTab_->host()->runAsync(
+                    QStringLiteral("window.CanaloHost.importDxf(%1, %2)")
+                        .arg(QString::fromUtf8(QJsonDocument(QJsonArray{name}).toJson(QJsonDocument::Compact)).mid(1).chopped(1),
+                             QLatin1Char('"') + data + QLatin1Char('"')),
+                    [this, name](const QJsonValue& value, const QString& error) {
+                        if (!error.isEmpty())
+                            print(tr("CanaloCAD: sezione %1 non importata: %2").arg(name, error));
+                        else
+                            print(tr("Sezione aperta in CanaloCAD: %1 cavi nella scheda \"%2\". Per riportare la tavola nel "
+                                     "disegno: Esporta > Inserisci nel disegno.")
+                                      .arg(value.toObject().value(QStringLiteral("cavi")).toInt())
+                                      .arg(value.toObject().value(QStringLiteral("titolo")).toString()));
+                    });
+            });
+            return true;
+        }
     }
     QGuiApplication::clipboard()->setText(QDir::toNativeSeparators(path));
     print(tr("Sezione per CanaloCAD salvata in %1 (percorso copiato negli appunti): in CanaloCAD usare "
@@ -290,6 +334,212 @@ void MainWindow::updateCanaloWatch()
     const QString folder = canaloExchangeFolder();
     if (appOptions().canaloWatch && !folder.isEmpty() && QFileInfo(folder).isDir())
         canaloWatcher_->addPath(folder);
+}
+
+// ============================================================ scheda CanaloCAD (WebView2)
+
+namespace {
+
+// Dati della pagina (progetti e preferenze di CanaloCAD, cache del motore): solo sul PC, nella cartella dei dati
+// locali di CartesioCAD.
+QString canaloWebDataFolder()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + QStringLiteral("/CanaloCAD-pagina");
+}
+
+} // namespace
+
+bool MainWindow::canaloEmbedded() const
+{
+    static const bool ok = WebView2Host::available();
+    return ok;
+}
+
+bool MainWindow::isCanaloTab(int index) const
+{
+    return canaloPlaceholder_ && index >= 0 && index < stack_->count() && stack_->widget(index) == canaloPlaceholder_;
+}
+
+void MainWindow::canaloShowTab(std::function<void()> then)
+{
+    if (DrawingWidget* d = current())
+        canaloFrom_ = d;
+    if (then) {
+        if (canaloReady_)
+            QTimer::singleShot(0, this, then);
+        else
+            canaloPending_.push_back(std::move(then));
+    }
+    if (!canaloPlaceholder_) {
+        canaloReady_ = false;
+        if (mainView_) {   // scena unica: finestra nativa sopra la vista, nell'area riportata dal QML
+            canaloPlaceholder_ = new QWidget(stack_);
+            canaloTab_ = new CanaloTab(mainView_);
+            canaloTab_->hide();
+            connect(mainView_, &MainView::canaloAreaChanged, this, &MainWindow::positionCanaloTab);
+        }
+        else {
+            canaloTab_ = new CanaloTab(stack_);
+            canaloPlaceholder_ = canaloTab_;
+        }
+        stack_->addWidget(canaloPlaceholder_);
+        fileTabs_->addTab(tr("CanaloCAD"));
+        WebView2Host* host = canaloTab_->host();
+        connect(host, &WebView2Host::message, this, &MainWindow::canaloMessage);
+        connect(host, &WebView2Host::failed, this, [this](const QString& reason) {
+            print(tr("CanaloCAD non si apre nella scheda (%1): lo apro nel browser.").arg(reason));
+            canaloPending_.clear();
+            closeCanaloTab();
+            QDesktopServices::openUrl(QUrl::fromLocalFile(canaloHtmlPath()));
+        });
+        canaloTab_->start(QUrl::fromLocalFile(canaloHtmlPath()), canaloWebDataFolder());
+    }
+    fileTabs_->setCurrentIndex(stack_->indexOf(canaloPlaceholder_));
+}
+
+void MainWindow::positionCanaloTab()
+{
+    if (!canaloTab_ || !mainView_)
+        return;
+    const bool shown = mainView_->canaloVisible();
+    if (shown) {
+        canaloTab_->setGeometry(mainView_->canaloArea());
+        canaloTab_->show();
+        canaloTab_->raise();
+        canaloTab_->setFocus();
+    }
+    else
+        canaloTab_->hide();
+}
+
+void MainWindow::closeCanaloTab()
+{
+    if (!canaloPlaceholder_)
+        return;
+    const int index = stack_->indexOf(canaloPlaceholder_);
+    QWidget* placeholder = canaloPlaceholder_;
+    CanaloTab* tab = canaloTab_;
+    canaloPlaceholder_ = nullptr;
+    canaloTab_ = nullptr;
+    canaloReady_ = false;
+    if (mainView_)
+        mainView_->setCanaloVisible(false);
+    stack_->removeWidget(placeholder);
+    if (index >= 0)
+        fileTabs_->removeTab(index);
+    if (tab != placeholder)
+        tab->deleteLater();
+    placeholder->deleteLater();
+    onTabChanged(fileTabs_->currentIndex());
+}
+
+void MainWindow::canaloMessage(const QJsonValue& value)
+{
+    const QJsonObject msg = value.toObject();
+    const QString kind = msg.value(QStringLiteral("tipo")).toString();
+    if (kind == QLatin1String("pronta")) {
+        canaloReady_ = true;
+        auto pending = std::move(canaloPending_);
+        canaloPending_.clear();
+        for (auto& f : pending)
+            f();
+        return;
+    }
+    if (kind != QLatin1String("tavola"))
+        return;
+    // Tavola dalla pagina: una copia nella cartella di scambio (come l'esportazione dal browser), poi nel disegno.
+    QString name = QFileInfo(msg.value(QStringLiteral("nome")).toString()).fileName();
+    if (!name.endsWith(QStringLiteral(".dxf"), Qt::CaseInsensitive))
+        name = QStringLiteral("Canalina.dxf");
+    QString folder = canaloExchangeFolder();
+    if (folder.isEmpty() || !QDir().mkpath(folder))
+        folder = QDir::tempPath();
+    const QString path = folder + QLatin1Char('/') + name;
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly) ||
+        file.write(QByteArray::fromBase64(msg.value(QStringLiteral("dxf")).toString().toLatin1())) < 0) {
+        print(tr("CanaloCAD: tavola non salvata in %1").arg(QDir::toNativeSeparators(path)));
+        return;
+    }
+    file.close();
+    DrawingWidget* target = canaloFrom_;
+    if (!target)
+        for (int i = 1; i < stack_->count() && !target; ++i)
+            target = qobject_cast<DrawingWidget*>(stack_->widget(i));
+    if (!target) {
+        print(tr("Tavola di CanaloCAD salvata in %1: aprire un disegno e usare CANALOULTIMA per inserirla.")
+                  .arg(QDir::toNativeSeparators(path)));
+        return;
+    }
+    fileTabs_->setCurrentIndex(stack_->indexOf(target));
+    if (canaloInsert(path))
+        print(tr("Tavola di CanaloCAD inserita (%1); copia in %2.").arg(name, QDir::toNativeSeparators(folder)));
+}
+
+void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
+{
+#ifdef Q_OS_WIN
+    QString why;
+    if (!WebView2Host::available(&why)) {
+        print(tr("-CANALOSCHEDA: %1").arg(why));
+        return;
+    }
+    QFile in(section);
+    if (!in.open(QIODevice::ReadOnly)) {
+        print(tr("-CANALOSCHEDA: %1 non leggibile").arg(section));
+        return;
+    }
+    const QString data = QString::fromLatin1(in.readAll().toBase64());
+    // Finestra di Windows mai mostrata: la pagina gira senza schermo.
+    HWND window = CreateWindowExW(0, L"STATIC", L"CanaloCAD", WS_OVERLAPPEDWINDOW, 0, 0, 1400, 900, nullptr, nullptr,
+                                  GetModuleHandleW(nullptr), nullptr);
+    WebView2Host host;
+    QEventLoop loop;
+    QTimer::singleShot(120000, &loop, [&] {
+        print(tr("-CANALOSCHEDA: tempo scaduto"));
+        loop.quit();
+    });
+    connect(&host, &WebView2Host::failed, &loop, [&](const QString& reason) {
+        print(tr("-CANALOSCHEDA: %1").arg(reason));
+        loop.quit();
+    });
+    connect(&host, &WebView2Host::message, &loop, [&](const QJsonValue& value) {
+        if (value.toObject().value(QStringLiteral("tipo")).toString() != QLatin1String("pronta"))
+            return;
+        host.runAsync(QStringLiteral("window.CanaloHost.importDxf(\"%1\", \"%2\")").arg(QFileInfo(section).fileName(), data),
+                      [&](const QJsonValue& result, const QString& error) {
+            if (!error.isEmpty()) {
+                print(tr("-CANALOSCHEDA: importazione non riuscita: %1").arg(error));
+                loop.quit();
+                return;
+            }
+            const QJsonObject r = result.toObject();
+            print(tr("-CANALOSCHEDA: sezione importata nella pagina: %1 cavi, scheda \"%2\"")
+                      .arg(r.value(QStringLiteral("cavi")).toInt()).arg(r.value(QStringLiteral("titolo")).toString()));
+            host.runAsync(QStringLiteral("window.CanaloHost.sheetDxf()"), [&](const QJsonValue& out, const QString& error2) {
+                const QString dxf = out.toObject().value(QStringLiteral("dxf")).toString();
+                QFile file(sheet);
+                if (error2.isEmpty() && !dxf.isEmpty() && file.open(QIODevice::WriteOnly)) {
+                    file.write(dxf.toLatin1());
+                    print(tr("-CANALOSCHEDA: tavola %1 (%2 byte) salvata in %3")
+                              .arg(out.toObject().value(QStringLiteral("nome")).toString()).arg(dxf.size())
+                              .arg(QDir::toNativeSeparators(sheet)));
+                }
+                else
+                    print(tr("-CANALOSCHEDA: tavola non ottenuta %1").arg(error2));
+                loop.quit();
+            });
+        });
+    });
+    host.start(reinterpret_cast<quintptr>(window), QDir::tempPath() + QStringLiteral("/cartesio-canalo-prova"),
+               QUrl::fromLocalFile(canaloHtmlPath()));
+    loop.exec();
+    DestroyWindow(window);
+#else
+    Q_UNUSED(section);
+    Q_UNUSED(sheet);
+    print(tr("-CANALOSCHEDA: disponibile solo su Windows"));
+#endif
 }
 
 } // namespace cartesio

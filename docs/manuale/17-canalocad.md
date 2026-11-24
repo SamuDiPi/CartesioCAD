@@ -44,11 +44,13 @@ Apre la finestra Canalina. Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,
 
 ## Apri CanaloCAD (`CANALOCAD`, `CANALO`)
 
-Apre l'applicazione CanaloCAD nel browser (la copia inclusa in CartesioCAD, o quella indicata nelle Opzioni > Plugin).
+Apre l'applicazione CanaloCAD (la copia inclusa in CartesioCAD, o quella indicata nelle Opzioni > Plugin). Su Windows si apre nella scheda **CanaloCAD**, accanto alle schede dei disegni: si passa dal disegno alla canalina con un clic, e chiudendo la scheda i progetti di CanaloCAD restano salvati (nella cartella dei dati locali di CartesioCAD, solo su questo computer). La scheda usa Microsoft Edge WebView2, già presente in Windows 10 e 11; se manca, o su Linux, CanaloCAD si apre nel browser.
 
 ## Invia sezione (`CANALOINVIA`, `CANALOSEND`)
 
-Salva gli oggetti selezionati in un DXF in millimetri da importare in CanaloCAD; il percorso del file va negli appunti.
+Con la scheda CanaloCAD gli oggetti selezionati si aprono direttamente in CanaloCAD, in una scheda canalina nuova. Per riportare la tavola nel disegno: in CanaloCAD *Esporta > Inserisci nel disegno*; la tavola si inserisce nel disegno da cui si è partiti (e una copia va nella cartella di scambio).
+
+Senza la scheda (browser) salva gli oggetti selezionati in un DXF in millimetri da importare in CanaloCAD; il percorso del file va negli appunti.
 
 ## Inserisci tavola (`CANALOINS`, `CANALOINSERISCI`) e Ultima tavola (`CANALOULTIMA`, `CANALOLAST`)
 

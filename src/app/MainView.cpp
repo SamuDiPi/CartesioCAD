@@ -42,6 +42,23 @@ void MainView::setView(CadView* view, bool start)
     emit viewChanged();
 }
 
+void MainView::setCanaloVisible(bool on)
+{
+    if (on != canalo_) {
+        canalo_ = on;
+        emit viewChanged();
+    }
+}
+
+void MainView::setCanaloArea(int x, int y, int w, int h)
+{
+    const QRect r(x, y, w, h);
+    if (r != canaloArea_) {
+        canaloArea_ = r;
+        emit canaloAreaChanged();
+    }
+}
+
 void MainView::setViews(const std::vector<CadView*>& views, int tileMode)
 {
     QVariantList list;

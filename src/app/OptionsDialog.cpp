@@ -282,9 +282,11 @@ void OptionsDialog::pluginTab()
     note(found.isEmpty() ? tr("CanaloCAD non trovato.") : tr("In uso: %1").arg(QDir::toNativeSeparators(found)));
     path(tr("Cartella di scambio:"), options_.canaloFolder, Folder, tr("Download"));
     check(tr("Avvisa quando CanaloCAD esporta una tavola nella cartella"), options_.canaloWatch);
-    note(tr("CanaloCAD gira nel browser: lo scambio passa dai file. \"Invia sezione\" salva gli oggetti selezionati in un "
-            "DXF da importare in CanaloCAD; \"Inserisci tavola\" e \"Ultima tavola\" inseriscono le tavole DXF esportate "
-            "da CanaloCAD, scalate con le unità del disegno."));
+    note(tr("Su Windows CanaloCAD si apre in una scheda accanto ai disegni: \"Invia sezione\" vi apre direttamente gli "
+            "oggetti selezionati e in CanaloCAD Esporta > \"Inserisci nel disegno\" riporta la tavola (una copia va nella "
+            "cartella di scambio). Se la scheda non è disponibile CanaloCAD si apre nel browser e lo scambio passa dai "
+            "file: \"Invia sezione\" salva un DXF da importare, \"Inserisci tavola\" e \"Ultima tavola\" inseriscono le "
+            "tavole DXF esportate, scalate con le unità del disegno."));
 }
 
 } // namespace cartesio

@@ -110,7 +110,7 @@ Rectangle {
         Item {
             id: leftArea
             // Sulla pagina Inizia niente tavolozze: tornano aprendo un disegno.
-            visible: (main.propertiesVisible || main.layersVisible) && !main.startVisible
+            visible: (main.propertiesVisible || main.layersVisible) && !main.startVisible && !main.canaloVisible
             width: visible ? main.leftWidth : 0
             height: parent.height
             Panel {
@@ -143,7 +143,7 @@ Rectangle {
         // Tavolozze a destra: Impianto, Circuiti e Blocchi (una sopra l'altra, in parti uguali, quelle aperte).
         Item {
             id: rightArea
-            visible: (main.circuitsVisible || main.libraryVisible || main.plantVisible || main.guideVisible) && !main.startVisible
+            visible: (main.circuitsVisible || main.libraryVisible || main.plantVisible || main.guideVisible) && !main.startVisible && !main.canaloVisible
             anchors.right: parent.right
             width: visible ? main.rightWidth : 0
             height: parent.height
@@ -212,11 +212,38 @@ Rectangle {
                 source: "qrc:/qml/StartPage.qml"
             }
 
+            // Scheda CanaloCAD: la pagina è una finestra nativa (WebView2) messa da CartesioCAD sopra quest'area.
+            Rectangle {
+                id: canaloArea
+                anchors.fill: parent
+                visible: main.canaloVisible
+                color: Theme.window
+                Text {
+                    anchors.centerIn: parent
+                    text: qsTr("Apertura di CanaloCAD…")
+                    color: Theme.muted2
+                    font.pixelSize: 13
+                }
+                function report() {
+                    const p = mapToItem(root, 0, 0)
+                    main.setCanaloArea(Math.round(p.x), Math.round(p.y), Math.round(width), Math.round(height))
+                }
+                onVisibleChanged: report()
+                onWidthChanged: report()
+                onHeightChanged: report()
+                onXChanged: report()
+                onYChanged: report()
+                Component.onCompleted: report()
+                // Si sposta anche quando cambiano i pannelli ai lati o le schede sopra (center e il suo contenitore).
+                Connections { target: center; function onXChanged() { canaloArea.report() } }
+                Connections { target: center.parent; function onYChanged() { canaloArea.report() } }
+            }
+
             // Disegno: una vista, o più viste affiancate (finestre del modello) con la loro disposizione.
             Item {
                 id: canvas
                 anchors.fill: parent
-                visible: !main.startVisible
+                visible: !main.startVisible && !main.canaloVisible
                 onVisibleChanged: if (visible) commandView.focusInput()
                 readonly property int count: main.views.length > 0 ? main.views.length : 1
                 // Riquadro della vista i: 0 una, 1 due affiancate, 2 due una sopra l'altra, 3 una grande a sinistra e
@@ -247,7 +274,7 @@ Rectangle {
             // Riga di comando sovrapposta in basso, al centro.
             Loader {
                 id: commandView
-                visible: main.commandLineVisible && !main.startVisible
+                visible: main.commandLineVisible && !main.startVisible && !main.canaloVisible
                 width: Math.min(center.width - 40, Math.max(520, center.width * 0.62))
                 height: item ? Math.max(30, item.implicitHeight) : 30
                 x: (center.width - width) / 2

@@ -151,6 +151,10 @@ if(CARTESIO_BUILD_APP)
         src/app/CanaloPlugin.h
         src/app/CanaloPlugin.cpp
         src/app/MainWindowCanalo.cpp
+        src/app/CanaloTab.h
+        src/app/CanaloTab.cpp
+        src/app/WebView2Host.h
+        src/app/WebView2Host.cpp
         src/app/MainWindowAbout.cpp
         src/app/PdfWords.h
         src/app/PdfWords.cpp
@@ -295,6 +299,25 @@ if(CARTESIO_BUILD_APP)
         COMMENT "Copia del plugin CanaloCAD"
         VERBATIM)
     install(FILES ${canalo_files} DESTINATION ${CARTESIO_PLUGIN_DEST})
+
+    # Scheda CanaloCAD su Windows: Microsoft Edge WebView2 (il motore è il WebView2 Runtime di Windows 10/11).
+    # WebView2Loader.dll (BSD-3-Clause, pacchetto MSYS2 webview2-loader) si carica a richiesta, solo accanto al
+    # programma; senza, CanaloCAD si apre nel browser.
+    if(WIN32)
+        find_file(CARTESIO_WEBVIEW2_LOADER WebView2Loader.dll HINTS "$<TARGET_FILE_DIR:Qt6::Core>" ENV PATH)
+        get_filename_component(compiler_bin_wv2 "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        find_file(CARTESIO_WEBVIEW2_LOADER WebView2Loader.dll HINTS "${compiler_bin_wv2}")
+        if(CARTESIO_WEBVIEW2_LOADER)
+            add_custom_command(TARGET CartesioCAD POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CARTESIO_WEBVIEW2_LOADER}" "$<TARGET_FILE_DIR:CartesioCAD>"
+                COMMENT "Copia di WebView2Loader.dll (scheda CanaloCAD)"
+                VERBATIM)
+            install(FILES "${CARTESIO_WEBVIEW2_LOADER}" DESTINATION .)
+            message(STATUS "Scheda CanaloCAD: ${CARTESIO_WEBVIEW2_LOADER}")
+        else()
+            message(STATUS "Scheda CanaloCAD non inclusa: manca WebView2Loader.dll (pacman -S mingw-w64-ucrt-x86_64-webview2-loader)")
+        endif()
+    endif()
 
     # Windows + MinGW: dopo ogni compilazione copia le DLL accanto all'exe (avvio con doppio clic),
     # e "cmake --install" crea una cartella pulita da distribuire.

@@ -29,6 +29,8 @@ class MainView : public QQuickWidget {
     Q_PROPERTY(QVariantList views READ views NOTIFY viewChanged)
     Q_PROPERTY(int tileMode READ tileMode NOTIFY viewChanged)
     Q_PROPERTY(bool startVisible READ startVisible NOTIFY viewChanged)
+    // Scheda CanaloCAD: la pagina (WebView2, finestra nativa sopra la scena) occupa l'area che riporta il QML.
+    Q_PROPERTY(bool canaloVisible READ canaloVisible NOTIFY viewChanged)
     Q_PROPERTY(bool commandLineVisible READ commandLineVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool propertiesVisible READ propertiesVisible WRITE setPropertiesVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool layersVisible READ layersVisible WRITE setLayersVisible NOTIFY panelsChanged)
@@ -52,6 +54,10 @@ public:
     CadView* view() const { return view_; }
     QObject* viewObject() const;
     bool startVisible() const { return start_; }
+    bool canaloVisible() const { return canalo_; }
+    void setCanaloVisible(bool on);
+    QRect canaloArea() const { return canaloArea_; }
+    Q_INVOKABLE void setCanaloArea(int x, int y, int w, int h);
 
     void setCommandLineVisible(bool on);
     bool commandLineVisible() const { return commandLine_; }
@@ -95,6 +101,7 @@ signals:
     void viewChanged();
     void panelsChanged();
     void commandBarChanged();
+    void canaloAreaChanged();
     void panelVisibilityChanged(int panel, bool visible);
     void focusCommandLineRequested();
 
@@ -103,6 +110,8 @@ private:
     QVariantList views_;
     int tileMode_ = 0;
     bool start_ = true;
+    bool canalo_ = false;
+    QRect canaloArea_;
     bool commandLine_ = true;
     bool panels_[6] = {false, false, false, false, false, false};
     int leftWidth_ = 320;

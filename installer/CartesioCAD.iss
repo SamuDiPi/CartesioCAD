@@ -95,8 +95,9 @@ begin
       DelTree(App, True, True, True);
     if not UninstallSilent then
       if MsgBox('Eliminare anche le impostazioni di CartesioCAD (opzioni, documenti recenti, miniature, ' +
-                'salvataggi automatici non recuperati)?' + #13#10#13#10 +
-                'I disegni salvati non vengono toccati.', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+                'salvataggi automatici non recuperati, progetti e preferenze della scheda CanaloCAD)?' + #13#10#13#10 +
+                'I disegni salvati non vengono toccati. I progetti di CanaloCAD si possono prima salvare in un file ' +
+                '(CanaloCAD > Salva progetto).', mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
       begin
         RegDeleteKeyIncludingSubkeys(HKCU, 'Software\CartesioCAD');
         DelTree(ExpandConstant('{localappdata}\CartesioCAD'), True, True, True);

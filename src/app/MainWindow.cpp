@@ -2029,6 +2029,10 @@ bool MainWindow::closeDrawingAt(int tabIndex)
 {
     if (tabIndex <= 0)
         return false;
+    if (isCanaloTab(tabIndex)) {   // i progetti di CanaloCAD restano nella memoria della pagina
+        closeCanaloTab();
+        return true;
+    }
     auto* drawing = qobject_cast<DrawingWidget*>(stack_->widget(tabIndex));
     if (!drawing)
         return false;
@@ -2075,13 +2079,16 @@ void MainWindow::onTabChanged(int index)
     }
     layerManager_->setDrawing(d);
     setCommandLineShown(d && commandLineAct_->isChecked());
+    const bool canaloTab = isCanaloTab(index);
     if (mainView_) {
-        mainView_->setView(d ? d->view() : nullptr, d == nullptr);
+        mainView_->setView(d ? d->view() : nullptr, d == nullptr && !canaloTab);
+        mainView_->setCanaloVisible(canaloTab);
         syncMainViews();
+        positionCanaloTab();
     }
     else
         hideDocksForStart(d == nullptr);
-    if (!d)
+    if (!d && !canaloTab)
         fillStartPage(startPage_);
     positionCommandLine();
     updateUiState();

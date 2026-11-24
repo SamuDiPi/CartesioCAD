@@ -1709,6 +1709,11 @@ bool MainWindow::runScript(const QString& path)
                     print(line);
                 continue;
             }
+            if (word == QLatin1String("-CANALOSCHEDA")) {   // scheda CanaloCAD senza schermo: sezione.dxf -> tavola.dxf
+                const QString section = resolve(nextToken());
+                canaloTabSelfTest(section, resolve(nextToken()));
+                continue;
+            }
             if (d && word == QLatin1String("-CANALOVERIFICA")) {   // senza finestra: dati del tratto predefiniti
                 canaloCheck(false);
                 continue;
