@@ -40,9 +40,10 @@ CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)
   Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS
   generato con Tailwind CSS (MIT, https://tailwindcss.com; testo in licenze/testi/MIT.txt) e pdf.js
   (Mozilla Foundation, Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt).
-  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web
-  (@mlightcad/libredwg-web 0.9.3, GPL-3.0, contiene GNU LibreDWG GPL-3.0-or-later):
-  non è incluso né distribuito con CartesioCAD.
+  Contiene anche LibreDWG-web 0.9.3 (@mlightcad/libredwg-web, GPL-3.0, con GNU LibreDWG 0.14.8608,
+  GPL-3.0-or-later; stesso testo di licenza di CartesioCAD), modulo e WebAssembly del pacchetto npm
+  ufficiale non modificati, per leggere i DWG senza rete. Sorgenti: tag v0.9.3 di
+  https://github.com/mlightcad/libredwg-web (copia nell'archivio dei sorgenti di terze parti della release).
 
 Non sono dentro il pacchetto, ma servono per eseguirlo e arrivano dal runtime org.kde.Platform 6.11
 (Flathub), ciascuno con la sua licenza: Qt 6 (LGPL-3.0), OpenSSL (Apache-2.0), HarfBuzz, FreeType,

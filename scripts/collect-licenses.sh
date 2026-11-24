@@ -163,9 +163,10 @@ spdx_texts() {   # copia i testi standard delle licenze SPDX citate
         echo "  Contiene i font Inter e JetBrains Mono (SIL OFL 1.1, testi in plugins/CanaloCAD), il CSS"
         echo "  generato con Tailwind CSS (MIT, https://tailwindcss.com) e pdf.js 6.5.438 (Mozilla Foundation,"
         echo "  Apache-2.0, https://mozilla.github.io/pdf.js/; testo in licenze/testi/Apache-2.0.txt)."
-        echo "  Solo all'importazione di un DWG la pagina scarica da cdn.jsdelivr.net LibreDWG-web"
-        echo "  (@mlightcad/libredwg-web 0.9.3, GPL-3.0, contiene GNU LibreDWG GPL-3.0-or-later):"
-        echo "  non è incluso né distribuito con CartesioCAD."
+        echo "  Contiene anche LibreDWG-web 0.9.3 (@mlightcad/libredwg-web, GPL-3.0, con GNU LibreDWG 0.14.8608,"
+        echo "  GPL-3.0-or-later; stesso testo di licenza di CartesioCAD, LICENSE.txt), modulo e WebAssembly del"
+        echo "  pacchetto npm ufficiale non modificati, per leggere i DWG senza rete. Sorgenti: tag v0.9.3 di"
+        echo "  https://github.com/mlightcad/libredwg-web (copia nell'archivio dei sorgenti di terze parti della release)."
         cp -n "$TEXTS/MIT.txt" "$TEXTS/Apache-2.0.txt" "$DEST/licenze/testi/" 2>/dev/null || true
     fi
 
