@@ -284,7 +284,7 @@ void OptionsDialog::pluginTab()
     check(tr("Avvisa quando CanaloCAD esporta una tavola nella cartella"), options_.canaloWatch);
     note(tr("Su Windows CanaloCAD si apre in una scheda accanto ai disegni: \"Invia sezione\" vi apre direttamente gli "
             "oggetti selezionati e in CanaloCAD Esporta > \"Inserisci nel disegno\" riporta la tavola (una copia va nella "
-            "cartella di scambio). Se la scheda non è disponibile CanaloCAD si apre nel browser e lo scambio passa dai "
+            "cartella di scambio); \"Copia come blocco\" la mette negli appunti, da incollare con Ctrl+V in un disegno. Se la scheda non è disponibile CanaloCAD si apre nel browser e lo scambio passa dai "
             "file: \"Invia sezione\" salva un DXF da importare, \"Inserisci tavola\" e \"Ultima tavola\" inseriscono le "
             "tavole DXF esportate, scalate con le unità del disegno."));
 }

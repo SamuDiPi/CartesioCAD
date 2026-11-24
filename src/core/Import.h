@@ -16,6 +16,7 @@ struct ImportSource {
     std::vector<Layer> layers;
     std::vector<Linetype> linetypes;
     std::vector<DimStyle> dimStyles;
+    std::vector<TextStyle> textStyles;
     std::vector<std::shared_ptr<BlockDef>> blocks;
 
     static ImportSource from(const Document& doc);
@@ -40,6 +41,7 @@ private:
     void fix(Entity& e);
     int layer(int sourceIndex);
     void linetype(const std::string& name);
+    void textStyle(const std::string& name);   // lo stile di testo di origine, se manca
     std::shared_ptr<const BlockDef> block(const std::string& name);
 
     Document& doc_;

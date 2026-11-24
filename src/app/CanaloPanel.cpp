@@ -1702,15 +1702,42 @@ QJsonArray CanaloPanel::trayList()
     return out;
 }
 
-QString CanaloPanel::addTray(const QJsonObject& state)
+QString CanaloPanel::addTray(QJsonObject state, bool section, std::optional<Vec2> at)
 {
     if (!drawing_)
         return {};
+    if (section && at)
+        state.insert(QStringLiteral("cartesioSection"), QJsonObject{{QStringLiteral("x"), at->x}, {QStringLiteral("y"), at->y}});
     trayId_.clear();
     const QString id = createTray(state);
-    drawSection();
+    if (section)
+        drawSection();
     refresh();
     return id;
+}
+
+bool CanaloPanel::selectTray(const QString& id)
+{
+    if (trayState(id).isEmpty())
+        return false;
+    trayId_ = id;
+    refresh();
+    return true;
+}
+
+Vec2 CanaloPanel::sheetPosition(std::optional<Vec2> at) const
+{
+    if (at)
+        return *at;
+    if (!drawing_)
+        return {};
+    BBox box;
+    for (EntityId id : sectionEntities())
+        if (const Entity* e = drawing_->document().find(id))
+            box.expand(e->bounds());
+    if (!box.isValid())
+        box = drawing_->document().extents();
+    return box.isValid() ? Vec2{box.max.x + 300.0 * drawingUnit(), box.min.y} : Vec2{0.0, 0.0};
 }
 
 bool CanaloPanel::replaceTray(const QString& id, QJsonObject state)

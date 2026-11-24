@@ -323,6 +323,9 @@ private:
     void closeCanaloTab();
     void positionCanaloTab();
     void canaloMessage(const QJsonValue& value);
+    // Tavola DXF di CanaloCAD negli appunti del programma come blocco (con stili di testo e caratteri): Ctrl+V la
+    // incolla in qualsiasi disegno aperto. Restituisce il nome del blocco (vuoto se non riesce).
+    QString canaloCopyAsBlock(const QByteArray& dxf, const QString& fileName, QString* error = nullptr);
     // Prova senza schermo (-CANALOSCHEDA sezione.dxf tavola.dxf): la pagina in una finestra nascosta importa la
     // sezione e restituisce la tavola, come fanno "Invia sezione" e "Inserisci nel disegno" nella scheda.
     void canaloTabSelfTest(const QString& section, const QString& sheet);

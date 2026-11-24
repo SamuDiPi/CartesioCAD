@@ -48,7 +48,7 @@ Apre l'applicazione CanaloCAD (la copia inclusa in CartesioCAD, o quella indicat
 
 ## Invia sezione (`CANALOINVIA`, `CANALOSEND`)
 
-Con la scheda CanaloCAD gli oggetti selezionati si aprono direttamente in CanaloCAD, in una scheda canalina nuova. Per riportare la tavola nel disegno: in CanaloCAD *Esporta > Inserisci nel disegno*; la tavola si inserisce nel disegno da cui si è partiti (e una copia va nella cartella di scambio).
+Con la scheda CanaloCAD gli oggetti selezionati si aprono direttamente in CanaloCAD, in una scheda canalina nuova. Per riportare la tavola nel disegno: in CanaloCAD *Esporta > Inserisci nel disegno*; la tavola si inserisce nel disegno da cui si è partiti (e una copia va nella cartella di scambio). Oppure *Esporta > Copia come blocco*: la tavola va negli appunti di CartesioCAD come blocco, con i caratteri e gli stili di testo scelti nelle opzioni di esportazione, e Ctrl+V la incolla in qualsiasi disegno aperto (anche un DWG, dove resta un blocco quando lo si salva).
 
 Senza la scheda (browser) salva gli oggetti selezionati in un DXF in millimetri da importare in CanaloCAD; il percorso del file va negli appunti.
 

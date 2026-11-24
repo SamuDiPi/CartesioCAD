@@ -80,6 +80,9 @@ struct HatchDefaults {
 HatchDefaults hatchDefaults();
 // ROTATE, SCALE, MIRROR, ARRAY, EXTEND, FILLET, MATCHPROP, DIST, ID, AREA, LIST, COPYCLIP, PASTECLIP.
 void registerEditCommands(CommandManager& manager);
+// Mette negli appunti del programma gli oggetti di `source` indicati (come COPYCLIP): PASTECLIP / Ctrl+V li incolla in
+// qualsiasi disegno aperto, con layer, stili di testo, tipi di linea e blocchi di `source`.
+void setClipboard(const Document& source, const std::vector<EntityId>& ids, Vec2 base);
 // Altri comandi: POLYGON, REVCLOUD, XLINE, RAY, DIVIDE, MEASURE, LENGTHEN, ALIGN, OVERKILL, PURGE, SELECTSIMILAR.
 void registerExtraCommands(CommandManager& manager);
 // Comando che sposta la maniglia `gripIndex` (indice in snapPoints()) dell'entità.

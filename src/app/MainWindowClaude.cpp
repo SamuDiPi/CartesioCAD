@@ -1592,8 +1592,19 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
         }
         const QJsonObject analysis = canalo_->analyze(st);
         const QString description = args.value(QStringLiteral("descrizione")).toString().left(300);
+        // Cosa mettere nel disegno: la sezione al vero (default), la tavola completa di CanaloCAD, o entrambe; dove.
+        const QString insert = args.value(QStringLiteral("inserisci")).toString(QStringLiteral("sezione"));
+        if (insert != QLatin1String("sezione") && insert != QLatin1String("tavola") && insert != QLatin1String("sezione_e_tavola")) {
+            reply(false, tr("inserisci: sezione, tavola o sezione_e_tavola."));
+            return true;
+        }
+        const bool withSection = insert != QLatin1String("tavola"), withSheet = insert != QLatin1String("sezione");
+        std::optional<Vec2> at;
+        if (const QJsonArray p = args.value(QStringLiteral("posizione")).toArray(); p.size() == 2 && p[0].isDouble() && p[1].isDouble())
+            at = Vec2{p[0].toDouble(), p[1].toDouble()};
         QPointer<DrawingWidget> drawing(d);
-        auto apply = [this, drawing, st, existing]() -> QString {
+        auto created = std::make_shared<QString>();
+        auto apply = [this, drawing, st, existing, withSection, withSheet, at, created]() -> QString {
             if (!drawing)
                 return tr("Il disegno è stato chiuso.");
             if (drawing->commands().isActive())
@@ -1601,26 +1612,33 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             canalo_->setDrawing(drawing);
             QString id = existing;
             if (existing.isEmpty())
-                id = canalo_->addTray(st);
+                id = canalo_->addTray(st, withSection, at);
             else if (!canalo_->replaceTray(existing, st))
                 return tr("La canalina %1 non c'è più.").arg(existing);
             if (id.isEmpty())
                 return tr("Canalina non creata.");
+            *created = id;
+            if (withSheet) {   // la tavola: dove indicato, oppure accanto alla sezione
+                canalo_->selectTray(id);
+                canalo_->insertSheetAt(canalo_->sheetPosition(withSection ? std::nullopt : at));
+            }
             ++claudeApplied_;
             return {};
         };
         const QString title = description.isEmpty() ? (existing.isEmpty() ? tr("Canalina nuova proposta dall'assistente IA")
                                                                           : tr("Canalina %1: cavi e misura proposti dall'assistente IA").arg(existing))
                                                      : description;
-        auto done = [this, existing, analysis](const QString& failure) {
+        auto done = [existing, analysis, withSection, withSheet, created](const QString& failure) {
             if (!failure.isEmpty())
                 return tr("Non applicata: %1").arg(failure);
             const QJsonObject c = analysis.value(QStringLiteral("canalina")).toObject();
             const QString size = tr("%1 × %2 mm").arg(c.value(QStringLiteral("larghezza_mm")).toDouble()).arg(c.value(QStringLiteral("altezza_mm")).toDouble());
+            const QString what = withSection && withSheet ? tr("con la sezione disegnata e la tavola") : withSheet ? tr("con la tavola") : tr("con la sezione disegnata");
             return existing.isEmpty()
-                ? tr("L'utente ha applicato la proposta: canalina %1 (%2) creata con la sezione disegnata (Ctrl+Z la toglie).")
-                      .arg(canalo_->hasTray() ? canalo_->trayTitle().section(QStringLiteral(" — "), 0, 0) : QString(), size)
-                : tr("L'utente ha applicato la proposta: canalina %1 aggiornata (%2).").arg(existing, size);
+                ? tr("L'utente ha applicato la proposta: canalina %1 (%2) creata %3 (Ctrl+Z annulla).")
+                      .arg(*created, size, what)
+                : tr("L'utente ha applicato la proposta: canalina %1 aggiornata (%2)%3.")
+                      .arg(existing, size, withSheet ? tr(", tavola inserita") : QString());
         };
         if (claudeAutoApprove_) {   // solo negli script di prova (-ASSISTENTEATTIVA AUTO)
             const QString failure = apply();

@@ -23,6 +23,7 @@ ImportSource ImportSource::from(const Document& doc)
     s.layers = doc.layers();
     s.linetypes = doc.linetypes();
     s.dimStyles = doc.dimStyles();
+    s.textStyles = doc.textStyles();
     s.blocks = doc.blocks();
     return s;
 }
@@ -71,6 +72,19 @@ void Importer::linetype(const std::string& name)
     doc_.loadStandardLinetype(name);
 }
 
+void Importer::textStyle(const std::string& name)
+{
+    // Font e caratteri dei testi copiati: lo stile di origine si aggiunge se nel disegno manca (quello con lo stesso
+    // nome già presente resta com'è, come per i blocchi).
+    if (name.empty() || doc_.findTextStyle(name))
+        return;
+    for (const TextStyle& s : src_.textStyles)
+        if (s.name == name) {
+            doc_.setTextStyle(s);
+            return;
+        }
+}
+
 std::shared_ptr<const BlockDef> Importer::block(const std::string& name)
 {
     const std::string target = named(name);
@@ -103,10 +117,18 @@ void Importer::fix(Entity& e)
         auto& in = static_cast<InsertEntity&>(e);
         in.block = block(in.blockName);
         in.blockName = named(in.blockName);
-        for (Attribute& a : in.attributes)
+        for (Attribute& a : in.attributes) {
             a.text.setLayer(layer(a.text.layer()));
+            textStyle(a.text.style);
+        }
         break;
     }
+    case EntityType::Text:
+        textStyle(static_cast<TextEntity&>(e).style);
+        break;
+    case EntityType::MText:
+        textStyle(static_cast<MTextEntity&>(e).style);
+        break;
     case EntityType::Dimension: {
         auto& d = static_cast<DimensionEntity&>(e);
         if (!doc_.findDimStyle(d.style.name))

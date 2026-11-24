@@ -17,8 +17,11 @@
 #include "app/Ribbon.h"
 #include "app/CanaloTab.h"
 #include "app/WebView2Host.h"
+#include "core/Import.h"
+#include "core/commands/CommandManager.h"
 
 #include <QAction>
+#include <QCryptographicHash>
 #include <QDate>
 #include <QClipboard>
 #include <QDesktopServices>
@@ -31,6 +34,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QUrl>
 #include <QEventLoop>
@@ -445,6 +449,17 @@ void MainWindow::canaloMessage(const QJsonValue& value)
             f();
         return;
     }
+    if (kind == QLatin1String("copia")) {
+        QString error;
+        const QString block = canaloCopyAsBlock(QByteArray::fromBase64(msg.value(QStringLiteral("dxf")).toString().toLatin1()),
+                                                msg.value(QStringLiteral("nome")).toString(), &error);
+        if (block.isEmpty())
+            print(tr("CanaloCAD: tavola non copiata: %1").arg(error));
+        else
+            print(tr("Tavola di CanaloCAD copiata negli appunti come blocco %1, con i suoi caratteri e stili: Ctrl+V la "
+                     "incolla in qualsiasi disegno aperto.").arg(block));
+        return;
+    }
     if (kind != QLatin1String("tavola"))
         return;
     // Tavola dalla pagina: una copia nella cartella di scambio (come l'esportazione dal browser), poi nel disegno.
@@ -474,6 +489,50 @@ void MainWindow::canaloMessage(const QJsonValue& value)
     fileTabs_->setCurrentIndex(stack_->indexOf(target));
     if (canaloInsert(path))
         print(tr("Tavola di CanaloCAD inserita (%1); copia in %2.").arg(name, QDir::toNativeSeparators(folder)));
+}
+
+QString MainWindow::canaloCopyAsBlock(const QByteArray& dxf, const QString& fileName, QString* error)
+{
+    // La tavola letta come un DXF qualsiasi (layer, stili di testo con i loro caratteri, tipi di linea)...
+    const QString path = QDir::tempPath() + QStringLiteral("/cartesio-canalo-copia.dxf");
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly) || file.write(dxf) != dxf.size()) {
+            if (error)
+                *error = tr("file temporaneo non scritto");
+            return {};
+        }
+    }
+    Document source;
+    const bool read = DrawingWidget::readFile(path, source, error);
+    QFile::remove(path);
+    if (!read)
+        return {};
+    // ...diventa un blocco con un nome legato al contenuto (la stessa tavola incollata due volte è lo stesso blocco,
+    // una tavola cambiata ne fa uno nuovo invece di prendere il vecchio con lo stesso nome).
+    QString base = QFileInfo(fileName).completeBaseName();
+    base.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_-]+")), QStringLiteral("_"));
+    if (base.isEmpty())
+        base = QStringLiteral("Tavola");
+    const QString name = QStringLiteral("CanaloCAD_%1_%2")
+                             .arg(base.left(60), QString::fromLatin1(QCryptographicHash::hash(dxf, QCryptographicHash::Sha1).toHex().left(6)));
+    // In scala per il disegno da cui si è arrivati a CanaloCAD (tavola in mm).
+    DrawingWidget* target = canaloFrom_;
+    for (int i = 1; i < stack_->count() && !target; ++i)
+        target = qobject_cast<DrawingWidget*>(stack_->widget(i));
+    const int from = source.insUnits() > 0 ? source.insUnits() : appOptions().insertSourceUnits;
+    const int to = target && target->document().insUnits() > 0 ? target->document().insUnits() : appOptions().insertTargetUnits;
+    Document holder;
+    importDrawingAsBlock(holder, source, name.toStdString(), unitsFactor(from, to));
+    std::vector<std::unique_ptr<Entity>> added;
+    added.push_back(std::make_unique<InsertEntity>(name.toStdString(), Vec2{0.0, 0.0}));
+    holder.commit(std::move(added));
+    holder.linkBlocks();
+    std::vector<EntityId> ids;
+    for (const auto& e : holder.entities())
+        ids.push_back(e->id());
+    setClipboard(holder, ids, Vec2{0.0, 0.0});
+    return name;
 }
 
 void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
@@ -524,6 +583,11 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
                     print(tr("-CANALOSCHEDA: tavola %1 (%2 byte) salvata in %3")
                               .arg(out.toObject().value(QStringLiteral("nome")).toString()).arg(dxf.size())
                               .arg(QDir::toNativeSeparators(sheet)));
+                    // Come "Copia come blocco": negli appunti, da incollare con PASTECLIP.
+                    QString copyError;
+                    const QString block = canaloCopyAsBlock(dxf.toLatin1(), out.toObject().value(QStringLiteral("nome")).toString(), &copyError);
+                    print(block.isEmpty() ? tr("-CANALOSCHEDA: copia come blocco non riuscita: %1").arg(copyError)
+                                          : tr("-CANALOSCHEDA: tavola negli appunti come blocco %1").arg(block));
                 }
                 else
                     print(tr("-CANALOSCHEDA: tavola non ottenuta %1").arg(error2));

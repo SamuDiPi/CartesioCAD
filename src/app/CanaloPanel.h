@@ -20,6 +20,8 @@
 #include <QQuickWidget>
 #include <QVariant>
 
+#include <optional>
+
 namespace cartesio {
 
 class DrawingWidget;
@@ -85,8 +87,12 @@ public:
     // Canaline del disegno: codice, misure, numero di cavi, esito in breve; con un codice, l'analisi completa.
     QJsonArray trayList();
     QJsonObject trayState(const QString& id) const;
-    // Canalina nuova dallo stato, con la sezione disegnata (Ctrl+Z la toglie); oppure cavi e misure di una esistente.
-    QString addTray(const QJsonObject& state);
+    // Canalina nuova dallo stato, con la sezione disegnata (Ctrl+Z la toglie) se "section"; oppure cavi e misure di
+    // una esistente. La sezione va in "at" (unità del disegno) se dato, altrimenti a destra del disegno.
+    QString addTray(QJsonObject state, bool section = true, std::optional<Vec2> at = std::nullopt);
+    // Dove mettere la tavola della canalina corrente: "at" se dato, accanto alla sua sezione, o a destra del disegno.
+    Vec2 sheetPosition(std::optional<Vec2> at = std::nullopt) const;
+    bool selectTray(const QString& id);
     bool replaceTray(const QString& id, QJsonObject state);
     // Il catalogo dei cavi (con i cavi propri), filtrato per testo e categoria.
     QJsonArray searchCables(const QString& text, const QString& category, int limit);

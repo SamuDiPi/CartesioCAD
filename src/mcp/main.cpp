@@ -265,7 +265,7 @@ const char* const kTools = R"JSON(
  },
  {
   "name": "canalo_proponi_canalina",
-  "description": "CanaloCAD: propone una canalina nuova (con la sezione disegnata al vero nel disegno) oppure, con canalina, nuovi cavi e misura per una canalina esistente. CartesioCAD mostra all'utente misure e risultati dei calcoli e applica solo se l'utente preme OK; la risposta dice cosa ha deciso. Si annulla con Ctrl+Z. Stessi parametri di canalo_calcola: conviene calcolare prima.",
+  "description": "CanaloCAD: propone una canalina nuova, da inserire direttamente nel disegno, oppure (con canalina) nuovi cavi e misura per una canalina esistente. Va bene anche partendo da una lista di cavi scritta dall'utente: ogni voce si traduce prima in un id del database con canalo_cerca_cavi. Nel disegno va la sezione al vero (default), la tavola completa di CanaloCAD (sezione quotata, tabella cavi, distinta, cartiglio) o entrambe; posizione in unità del disegno, altrimenti a destra di quello che c'è. CartesioCAD mostra all'utente misure e risultati dei calcoli e applica solo se l'utente preme OK; la risposta dice cosa ha deciso. Si annulla con Ctrl+Z. Stessi parametri di canalo_calcola: conviene calcolare prima.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -288,7 +288,9 @@ const char* const kTools = R"JSON(
     "tipologia": {"type": "string", "enum": ["asolata", "cieco", "filo", "scala"]},
     "larghezza": {"type": "number"},
     "altezza": {"type": "number"},
-    "riserva": {"type": "number", "minimum": 0, "maximum": 90}
+    "riserva": {"type": "number", "minimum": 0, "maximum": 90},
+    "inserisci": {"type": "string", "enum": ["sezione", "tavola", "sezione_e_tavola"], "description": "cosa mettere nel disegno, default sezione"},
+    "posizione": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[x, y] della sezione (o della tavola se solo tavola)"}
    },
    "required": ["descrizione", "cavi"]
   }

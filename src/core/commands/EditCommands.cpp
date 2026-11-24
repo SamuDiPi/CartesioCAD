@@ -822,6 +822,17 @@ void copyToClipboard(CommandContext& ctx, std::optional<Vec2> base)
     ctx.message(std::to_string(clip.entities.size()) + " oggetti copiati negli appunti.");
 }
 
+void fillClipboard(const Document& source, const std::vector<EntityId>& ids, Vec2 base)
+{
+    ClipboardData& clip = clipboard();
+    clip = ClipboardData{};
+    clip.source = ImportSource::from(source);
+    for (EntityId id : ids)
+        if (const Entity* e = source.find(id))
+            clip.entities.push_back(e->clone());
+    clip.base = base;
+}
+
 class CopyClipCommand final : public SelectingCommand {
 protected:
     CommandStatus onSelected(CommandContext& ctx) override
@@ -1978,6 +1989,11 @@ private:
 };
 
 } // namespace
+
+void setClipboard(const Document& source, const std::vector<EntityId>& ids, Vec2 base)
+{
+    fillClipboard(source, ids, base);
+}
 
 std::unique_ptr<Command> makeGripEditCommand(EntityId id, std::size_t gripIndex, Vec2 from)
 {

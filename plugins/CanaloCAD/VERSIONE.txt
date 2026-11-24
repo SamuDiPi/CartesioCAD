@@ -1,3 +1,3 @@
 CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
-Commit: 7344d80 CanaloHost.state(): stato della scheda canalina attiva per CartesioCAD (assistente IA)
+Commit: 8832d10 Dentro CartesioCAD: Esporta > Copia come blocco (la tavola negli appunti del programma, con caratteri e stili)
 Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.
