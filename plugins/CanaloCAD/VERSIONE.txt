@@ -1,3 +1,3 @@
 CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
-Commit: b80970b pdf.js 6.5.438 con opzioni sicure; privacy e sicurezza documentate
+Commit: f7c5e9d Canalina nuova dai cavi di uno schema unifilare (PDF, DWG o DXF)
 Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.
