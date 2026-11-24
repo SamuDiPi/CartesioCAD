@@ -1706,8 +1706,14 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
         }
         const bool withSection = insert != QLatin1String("tavola"), withSheet = insert != QLatin1String("sezione");
         std::optional<Vec2> at;
-        if (const QJsonArray p = args.value(QStringLiteral("posizione")).toArray(); p.size() == 2 && p[0].isDouble() && p[1].isDouble())
-            at = Vec2{p[0].toDouble(), p[1].toDouble()};
+        if (const QJsonArray p = args.value(QStringLiteral("posizione")).toArray(); p.size() == 2 && p[0].isDouble() && p[1].isDouble()) {
+            const double x = p[0].toDouble(), y = p[1].toDouble();
+            if (!std::isfinite(x) || !std::isfinite(y) || std::abs(x) > 1e9 || std::abs(y) > 1e9) {
+                reply(false, tr("posizione fuori dai limiti (coordinate fino a 1e9)."));
+                return true;
+            }
+            at = Vec2{x, y};
+        }
         QPointer<DrawingWidget> drawing(d);
         auto created = std::make_shared<QString>();
         auto apply = [this, drawing, st, existing, withSection, withSheet, at, created, runId]() -> QString {

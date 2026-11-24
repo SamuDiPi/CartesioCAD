@@ -207,11 +207,20 @@ void WebView2Host::start(quintptr window, const QString& dataFolder, const QUrl&
             web->add_WebMessageReceived(handler<ICoreWebView2WebMessageReceivedEventHandler, ICoreWebView2*,
                                                 ICoreWebView2WebMessageReceivedEventArgs*>(
                 [self](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
+                    if (!self)
+                        return S_OK;
+                    // Solo dalla pagina aperta da CartesioCAD (non da altri indirizzi o riquadri).
+                    LPWSTR source = nullptr;
+                    args->get_Source(&source);
+                    const QUrl from(fromWide(source));
+                    CoTaskMemFree(source);
+                    if (from.adjusted(QUrl::RemoveFragment | QUrl::RemoveQuery) != self->d_->page.adjusted(QUrl::RemoveFragment | QUrl::RemoveQuery))
+                        return S_OK;
                     LPWSTR json = nullptr;
                     args->get_WebMessageAsJson(&json);
                     const QByteArray text = fromWide(json).toUtf8();
                     CoTaskMemFree(json);
-                    if (!self)
+                    if (text.size() > 96 * 1024 * 1024)   // una tavola DXF in base64 sta molto sotto
                         return S_OK;
                     const QJsonDocument doc = QJsonDocument::fromJson(text);
                     const QJsonObject obj = doc.object();

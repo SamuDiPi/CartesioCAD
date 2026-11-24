@@ -1,3 +1,3 @@
 CanaloCAD V1.0 - https://github.com/SamuDiPi/Canalo
-Commit: f203567 Canalina da una lista di cavi in Excel o CSV; Copia come immagine dentro CartesioCAD
+Commit: a6d5f31 Lista cavi: errori di decompressione dell'Excel in italiano (file danneggiato)
 Copiato da scripts/update-canalo.sh: Canalo.html è generato, non si modifica qui.

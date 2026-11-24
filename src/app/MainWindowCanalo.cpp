@@ -445,6 +445,10 @@ void MainWindow::canaloMessage(const QJsonValue& value)
 {
     const QJsonObject msg = value.toObject();
     const QString kind = msg.value(QStringLiteral("tipo")).toString();
+    if (kind != QLatin1String("pronta") && msg.value(QStringLiteral("dxf")).toString().size() > 88 * 1024 * 1024) {
+        print(tr("CanaloCAD: tavola troppo grande, ignorata."));
+        return;
+    }
     if (kind == QLatin1String("pronta")) {
         canaloReady_ = true;
         auto pending = std::move(canaloPending_);
@@ -664,7 +668,8 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
     connect(&host, &WebView2Host::message, &loop, [&](const QJsonValue& value) {
         if (value.toObject().value(QStringLiteral("tipo")).toString() != QLatin1String("pronta"))
             return;
-        host.runAsync(QStringLiteral("window.CanaloHost.importDxf(\"%1\", \"%2\")").arg(QFileInfo(section).fileName(), data),
+        host.runAsync(QStringLiteral("window.CanaloHost.importDxf(%1, \"%2\")")
+                          .arg(QString::fromUtf8(QJsonDocument(QJsonArray{QFileInfo(section).fileName()}).toJson(QJsonDocument::Compact)).mid(1).chopped(1), data),
                       [&](const QJsonValue& result, const QString& error) {
             if (!error.isEmpty()) {
                 print(tr("-CANALOSCHEDA: importazione non riuscita: %1").arg(error));
