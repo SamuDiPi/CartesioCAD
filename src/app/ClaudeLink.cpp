@@ -114,8 +114,18 @@ void ClaudeLink::onConnection()
         QString who;
         if (!trustedClient(socket, &who)) {
             emit rejected(who);
-            socket->abort();
-            socket->deleteLater();
+            // Il motivo va anche al connettore, che lo riferisce a Claude (altrimenti sembra solo che non risponda).
+            const QString reason =
+                tr("CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude Desktop (%1) non è quello "
+                   "della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, "
+                   "oppure ricollegare Claude Desktop dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop.")
+                    .arg(who, QDir::toNativeSeparators(QCoreApplication::applicationDirPath()));
+            socket->write(QJsonDocument(QJsonObject{{QStringLiteral("rifiutato"), reason}}).toJson(QJsonDocument::Compact) + '\n');
+            socket->flush();
+            socket->disconnectFromServer();
+            connect(socket, &QLocalSocket::disconnected, socket, &QObject::deleteLater);
+            if (socket->state() == QLocalSocket::UnconnectedState)
+                socket->deleteLater();
             continue;
         }
         socket->setParent(this);

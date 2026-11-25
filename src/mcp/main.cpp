@@ -376,6 +376,10 @@ public:
         while (clock.elapsed() < limit) {
             while (socket_.canReadLine()) {
                 const QJsonObject answer = QJsonDocument::fromJson(socket_.readLine()).object();
+                if (answer.contains(QStringLiteral("rifiutato"))) {
+                    socket_.abort();
+                    return toolText(answer.value(QStringLiteral("rifiutato")).toString(), true);
+                }
                 if (answer.value(QStringLiteral("id")).toInt() != id)
                     continue;
                 return toolText(answer.value(QStringLiteral("testo")).toString(), !answer.value(QStringLiteral("ok")).toBool());
