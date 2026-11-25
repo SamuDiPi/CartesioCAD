@@ -426,7 +426,11 @@ WebView2Host::WebView2Host(QObject* parent) : QObject(parent), d_(std::make_uniq
     });
 }
 
-WebView2Host::~WebView2Host() = default;
+WebView2Host::~WebView2Host()
+{
+    // Prima la pagina (con la vista che la contiene), poi il profilo dei dati: al contrario Qt WebEngine avvisa.
+    delete d_->view.data();
+}
 
 bool WebView2Host::available(QString*)
 {
