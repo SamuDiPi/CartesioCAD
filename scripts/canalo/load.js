@@ -14,7 +14,7 @@ function load() {
     APP_NAME: "CanaloCAD",
   };
   vm.createContext(ctx);
-  const code = ["01-data.js", "02-core.js"].map(f => fs.readFileSync(path.join(SRC, f), "utf8")).join("\n")
+  const code = ["01-data.js", "02-core.js", "02b-conduit.js"].map(f => fs.readFileSync(path.join(SRC, f), "utf8")).join("\n")
     + "\n;globalThis.__api = { get state(){return state;}, set state(v){state=v;}, get metrics(){return metrics;}, CABLE_CATALOG, BRAND_SERIES, SUPPORT_SPECS, recalculateAll, calcAllowedLinearLoadKgM, calcElasticDeflectionMm, inferCableSpecsByDiameter, parseSectionFromForm, isUnipolarCable };";
   vm.runInContext(code, ctx);
   return ctx.__api;

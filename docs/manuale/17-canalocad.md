@@ -1,8 +1,16 @@
 # CanaloCAD
 
-CanaloCAD progetta e verifica le canaline portacavi. Il suo codice è anche dentro CartesioCAD: calcoli, importazione dei disegni e tavola sono quelli della pagina, non una copia rifatta, e la tavola DXF che esce da CartesioCAD è identica, byte per byte, a quella che esporta CanaloCAD. L'applicazione completa (una pagina web, inclusa) si apre dal pulsante *Apri CanaloCAD*.
+CanaloCAD progetta e verifica le canaline portacavi e le tubazioni. Il suo codice è anche dentro CartesioCAD: calcoli, importazione dei disegni e tavola sono quelli della pagina, non una copia rifatta, e la tavola DXF che esce da CartesioCAD è identica, byte per byte, a quella che esporta CanaloCAD. L'applicazione completa (una pagina web, inclusa) si apre dal pulsante *Apri CanaloCAD*.
 
 Il database contiene solo tipologie, senza costruttori: per i cavi le designazioni normative (FG16OM16, FG16M16, FTG18OM16, FG16OH2R16, LiYCY, U/UTP Cat.6, fibra ottica...), per le canaline passerella asolata, canale cieco, passerella a filo e passerella a scala, con codici generici nella distinta.
+
+## Tubazioni
+
+Nella scheda CanaloCAD, *Sezione > Sistema > Tubazioni* trasforma una sezione in uno o più tubi uguali: rigidi a vista, corrugati sottotraccia, cavidotti interrati a doppia parete (anche un banco su più file) o metallici. I cavi si ripartiscono da soli tra i tubi: i conduttori di uno stesso circuito restano nello stesso tubo, i segnali non schermati e i circuiti di sicurezza vanno in tubi separati dall'energia, e i tubi che non servono restano di riserva. Con la ripartizione *A mano* un cavo si sposta trascinandolo sopra un altro tubo.
+
+Ogni tubo si verifica con la regola dell'1,3: il diametro interno deve essere almeno 1,3 volte quello del fascio di cavi (CEI 64-8). Il fascio si calcola come nel modulo Impianto, quindi i due calcoli danno gli stessi numeri. *Proponi diametro e numero di tubi* sceglie il numero di tubi più piccolo e poi il diametro più piccolo che verificano. I diametri interni del tipo sono indicativi: per l'esecutivo si scrive quello del catalogo del tubo scelto. La portata dei cavi usa i coefficienti di raggruppamento in tubo e, per i cavidotti affiancati, quelli dei tubi interrati: valori indicativi.
+
+Nella tavola i tubi sono sul layer `Tubazioni`; la distinta cavi ha la colonna TUBO e la tabella *Verifica dei tubi* prende il posto del diagramma di carico. Nella distinta materiali ci sono tubi o barre, manicotti, curve, collari (posa a vista), pozzetti, nastro di segnalazione e tappi dei tubi di riserva (cavidotti). Una tubazione si salva nel disegno, si inserisce e si copia come una canalina. Tipo, diametro e numero di tubi si cambiano nella scheda CanaloCAD o con l'assistente IA; la finestra *Dati canalina* vale solo per le canaline.
 
 ## Canalina (`CANALINA`, `CANALINE`, `CABLETRAY`)
 

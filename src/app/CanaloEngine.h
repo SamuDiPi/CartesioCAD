@@ -43,8 +43,12 @@ public:
     QJsonObject calculate(const QJsonObject& state, QJsonObject* metrics = nullptr);
     // Cavi dal database come il "+" della pagina: sigla, fasi L1/L2/L3, terne a trifoglio.
     QJsonObject addCable(const QJsonObject& state, const QString& id, int quantity, bool trefoil, QJsonObject* metrics = nullptr);
-    // Larghezza per la riserva voluta (%), come "Dimensiona" della pagina.
+    // Larghezza per la riserva voluta (%), come "Dimensiona" della pagina; per le tubazioni numero e diametro dei
+    // tubi proposti.
     QJsonObject autoSize(const QJsonObject& state, double reservePct, QJsonObject* metrics = nullptr);
+    // Tubazioni: diametro (e numero di tubi, se `keepCount` è falso) proposti per i cavi; `found` falso se nessuna
+    // combinazione del tipo di tubo basta (lo stato resta quello dato, ricalcolato).
+    QJsonObject proposeConduit(const QJsonObject& state, bool keepCount, bool* found = nullptr, QJsonObject* metrics = nullptr);
     // Importazione di una sezione disegnata (testo DXF) come "Importa DWG/DXF" della pagina.
     QJsonObject importDxf(const QJsonObject& state, const QString& dxfText, const QString& fileName, QJsonObject* metrics = nullptr);
     // Un file DXF (i suoi byte) come "Importa DWG/DXF" della pagina: stessi passi (extractRawAscii, parseDXFTextContent).

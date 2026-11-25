@@ -12,7 +12,7 @@ const ctx = {
   updateCableCalloutsUI: () => {}, APP_NAME: "CanaloCAD", currentSectionIdx: 0,
 };
 vm.createContext(ctx);
-const code = ["01-data.js", "02-core.js", "04-import-cad.js", "05-import-pdf.js"].map(f => fs.readFileSync(path.join(SRC, f), "utf8")).join("\n")
+const code = ["01-data.js", "02-core.js", "02b-conduit.js", "04-import-cad.js", "05-import-pdf.js"].map(f => fs.readFileSync(path.join(SRC, f), "utf8")).join("\n")
   + "\n;globalThis.__api = { get state(){return state;}, processRealWasmEntities };";
 vm.runInContext(code, ctx);
 const api = ctx.__api;

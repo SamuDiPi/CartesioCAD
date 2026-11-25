@@ -1542,10 +1542,6 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             *error = tr("Nessuna tratta %1 nel progetto (elenco con impianto_tratte).").arg(runCode);
             return {};
         }
-        if (run->kind == plant::RunKind::Tube) {
-            *error = tr("La tratta %1 è un tubo: le canaline di CanaloCAD sono per canali e passerelle.").arg(runCode);
-            return {};
-        }
         std::vector<canalo::Cable> cables;
         for (const std::string& code : run->circuits)
             if (const plant::Circuit* c = project.circuit(code))
@@ -1556,6 +1552,21 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             return {};
         }
         QJsonObject options = args;
+        if (run->kind == plant::RunKind::Tube) {
+            // Tratta a tubo: tubazione di CanaloCAD con il tubo della tratta (misura "tratta", default) o proposta dai
+            // cavi (misura "dai_cavi").
+            options.insert(QStringLiteral("sistema"), QStringLiteral("tubazione"));
+            if (!options.contains(QStringLiteral("tipo_tubo")))
+                options.insert(QStringLiteral("tipo_tubo"), QString::fromStdString(run->tubeType));
+            if (args.value(QStringLiteral("misura")).toString(QStringLiteral("tratta")) == QLatin1String("tratta")
+                && !options.contains(QStringLiteral("diametro"))) {
+                options.insert(QStringLiteral("diametro"), run->tubeOuter);
+                if (!options.contains(QStringLiteral("numero_tubi")))
+                    options.insert(QStringLiteral("numero_tubi"), 1);
+                if (run->tubeInner > 0 && !options.contains(QStringLiteral("interno_mm")))
+                    options.insert(QStringLiteral("interno_mm"), run->tubeInner);
+            }
+        }
         if (!options.contains(QStringLiteral("tipologia")))
             options.insert(QStringLiteral("tipologia"), run->kind == plant::RunKind::Duct ? QStringLiteral("cieco") : QStringLiteral("asolata"));
         if (args.value(QStringLiteral("misura")).toString(QStringLiteral("tratta")) == QLatin1String("tratta")
@@ -1747,13 +1758,15 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
         auto done = [existing, analysis, withSection, withSheet, created](const QString& failure) {
             if (!failure.isEmpty())
                 return tr("Non applicata: %1").arg(failure);
-            const QJsonObject c = analysis.value(QStringLiteral("canalina")).toObject();
-            const QString size = tr("%1 × %2 mm").arg(c.value(QStringLiteral("larghezza_mm")).toDouble()).arg(c.value(QStringLiteral("altezza_mm")).toDouble());
+            const QString size = analysis.value(QStringLiteral("misura")).toString();
             const QString what = withSection && withSheet ? tr("con la sezione disegnata e la tavola") : withSheet ? tr("con la tavola") : tr("con la sezione disegnata");
+            const bool conduit = analysis.contains(QStringLiteral("tubazione"));
             return existing.isEmpty()
-                ? tr("L'utente ha applicato la proposta: canalina %1 (%2) creata %3 (Ctrl+Z annulla).")
+                ? (conduit ? tr("L'utente ha applicato la proposta: tubazione %1 (%2) creata %3 (Ctrl+Z annulla).")
+                           : tr("L'utente ha applicato la proposta: canalina %1 (%2) creata %3 (Ctrl+Z annulla)."))
                       .arg(*created, size, what)
-                : tr("L'utente ha applicato la proposta: canalina %1 aggiornata (%2)%3.")
+                : (conduit ? tr("L'utente ha applicato la proposta: tubazione %1 aggiornata (%2)%3.")
+                           : tr("L'utente ha applicato la proposta: canalina %1 aggiornata (%2)%3."))
                       .arg(existing, size, withSheet ? tr(", tavola inserita") : QString());
         };
         if (claudeAutoApprove_) {   // solo negli script di prova (-ASSISTENTEATTIVA AUTO)
@@ -1762,7 +1775,9 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
             reply(failure.isEmpty(), done(failure));
             return true;
         }
-        auto* dialog = new FormDialog(tr("Canalina proposta dall'assistente IA"), FormDialog::Ok | FormDialog::Cancel, this);
+        auto* dialog = new FormDialog(analysis.contains(QStringLiteral("tubazione")) ? tr("Tubazione proposta dall'assistente IA")
+                                                                                     : tr("Canalina proposta dall'assistente IA"),
+                                      FormDialog::Ok | FormDialog::Cancel, this);
         dialog->setAttribute(Qt::WA_DeleteOnClose);
         dialog->group(title);
         dialog->note(tr("Disegno: %1. %2 La canalina si applica solo con OK (con la sezione disegnata) e si annulla con Ctrl+Z. "

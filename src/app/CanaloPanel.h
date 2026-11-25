@@ -21,6 +21,7 @@
 #include <QQuickWidget>
 #include <QVariant>
 
+#include <functional>
 #include <optional>
 
 namespace cartesio {
@@ -157,6 +158,7 @@ protected:
 
 private:
     QJsonObject state() const;   // della canalina corrente (o quello iniziale)
+    void conduitSummary(const QJsonObject& st, const QJsonObject& m, const std::function<void(const QString&, const QString&, int)>& row) const;
     QVariantList summaryOf(const QJsonObject& state, const QJsonObject& metrics) const;
     // Nel documento, annullabile in un passo: misura automatica, poi la sezione disegnata (se c'è) aggiornata.
     void store(QJsonObject state, const QString& what);

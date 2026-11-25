@@ -77,9 +77,26 @@ const char* const kSectionRole = "/sezione";
 // Layer della sezione nella tavola di CanaloCAD (il resto è cornice, tabelle, vista 3D, curva di carico).
 const std::set<std::string>& sectionLayers()
 {
-    static const std::set<std::string> layers = {"Canalina", "Cavi", "Anime_Cavi", "Bandierine", "Testi", "QUOTE",
+    static const std::set<std::string> layers = {"Canalina", "Tubazioni", "Cavi", "Anime_Cavi", "Bandierine", "Testi", "QUOTE",
                                                  "STAFFAGGI", "FASCETTE_ANCORAGGIO"};
     return layers;
+}
+
+// Tubazioni (system "conduit" di CanaloCAD): uno o più tubi uguali al posto della canalina.
+bool isConduit(const QJsonObject& st)
+{
+    return st.value(QStringLiteral("system")).toString() == QLatin1String("conduit");
+}
+
+QString conduitTypeName(const QString& type)
+{
+    if (type == QLatin1String("corrugato"))
+        return CanaloPanel::tr("Tubo corrugato sottotraccia");
+    if (type == QLatin1String("cavidotto"))
+        return CanaloPanel::tr("Cavidotto interrato");
+    if (type == QLatin1String("metallico"))
+        return CanaloPanel::tr("Tubo metallico a vista");
+    return CanaloPanel::tr("Tubo rigido a vista");
 }
 
 QString systemName(const QString& sys)
@@ -335,9 +352,12 @@ QString CanaloPanel::createTray(QJsonObject st)
     }
     if (!st.contains(QStringLiteral("cartesioReserve")))
         st.insert(QStringLiteral("cartesioReserve"), 30.0);
-    st.insert(QStringLiteral("title"), tr("CANALINA %1 - L=%2mm H=%3mm").arg(id, num(dv(st, "width", 200), 0), num(dv(st, "height", 75), 0)));
+    if (isConduit(st))
+        st.insert(QStringLiteral("title"), tr("TUBAZIONE %1").arg(id));
+    else
+        st.insert(QStringLiteral("title"), tr("CANALINA %1 - L=%2mm H=%3mm").arg(id, num(dv(st, "width", 200), 0), num(dv(st, "height", 75), 0)));
     trayId_ = id;
-    store(st, tr("Canalina %1 creata.").arg(id));
+    store(st, (isConduit(st) ? tr("Tubazione %1 creata.") : tr("Canalina %1 creata.")).arg(id));
     return id;
 }
 
@@ -426,7 +446,7 @@ double CanaloPanel::drawingUnit() const
 int CanaloPanel::minimumWidth(const QJsonObject& st, const QJsonObject& metrics) const
 {
     const QJsonArray cables = st.value(QStringLiteral("cables")).toArray();
-    if (cables.isEmpty())
+    if (cables.isEmpty() || isConduit(st))
         return 0;
     // Prima il controllo veloce: riserva rispettata e cavi dentro l'altezza (posizioni già calcolate) = ci stanno.
     bool overflow = dv(metrics, "fillPct") > 100.0 - dv(st, "cartesioReserve", 30.0);
@@ -653,6 +673,10 @@ QVariantList CanaloPanel::summaryOf(const QJsonObject& st, const QJsonObject& m)
     auto row = [&](const QString& label, const QString& value, int level = 0) {
         out.append(QVariantMap{{QStringLiteral("label"), label}, {QStringLiteral("value"), value}, {QStringLiteral("level"), level}});
     };
+    if (isConduit(st)) {
+        conduitSummary(st, m, row);
+        return out;
+    }
     row(tr("Canalina"), tr("%1 %2 × %3 mm, sp. %4 mm%5").arg(trayTypeName(sv(st, "trayType")), num(dv(st, "width"), 0), num(dv(st, "height"), 0),
                                                              num(dv(st, "thk")),
                                                              st.value(QStringLiteral("cartesioAutoSize")).toBool(false)
@@ -691,6 +715,49 @@ QVariantList CanaloPanel::summaryOf(const QJsonObject& st, const QJsonObject& m)
         row(sv(r, "code"), QStringLiteral("%1 — %2 %3").arg(sv(r, "desc"), num(dv(r, "qty"), 0), sv(r, "um")), -1);
     }
     return out;
+}
+
+void CanaloPanel::conduitSummary(const QJsonObject& st, const QJsonObject& m, const std::function<void(const QString&, const QString&, int)>& add) const
+{
+    auto row = [&add](const QString& label, const QString& value, int level = 0) { add(label, value, level); };
+    const QJsonObject c = m.value(QStringLiteral("conduit")).toObject();
+    const int count = c.value(QStringLiteral("count")).toInt(1);
+    row(tr("Tubazioni"), tr("%1: %2 × Ø%3 (interno %4 mm), ingombro %5 × %6 mm%7")
+                             .arg(conduitTypeName(sv(st, "conduitType")))
+                             .arg(count)
+                             .arg(num(dv(c, "dn"), 0), num(dv(c, "di")), num(dv(st, "width"), 0), num(dv(st, "height"), 0),
+                                  st.value(QStringLiteral("cartesioAutoSize")).toBool(false) ? tr(" (proposta dai cavi)") : QString()),
+        0);
+    for (const QJsonValue& v : c.value(QStringLiteral("tubes")).toArray()) {
+        const QJsonObject t = v.toObject();
+        const int cables = t.value(QStringLiteral("cavi")).toInt();
+        if (cables == 0) {
+            row(tr("Tubo T%1").arg(t.value(QStringLiteral("n")).toInt()), tr("vuoto (riserva)"), 0);
+            continue;
+        }
+        const bool ok = t.value(QStringLiteral("ok")).toBool(true), seg = t.value(QStringLiteral("segregazione")).toBool(true);
+        row(tr("Tubo T%1").arg(t.value(QStringLiteral("n")).toInt()),
+            tr("%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (1,3 × fascio, CEI 64-8) — %5; riempimento %6%, Kr %7%8")
+                .arg(cables)
+                .arg(t.value(QStringLiteral("circuiti")).toInt())
+                .arg(num(dv(t, "fascio")), num(dv(t, "minimo")), ok ? tr("OK") : tr("NON VERIFICATO"), num(dv(t, "riempimento")),
+                     num(dv(t, "kr"), 2), seg ? QString() : tr(" — segnali non schermati con l'energia")),
+            ok && seg ? 1 : 2);
+    }
+    const bool seg = m.value(QStringLiteral("segConform")).toBool(true);
+    row(tr("Segregazione 528.1"), (seg ? tr("CONFORME") : tr("NON CONFORME")) + QStringLiteral(" — ") + sv(m, "segDetail"), seg ? 1 : 2);
+    row(tr("Riduzione portata"), tr("Kr minimo = %1 (raggruppamento %2 × posa %3)").arg(num(dv(m, "kr"), 2), num(dv(m, "kFascio"), 2), num(dv(m, "kPosa"), 2)));
+    row(tr("Peso"), tr("%1 kg/m").arg(num(dv(m, "totalKgM"), 2)));
+    const bool pullOk = dv(m, "pullDaN") <= dv(m, "maxPullDaN");
+    row(tr("Tiro di posa"), tr("%1 daN (max %2) %3").arg(num(dv(m, "pullDaN")), num(dv(m, "maxPullDaN"), 0), pullOk ? tr("OK") : tr("ECCESSIVO")),
+        pullOk ? 1 : 2);
+    row(tr("Raggio di curvatura"), tr("min %1 mm (%2)").arg(num(dv(m, "maxBendR"), 0), sv(m, "critCode")));
+    if (!sv(m, "deratingFailCode").isEmpty())
+        row(tr("Portata"), tr("Iz' < Ib su %1").arg(sv(m, "deratingFailCode")), 2);
+    for (const QJsonValue& b : m.value(QStringLiteral("bom")).toArray()) {
+        const QJsonObject r = b.toObject();
+        row(sv(r, "code"), QStringLiteral("%1 — %2 %3").arg(sv(r, "desc"), num(dv(r, "qty"), 0), sv(r, "um")), -1);
+    }
 }
 
 QStringList CanaloPanel::reportLines() const
@@ -1144,6 +1211,11 @@ void CanaloPanel::editTray()
     if (trayId_.isEmpty())
         createTray({});
     QJsonObject st = state();
+    if (isConduit(st)) {
+        emit message(tr("%1 è una tubazione: tipo, diametro e numero di tubi si cambiano nella scheda CanaloCAD (comando CANALOSCHEDA) "
+                        "o con l'assistente IA.").arg(trayId_));
+        return;
+    }
     QJsonObject tb = st.value(QStringLiteral("tb")).toObject();
     auto str = [&](const char* k) { return sv(st, k); };
     QString title = str("title"), planTag = str("planTag");
@@ -1519,6 +1591,67 @@ bool CanaloPanel::composeFromIds(const QString& list, QString* error)
 
 namespace {
 
+QString conduitTypeKey(const QString& given)
+{
+    const QString t = given.trimmed().toLower();
+    if (t.contains(QStringLiteral("corrug")) || t.contains(QStringLiteral("fless")) || t.contains(QStringLiteral("tracc")))
+        return QStringLiteral("corrugato");
+    if (t.contains(QStringLiteral("cavidott")) || t.contains(QStringLiteral("interr")))
+        return QStringLiteral("cavidotto");
+    if (t.contains(QStringLiteral("metall")) || t.contains(QStringLiteral("acciaio")))
+        return QStringLiteral("metallico");
+    return QStringLiteral("rigido");
+}
+
+bool wantsConduit(const QJsonObject& options)
+{
+    const QString s = options.value(QStringLiteral("sistema")).toString().trimmed().toLower();
+    return s.startsWith(QLatin1String("tub")) || s.startsWith(QLatin1String("cavidott")) || s == QLatin1String("conduit");
+}
+
+// Tubazioni dalle opzioni degli strumenti dell'assistente: tipo_tubo, diametro (esterno nominale), numero_tubi,
+// distanza_mm, interno_mm. Senza diametro: proposta (numero fisso se indicato). Stato vuoto con `error` se non riesce.
+QJsonObject conduitStateFor(QJsonObject st, const QJsonObject& options, QString* error)
+{
+    auto fail = [error](const QString& why) {
+        if (error)
+            *error = why;
+        return QJsonObject();
+    };
+    CanaloEngine& engine = CanaloEngine::instance();
+    st.insert(QStringLiteral("system"), QStringLiteral("conduit"));
+    st.insert(QStringLiteral("conduitType"), conduitTypeKey(options.value(QStringLiteral("tipo_tubo")).toString()));
+    st.insert(QStringLiteral("conduitAssign"), QStringLiteral("auto"));
+    if (options.contains(QStringLiteral("distanza_mm")))
+        st.insert(QStringLiteral("conduitGap"), std::clamp(options.value(QStringLiteral("distanza_mm")).toDouble(), 0.0, 1000.0));
+    if (const double inner = options.value(QStringLiteral("interno_mm")).toDouble(0.0); inner > 0)
+        st.insert(QStringLiteral("conduitInner"), std::min(inner, 300.0));
+    const double dn = options.value(QStringLiteral("diametro")).toDouble(0.0);
+    const int count = options.value(QStringLiteral("numero_tubi")).toInt(0);
+    if (count > 24)
+        return fail(CanaloPanel::tr("Al massimo 24 tubi in una sezione."));
+    if (dn > 250)
+        return fail(CanaloPanel::tr("Diametro fuori dai limiti (fino a 250 mm)."));
+    if (dn > 0) {
+        st.insert(QStringLiteral("conduitDn"), dn);
+        st.insert(QStringLiteral("conduitCount"), std::max(1, count));
+        st.insert(QStringLiteral("cartesioAutoSize"), false);
+        const QJsonObject out = engine.calculate(st);
+        return out.isEmpty() ? fail(CanaloPanel::tr("Calcolo di CanaloCAD non riuscito: %1").arg(engine.error())) : out;
+    }
+    if (count > 0)
+        st.insert(QStringLiteral("conduitCount"), count);
+    st.insert(QStringLiteral("cartesioAutoSize"), count <= 0);
+    bool found = false;
+    const QJsonObject out = engine.proposeConduit(st, count > 0, &found);
+    if (out.isEmpty())
+        return fail(CanaloPanel::tr("Calcolo di CanaloCAD non riuscito: %1").arg(engine.error()));
+    if (!found)
+        return fail(CanaloPanel::tr("Nessuna combinazione di tubi di questo tipo (fino a 24) basta per questi cavi: scegliere un tipo con "
+                                    "diametri più grandi o dividere i cavi in più sezioni."));
+    return out;
+}
+
 QString trayTypeKey(const QString& given)
 {
     const QString t = given.trimmed().toLower();
@@ -1593,6 +1726,8 @@ QJsonObject CanaloPanel::stateFor(const QJsonArray& cables, const QJsonObject& o
     }
     const double reserve = std::clamp(options.value(QStringLiteral("riserva")).toDouble(30.0), 0.0, 90.0);
     st.insert(QStringLiteral("cartesioReserve"), reserve);
+    if (wantsConduit(options))
+        return conduitStateFor(st, options, error);
     const double w = options.value(QStringLiteral("larghezza")).toDouble(0.0), h = options.value(QStringLiteral("altezza")).toDouble(0.0);
     if (w > 0 && h > 0) {
         if (w > 2000 || h > 500)
@@ -1649,6 +1784,8 @@ QJsonObject CanaloPanel::stateFromCables(const std::vector<canalo::Cable>& cable
         st.insert(QStringLiteral("lengthM"), std::max(1.0, options.value(QStringLiteral("lunghezza_m")).toDouble()));
     const double reserve = std::clamp(options.value(QStringLiteral("riserva")).toDouble(30.0), 0.0, 90.0);
     st.insert(QStringLiteral("cartesioReserve"), reserve);
+    if (wantsConduit(options))
+        return conduitStateFor(st, options, error);
     const double w = options.value(QStringLiteral("larghezza")).toDouble(0.0), h = options.value(QStringLiteral("altezza")).toDouble(0.0);
     if (w > 0 && h > 0) {
         st.insert(QStringLiteral("width"), std::min(w, 2000.0));
@@ -1726,7 +1863,27 @@ QJsonObject CanaloPanel::analyze(const QJsonObject& state)
         results.insert(QStringLiteral("larghezza_minima_mm"), need);
     if (!sv(m, "deratingFailCode").isEmpty())
         results.insert(QStringLiteral("portata_insufficiente"), sv(m, "deratingFailCode"));
-    return {{QStringLiteral("canalina"), QJsonObject{{QStringLiteral("tipologia"), trayTypeName(sv(st, "trayType"))},
+    if (isConduit(st)) {
+        const QJsonObject c = m.value(QStringLiteral("conduit")).toObject();
+        results.insert(QStringLiteral("tubi_verificati"), c.value(QStringLiteral("allOk")).toBool(false));
+        results.remove(QStringLiteral("riserva_pct"));
+        const int count = c.value(QStringLiteral("count")).toInt(1);
+        return {{QStringLiteral("tubazione"), QJsonObject{{QStringLiteral("tipo"), sv(st, "conduitType")},
+                                                          {QStringLiteral("descrizione"), conduitTypeName(sv(st, "conduitType"))},
+                                                          {QStringLiteral("diametro_mm"), dv(c, "dn")},
+                                                          {QStringLiteral("interno_mm"), dv(c, "di")},
+                                                          {QStringLiteral("numero_tubi"), count},
+                                                          {QStringLiteral("ingombro_mm"), QJsonArray{dv(st, "width"), dv(st, "height")}},
+                                                          {QStringLiteral("tubi"), c.value(QStringLiteral("tubes"))},
+                                                          {QStringLiteral("proposta_dai_cavi"), st.value(QStringLiteral("cartesioAutoSize")).toBool(false)}}},
+                {QStringLiteral("misura"), tr("%1 × Ø%2 %3").arg(count).arg(dv(c, "dn")).arg(sv(st, "conduitType"))},
+                {QStringLiteral("cavi"), cables},
+                {QStringLiteral("risultati"), results},
+                {QStringLiteral("riepilogo"), lines},
+                {QStringLiteral("avvertenza"), tr("Calcoli di CanaloCAD: valori indicativi da verificare con le norme e con i dati dei costruttori.")}};
+    }
+    return {{QStringLiteral("misura"), tr("%1 × %2 mm").arg(dv(st, "width")).arg(dv(st, "height"))},
+            {QStringLiteral("canalina"), QJsonObject{{QStringLiteral("tipologia"), trayTypeName(sv(st, "trayType"))},
                                                      {QStringLiteral("larghezza_mm"), dv(st, "width")},
                                                      {QStringLiteral("altezza_mm"), dv(st, "height")},
                                                      {QStringLiteral("spessore_mm"), dv(st, "thk")},
@@ -1759,7 +1916,8 @@ QJsonArray CanaloPanel::trayList()
         const QJsonObject r = a.value(QStringLiteral("risultati")).toObject();
         QJsonObject row{{QStringLiteral("codice"), QString::fromStdString(id)},
                         {QStringLiteral("titolo"), sv(st, "title")},
-                        {QStringLiteral("canalina"), a.value(QStringLiteral("canalina"))},
+                        {a.contains(QStringLiteral("tubazione")) ? QStringLiteral("tubazione") : QStringLiteral("canalina"),
+                         a.contains(QStringLiteral("tubazione")) ? a.value(QStringLiteral("tubazione")) : a.value(QStringLiteral("canalina"))},
                         {QStringLiteral("cavi"), static_cast<int>(st.value(QStringLiteral("cables")).toArray().size())},
                         {QStringLiteral("riempimento_pct"), r.value(QStringLiteral("riempimento_pct"))},
                         {QStringLiteral("segregazione_conforme"), r.value(QStringLiteral("segregazione_conforme"))}};
@@ -1819,7 +1977,8 @@ bool CanaloPanel::replaceTray(const QString& id, QJsonObject state)
         return false;
     // Della canalina esistente restano posizione della sezione, percorso, titolo e dati di progetto: cambiano cavi,
     // tipologia e misura.
-    for (const char* key : {"cables", "trayType", "width", "height", "thk", "cartesioAutoSize", "cartesioReserve"})
+    for (const char* key : {"cables", "trayType", "width", "height", "thk", "cartesioAutoSize", "cartesioReserve", "system", "conduitType",
+                            "conduitDn", "conduitInner", "conduitCount", "conduitCols", "conduitGap", "conduitAssign", "trayW", "trayH"})
         if (state.contains(QLatin1String(key)))
             current.insert(QLatin1String(key), state.value(QLatin1String(key)));
     trayId_ = id;

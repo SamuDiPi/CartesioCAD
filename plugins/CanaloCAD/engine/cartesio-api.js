@@ -35,9 +35,11 @@ var __cartesio = {
     }
     return __cartesio.calc(JSON.stringify(state));
   },
-  // Larghezza della canalina per la riserva voluta (%), come "Dimensiona" della pagina (autoSizeTray).
+  // Larghezza della canalina per la riserva voluta (%), come "Dimensiona" della pagina (autoSizeTray). Per le
+  // tubazioni: numero di tubi e diametro proposti, come "Proponi diametro e numero di tubi" (proposeConduit).
   autoSize: function (json, reservePct) {
     state = normalizeSection(JSON.parse(json));
+    if (isConduitSystem()) return __cartesio.proposeConduit(JSON.stringify(state), false);
     var getById = document.getElementById;
     document.getElementById = function (elId) {
       return elId === "inpSpareReserve" ? { value: String(reservePct) } : getById(elId);
@@ -48,6 +50,21 @@ var __cartesio = {
       document.getElementById = getById;
     }
     return __cartesio.calc(JSON.stringify(state));
+  },
+  // Tubazioni: diametro (e numero di tubi, se keepCount è falso) proposti per i cavi, ripartizione automatica.
+  // "conduitProposal" nel risultato: false se nessuna combinazione basta (lo stato resta com'era).
+  proposeConduit: function (json, keepCount) {
+    state = normalizeSection(JSON.parse(json));
+    var p = proposeConduit(state, !!keepCount);
+    if (p) {
+      state.conduitDn = p.dn;
+      state.conduitCount = p.count;
+      state.conduitInner = 0;
+      state.conduitAssign = "auto";
+    }
+    var out = JSON.parse(__cartesio.calc(JSON.stringify(state)));
+    out.conduitProposal = !!p;
+    return JSON.stringify(out);
   },
   // Importazione di un disegno DXF (sezione con cerchi, bordo e sigle) come "Importa DWG/DXF" della pagina.
   importDxf: function (json, text, fileName) {

@@ -17,7 +17,7 @@ cp "$src/src/fonts/OFL-Inter.txt" "$src/src/fonts/OFL-JetBrainsMono.txt" "$dest/
 mkdir -p "$dest/engine"
 {
     echo "// Generato da scripts/update-canalo.sh dai sorgenti di CanaloCAD: non modificare a mano."
-    for f in 00-utils.js 01-data.js 02-core.js 03-loadcurve-cables.js 04-import-cad.js 05-import-pdf.js 06-scene-iso.js 07-scene-2d.js \
+    for f in 00-utils.js 01-data.js 02-core.js 02b-conduit.js 03-loadcurve-cables.js 04-import-cad.js 05-import-pdf.js 06-scene-iso.js 07-scene-2d.js \
              09-database-ui.js 10-sections.js 11-dxf-template.js 11-export.js; do
         echo "// ---- $f"
         cat "$src/src/js/$f"

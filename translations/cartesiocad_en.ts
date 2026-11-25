@@ -215,7 +215,7 @@
     </message>
     <message>
         <source>Uno o più DWG/DXF di progetto, letti come Importa DWG/DXF di CanaloCAD (una sezione per file); per ognuno scegli a cosa si riferisce: una polilinea del disegno, una canalina, un particolare a sé stante</source>
-        <translation>One or more project DWG/DXF files, read like CanaloCAD's Import DWG/DXF (one section per file); for each one choose what it refers to: a polyline of the drawing, a cable tray, a standalone detail</translation>
+        <translation>One or more project DWG/DXF files, read like CanaloCAD&apos;s Import DWG/DXF (one section per file); for each one choose what it refers to: a polyline of the drawing, a cable tray, a standalone detail</translation>
     </message>
     <message>
         <source>Come si usa</source>
@@ -343,7 +343,7 @@
     </message>
     <message>
         <source>La larghezza più stretta (non meno dell&apos;altezza) che lascia la riserva e tiene i cavi nell&apos;altezza, come Dimensiona di CanaloCAD; senza, la misura è quella disegnata o scritta in Dati canalina</source>
-        <translation>The narrowest width (not less than the height) that leaves the reserve and keeps the cables within the height, like CanaloCAD's Size; without it, the size is the drawn one or the one written in Tray data</translation>
+        <translation>The narrowest width (not less than the height) that leaves the reserve and keeps the cables within the height, like CanaloCAD&apos;s Size; without it, the size is the drawn one or the one written in Tray data</translation>
     </message>
     <message>
         <source>riserva</source>
@@ -434,12 +434,20 @@
         <translation>CanaloCAD: %1</translation>
     </message>
     <message>
+        <source>TUBAZIONE %1</source>
+        <translation>CONDUIT %1</translation>
+    </message>
+    <message>
         <source>CANALINA %1 - L=%2mm H=%3mm</source>
         <translation>CABLE TRAY %1 - W=%2mm H=%3mm</translation>
     </message>
     <message>
         <source>Canalina %1 creata.</source>
         <translation>Cable tray %1 created.</translation>
+    </message>
+    <message>
+        <source>Tubazione %1 creata.</source>
+        <translation>Conduit %1 created.</translation>
     </message>
     <message>
         <source>CANALINA: la tavola di CanaloCAD non ha la sezione (%1).</source>
@@ -614,7 +622,47 @@
     </message>
     <message>
         <source>Iz&apos; &lt; Ib su %1</source>
-        <translation>Iz' &lt; Ib on %1</translation>
+        <translation>Iz&apos; &lt; Ib on %1</translation>
+    </message>
+    <message>
+        <source>Tubazioni</source>
+        <translation>Conduits</translation>
+    </message>
+    <message>
+        <source>%1: %2 × Ø%3 (interno %4 mm), ingombro %5 × %6 mm%7</source>
+        <translation>%1: %2 × Ø%3 (inner %4 mm), overall %5 × %6 mm%7</translation>
+    </message>
+    <message>
+        <source> (proposta dai cavi)</source>
+        <translation> (proposed from the cables)</translation>
+    </message>
+    <message>
+        <source>Tubo T%1</source>
+        <translation>Conduit T%1</translation>
+    </message>
+    <message>
+        <source>vuoto (riserva)</source>
+        <translation>empty (spare)</translation>
+    </message>
+    <message>
+        <source>%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (1,3 × fascio, CEI 64-8) — %5; riempimento %6%, Kr %7%8</source>
+        <translation>%1 cables, %2 circuits: bundle Ø%3 mm, needs an inner diameter of %4 mm (1.3 × bundle, CEI 64-8) — %5; fill %6%, Kr %7%8</translation>
+    </message>
+    <message>
+        <source>NON VERIFICATO</source>
+        <translation>NOT VERIFIED</translation>
+    </message>
+    <message>
+        <source> — segnali non schermati con l&apos;energia</source>
+        <translation> — unshielded signals with power cables</translation>
+    </message>
+    <message>
+        <source>Kr minimo = %1 (raggruppamento %2 × posa %3)</source>
+        <translation>Minimum Kr = %1 (grouping %2 × installation %3)</translation>
+    </message>
+    <message>
+        <source>min %1 mm (%2)</source>
+        <translation>min %1 mm (%2)</translation>
     </message>
     <message>
         <source>CanaloCAD — %1</source>
@@ -626,7 +674,7 @@
     </message>
     <message>
         <source>Calcoli di CanaloCAD: valori indicativi da verificare con le norme e con i dati dei costruttori.</source>
-        <translation>CanaloCAD calculations: indicative values to be checked against the standards and the manufacturers' data.</translation>
+        <translation>CanaloCAD calculations: indicative values to be checked against the standards and the manufacturers&apos; data.</translation>
     </message>
     <message>
         <source>CANALINA: seleziona nel disegno la canalina (la sezione L×H, anche con i cavi, o il percorso in pianta).</source>
@@ -783,6 +831,10 @@
     <message>
         <source>%1: misura fissa (Dati canalina).</source>
         <translation>%1: fixed size (Tray data).</translation>
+    </message>
+    <message>
+        <source>%1 è una tubazione: tipo, diametro e numero di tubi si cambiano nella scheda CanaloCAD (comando CANALOSCHEDA) o con l&apos;assistente IA.</source>
+        <translation>%1 is a conduit: type, diameter and number of conduits are changed in the CanaloCAD tab (CANALOSCHEDA command) or with the AI assistant.</translation>
     </message>
     <message>
         <source>Canalina %1</source>
@@ -1125,6 +1177,18 @@
         <translation>%1 is not in the cable database.</translation>
     </message>
     <message>
+        <source>Al massimo 24 tubi in una sezione.</source>
+        <translation>At most 24 conduits in a section.</translation>
+    </message>
+    <message>
+        <source>Diametro fuori dai limiti (fino a 250 mm).</source>
+        <translation>Diameter out of range (up to 250 mm).</translation>
+    </message>
+    <message>
+        <source>Nessuna combinazione di tubi di questo tipo (fino a 24) basta per questi cavi: scegliere un tipo con diametri più grandi o dividere i cavi in più sezioni.</source>
+        <translation>No combination of conduits of this type (up to 24) is enough for these cables: choose a type with larger diameters or split the cables into more sections.</translation>
+    </message>
+    <message>
         <source>Nessun cavo: indicare almeno un cavo del database (id da canalo_cerca_cavi).</source>
         <translation>No cables: give at least one cable from the database (id from canalo_cerca_cavi).</translation>
     </message>
@@ -1145,6 +1209,22 @@
         <translation>CanaloCAD calculation failed: %1</translation>
     </message>
     <message>
+        <source>Tubo corrugato sottotraccia</source>
+        <translation>Flexible corrugated conduit, concealed</translation>
+    </message>
+    <message>
+        <source>Cavidotto interrato</source>
+        <translation>Underground duct</translation>
+    </message>
+    <message>
+        <source>Tubo metallico a vista</source>
+        <translation>Surface steel conduit</translation>
+    </message>
+    <message>
+        <source>Tubo rigido a vista</source>
+        <translation>Surface rigid conduit</translation>
+    </message>
+    <message>
         <source>Nessun cavo.</source>
         <translation>No cables.</translation>
     </message>
@@ -1155,6 +1235,10 @@
     <message>
         <source>Percorso collegato alla canalina %1.</source>
         <translation>Route linked to cable tray %1.</translation>
+    </message>
+    <message>
+        <source>%1 × Ø%2 %3</source>
+        <translation>%1 × Ø%2 %3</translation>
     </message>
     <message>
         <source>Canalina %1 aggiornata dall&apos;assistente IA.</source>
@@ -1447,6 +1531,10 @@ Double-click: list of the circuits</translation>
     <message>
         <source>il processo %1</source>
         <translation>process %1</translation>
+    </message>
+    <message>
+        <source>CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude Desktop (%1) non è quello della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, oppure ricollegare Claude Desktop dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop.</source>
+        <translation>CartesioCAD refused the connection: the connector started by Claude Desktop (%1) is not the one in the folder of the open CartesioCAD (%2). Open CartesioCAD from the same folder as the connector, or reconnect Claude Desktop from the open CartesioCAD (ASSISTENTE command) and restart Claude Desktop.</translation>
     </message>
     <message>
         <source>Richiesta non valida.</source>
@@ -2631,7 +2719,7 @@ In the list: click the icons to turn on/off, freeze, lock, colour.</translation>
     </message>
     <message>
         <source>Spegni (layer dell&apos;oggetto)</source>
-        <translation>Turn off (object's layer)</translation>
+        <translation>Turn off (object&apos;s layer)</translation>
     </message>
     <message>
         <source>Isola</source>
@@ -2639,11 +2727,11 @@ In the list: click the icons to turn on/off, freeze, lock, colour.</translation>
     </message>
     <message>
         <source>Congela (layer dell&apos;oggetto)</source>
-        <translation>Freeze (object's layer)</translation>
+        <translation>Freeze (object&apos;s layer)</translation>
     </message>
     <message>
         <source>Blocca (layer dell&apos;oggetto)</source>
-        <translation>Lock (object's layer)</translation>
+        <translation>Lock (object&apos;s layer)</translation>
     </message>
     <message>
         <source>Annulla isolamento</source>
@@ -2655,7 +2743,7 @@ In the list: click the icons to turn on/off, freeze, lock, colour.</translation>
     </message>
     <message>
         <source>Sblocca (layer dell&apos;oggetto)</source>
-        <translation>Unlock (object's layer)</translation>
+        <translation>Unlock (object&apos;s layer)</translation>
     </message>
     <message>
         <source>Uguaglia layer</source>
@@ -3133,7 +3221,7 @@ CartesioCAD non gestisce ancora tutti gli oggetti dei DWG (layout, riferimenti e
 Si consiglia di salvare una copia.</source>
         <translation>This drawing is a DWG file.
 
-CartesioCAD does not yet handle all the objects of DWG files (layouts, external references, images...) and LibreDWG's DWG writing is experimental: overwriting the original file could lose data.
+CartesioCAD does not yet handle all the objects of DWG files (layouts, external references, images...) and LibreDWG&apos;s DWG writing is experimental: overwriting the original file could lose data.
 
 It is advisable to save a copy.</translation>
     </message>
@@ -3525,7 +3613,7 @@ It is advisable to save a copy.</translation>
     </message>
     <message>
         <source>Le modifiche si annullano con UNDO. Per cambiare etichette, richieste e valori predefiniti del blocco: BATTMAN.</source>
-        <translation>Changes are undone with UNDO. To change the block's tags, prompts and default values: BATTMAN.</translation>
+        <translation>Changes are undone with UNDO. To change the block&apos;s tags, prompts and default values: BATTMAN.</translation>
     </message>
     <message>
         <source>Gestione attributi blocco</source>
@@ -3944,7 +4032,7 @@ Command: VERIFICAIMPIANTO</translation>
     </message>
     <message>
         <source>C&apos;è una proposta in attesa della scelta dell&apos;utente: salvare dopo.</source>
-        <translation>A proposal is waiting for the user's choice: save afterwards.</translation>
+        <translation>A proposal is waiting for the user&apos;s choice: save afterwards.</translation>
     </message>
     <message>
         <source>Il disegno non è ancora stato salvato: l&apos;utente deve salvarlo la prima volta con un nome.</source>
@@ -3976,7 +4064,7 @@ Command: VERIFICAIMPIANTO</translation>
     </message>
     <message>
         <source>C&apos;è già una proposta in attesa della scelta dell&apos;utente.</source>
-        <translation>There is already a proposal waiting for the user's choice.</translation>
+        <translation>There is already a proposal waiting for the user&apos;s choice.</translation>
     </message>
     <message>
         <source>La scheda attiva è l&apos;editor di un blocco: le modifiche si propongono sul disegno.</source>
@@ -4037,10 +4125,6 @@ Command: VERIFICAIMPIANTO</translation>
     <message>
         <source>Nessuna tratta %1 nel progetto (elenco con impianto_tratte).</source>
         <translation>No run %1 in the project (list with impianto_tratte).</translation>
-    </message>
-    <message>
-        <source>La tratta %1 è un tubo: le canaline di CanaloCAD sono per canali e passerelle.</source>
-        <translation>Run %1 is a conduit: CanaloCAD cable trays are for trunking and trays.</translation>
     </message>
     <message>
         <source>La tratta %1 non ha circuiti con un cavo riconosciuto.</source>
@@ -4127,8 +4211,16 @@ Command: VERIFICAIMPIANTO</translation>
         <translation>with the drawn section</translation>
     </message>
     <message>
+        <source>L&apos;utente ha applicato la proposta: tubazione %1 (%2) creata %3 (Ctrl+Z annulla).</source>
+        <translation>The user applied the proposal: conduit %1 (%2) created %3 (Ctrl+Z undoes it).</translation>
+    </message>
+    <message>
         <source>L&apos;utente ha applicato la proposta: canalina %1 (%2) creata %3 (Ctrl+Z annulla).</source>
         <translation>The user applied the proposal: cable tray %1 (%2) created %3 (Ctrl+Z undoes it).</translation>
+    </message>
+    <message>
+        <source>L&apos;utente ha applicato la proposta: tubazione %1 aggiornata (%2)%3.</source>
+        <translation>The user applied the proposal: conduit %1 updated (%2)%3.</translation>
     </message>
     <message>
         <source>L&apos;utente ha applicato la proposta: canalina %1 aggiornata (%2)%3.</source>
@@ -4137,6 +4229,10 @@ Command: VERIFICAIMPIANTO</translation>
     <message>
         <source>, tavola inserita</source>
         <translation>, sheet inserted</translation>
+    </message>
+    <message>
+        <source>Tubazione proposta dall&apos;assistente IA</source>
+        <translation>Conduit proposed by the AI assistant</translation>
     </message>
     <message>
         <source>Canalina proposta dall&apos;assistente IA</source>
@@ -4244,7 +4340,7 @@ Now open Claude Desktop (if it was open, close it completely, also from the icon
     </message>
     <message>
         <source>Privacy: CartesioCAD non si collega a Internet. Il connettore è un canale locale, solo per questo utente di Windows; quello che Claude legge (di default la selezione) passa a Claude Desktop e da lì ad Anthropic, secondo le condizioni dell&apos;account Claude. Con i disegni di clienti verificare di poterli condividere; con gli account personali controllare l&apos;impostazione sull&apos;uso delle conversazioni per migliorare i modelli.</source>
-        <translation>Privacy: CartesioCAD does not connect to the Internet. The connector is a local channel, only for this Windows user; what Claude reads (by default the selection) goes to Claude Desktop and from there to Anthropic, according to the terms of the Claude account. With clients' drawings check that you may share them; with personal accounts check the setting on using conversations to improve the models.</translation>
+        <translation>Privacy: CartesioCAD does not connect to the Internet. The connector is a local channel, only for this Windows user; what Claude reads (by default the selection) goes to Claude Desktop and from there to Anthropic, according to the terms of the Claude account. With clients&apos; drawings check that you may share them; with personal accounts check the setting on using conversations to improve the models.</translation>
     </message>
     <message>
         <source>Stato: connettore attivo.</source>
@@ -5912,7 +6008,7 @@ tabs</translation>
     </message>
     <message>
         <source>Data di oggi</source>
-        <translation>Today's date</translation>
+        <translation>Today&apos;s date</translation>
     </message>
     <message>
         <source>Ora</source>
@@ -6174,7 +6270,7 @@ The drawing is in DXF 2000: the paths of external references and images point to
         <source>Questa versione (pacchetto Flatpak) non si aggiorna dal programma: la versione nuova si scarica dalla pagina Releases del progetto e si installa sopra quella presente.
 
 %1</source>
-        <translation>This version (Flatpak package) does not update from the program: the new version is downloaded from the project's Releases page and installed over the current one.
+        <translation>This version (Flatpak package) does not update from the program: the new version is downloaded from the project&apos;s Releases page and installed over the current one.
 
 %1</translation>
     </message>
@@ -6388,7 +6484,7 @@ Install now?</translation>
     </message>
     <message>
         <source>Relativo: il disegno e i file collegati si possono spostare insieme (es. su un altro disco). Completo: il file resta dov&apos;è. Nessun percorso: si cerca per nome nella cartella del disegno e in quelle delle Opzioni.</source>
-        <translation>Relative: the drawing and the linked files can be moved together (e.g. to another disk). Full: the file stays where it is. No path: it is searched by name in the drawing's folder and in those of the Options.</translation>
+        <translation>Relative: the drawing and the linked files can be moved together (e.g. to another disk). Full: the file stays where it is. No path: it is searched by name in the drawing&apos;s folder and in those of the Options.</translation>
     </message>
     <message>
         <source>Immagine non leggibile: %1</source>
@@ -6428,7 +6524,7 @@ Install now?</translation>
     </message>
     <message>
         <source>&lt;br&gt;&lt;br&gt;Il file non è al percorso salvato né nella cartella del disegno (e nelle sue sottocartelle) né nelle cartelle delle Opzioni. Con &lt;b&gt;Cambia percorso...&lt;/b&gt; si indica dove si trova.</source>
-        <translation>&lt;br&gt;&lt;br&gt;The file is not at the saved path, nor in the drawing's folder (and its subfolders), nor in the folders of the Options. With &lt;b&gt;Change path...&lt;/b&gt; you indicate where it is.</translation>
+        <translation>&lt;br&gt;&lt;br&gt;The file is not at the saved path, nor in the drawing&apos;s folder (and its subfolders), nor in the folders of the Options. With &lt;b&gt;Change path...&lt;/b&gt; you indicate where it is.</translation>
     </message>
     <message>
         <source>Riferimenti del disegno</source>
@@ -6689,7 +6785,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Spento, CartesioCAD non si collega mai a internet da solo: gli aggiornamenti si cercano dal menu dell&apos;applicazione (Controlla aggiornamenti) o con il comando AGGIORNAMENTI. Il controllo legge l&apos;elenco delle versioni su GitHub, che vede l&apos;indirizzo IP del computer. Si installano solo pacchetti firmati dall&apos;autore; la versione precedente resta disponibile (Torna alla versione precedente).</source>
-        <translation>When off, CartesioCAD never connects to the Internet by itself: updates are checked from the application menu (Check for updates) or with the AGGIORNAMENTI command. The check reads the list of versions on GitHub, which sees the computer's IP address. Only packages signed by the author are installed; the previous version stays available (Go back to the previous version).</translation>
+        <translation>When off, CartesioCAD never connects to the Internet by itself: updates are checked from the application menu (Check for updates) or with the AGGIORNAMENTI command. The check reads the list of versions on GitHub, which sees the computer&apos;s IP address. Only packages signed by the author are installed; the previous version stays available (Go back to the previous version).</translation>
     </message>
     <message>
         <source>Apertura file</source>
@@ -6789,7 +6885,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>I font SHX (romans.shx, simplex.shx...) si cercano qui, nella cartella &quot;fonts&quot; accanto al programma e in Windows; un font mancante si sostituisce con simplex.shx o, se non c&apos;è, con il font a tratti di CartesioCAD. CartesioCAD non distribuisce font SHX. I font installati da altri programmi appartengono a chi li ha prodotti: prima di usarli qui controllare che la loro licenza lo permetta. Immagini raster e riferimenti esterni non trovati al percorso salvato si cercano nella cartella del disegno, nelle sue sottocartelle e qui.</source>
-        <translation>SHX fonts (romans.shx, simplex.shx...) are searched here, in the &quot;fonts&quot; folder next to the program and in Windows; a missing font is replaced by simplex.shx or, if it is not there, by CartesioCAD's stroke font. CartesioCAD does not distribute SHX fonts. Fonts installed by other programs belong to whoever made them: before using them here check that their licence allows it. Raster images and external references not found at the saved path are searched in the drawing's folder, in its subfolders and here.</translation>
+        <translation>SHX fonts (romans.shx, simplex.shx...) are searched here, in the &quot;fonts&quot; folder next to the program and in Windows; a missing font is replaced by simplex.shx or, if it is not there, by CartesioCAD&apos;s stroke font. CartesioCAD does not distribute SHX fonts. Fonts installed by other programs belong to whoever made them: before using them here check that their licence allows it. Raster images and external references not found at the saved path are searched in the drawing&apos;s folder, in its subfolders and here.</translation>
     </message>
     <message>
         <source>Stampa e pubblicazione</source>
@@ -6913,7 +7009,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Modifica mediante doppio clic (apre le Proprietà dell&apos;oggetto)</source>
-        <translation>Double-click editing (opens the object's Properties)</translation>
+        <translation>Double-click editing (opens the object&apos;s Properties)</translation>
     </message>
     <message>
         <source>Menu di scelta rapida nell&apos;area di disegno (senza comando attivo; durante un comando il tasto destro è Invio)</source>
@@ -6937,7 +7033,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Inserendo un file (INSERTFILE, CanaloCAD) con unità diverse da quelle del disegno, il blocco viene scalato. Le unità dei disegni nuovi sono quelle di destinazione. I riferimenti esterni si scalano solo se entrambi i disegni dichiarano le unità.</source>
-        <translation>When inserting a file (INSERTFILE, CanaloCAD) with units different from the drawing's, the block is scaled. The units of new drawings are the target ones. External references are scaled only if both drawings declare their units.</translation>
+        <translation>When inserting a file (INSERTFILE, CanaloCAD) with units different from the drawing&apos;s, the block is scaled. The units of new drawings are the target ones. External references are scaled only if both drawings declare their units.</translation>
     </message>
     <message>
         <source>Disegno</source>
@@ -7049,7 +7145,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Su Windows CanaloCAD si apre in una scheda accanto ai disegni: &quot;Invia sezione&quot; vi apre direttamente gli oggetti selezionati e in CanaloCAD Esporta &gt; &quot;Inserisci nel disegno&quot; riporta la tavola (una copia va nella cartella di scambio); &quot;Copia come blocco&quot; la mette negli appunti, da incollare con Ctrl+V in un disegno. Se la scheda non è disponibile CanaloCAD si apre nel browser e lo scambio passa dai file: &quot;Invia sezione&quot; salva un DXF da importare, &quot;Inserisci tavola&quot; e &quot;Ultima tavola&quot; inseriscono le tavole DXF esportate, scalate con le unità del disegno.</source>
-        <translation>On Windows CanaloCAD opens in a tab next to the drawings: &quot;Send section&quot; opens the selected objects there directly and in CanaloCAD Export &gt; &quot;Insert into drawing&quot; brings the sheet back (a copy goes to the exchange folder); &quot;Copy as block&quot; puts it on the clipboard, to paste with Ctrl+V into a drawing. If the tab is not available CanaloCAD opens in the browser and the exchange goes through files: &quot;Send section&quot; saves a DXF to import, &quot;Insert sheet&quot; and &quot;Last sheet&quot; insert the exported DXF sheets, scaled with the drawing's units.</translation>
+        <translation>On Windows CanaloCAD opens in a tab next to the drawings: &quot;Send section&quot; opens the selected objects there directly and in CanaloCAD Export &gt; &quot;Insert into drawing&quot; brings the sheet back (a copy goes to the exchange folder); &quot;Copy as block&quot; puts it on the clipboard, to paste with Ctrl+V into a drawing. If the tab is not available CanaloCAD opens in the browser and the exchange goes through files: &quot;Send section&quot; saves a DXF to import, &quot;Insert sheet&quot; and &quot;Last sheet&quot; insert the exported DXF sheets, scaled with the drawing&apos;s units.</translation>
     </message>
 </context>
 <context>
@@ -7108,7 +7204,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Portate e cadute di tensione sono indicative: le tabelle di CartesioCAD non sono ancora state confrontate con il testo della norma (CEI 64-8:2024 Cap. 52 = IEC 60364-5-52:2009; CEI-UNEL 35024/1). Verificarle prima di usarle in un progetto.</source>
-        <translation>Current-carrying capacities and voltage drops are indicative: CartesioCAD's tables have not yet been compared with the text of the standard (CEI 64-8:2024 Ch. 52 = IEC 60364-5-52:2009; CEI-UNEL 35024/1). Check them before using them in a project.</translation>
+        <translation>Current-carrying capacities and voltage drops are indicative: CartesioCAD&apos;s tables have not yet been compared with the text of the standard (CEI 64-8:2024 Ch. 52 = IEC 60364-5-52:2009; CEI-UNEL 35024/1). Check them before using them in a project.</translation>
     </message>
     <message>
         <source>Sigla</source>
@@ -7144,7 +7240,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Iz&apos; (A)</source>
-        <translation>Iz' (A)</translation>
+        <translation>Iz&apos; (A)</translation>
     </message>
     <message>
         <source>ΔV %</source>
@@ -7375,7 +7471,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>selezionare le linee o polilinee del percorso della tratta</source>
-        <translation>select the lines or polylines of the run's route</translation>
+        <translation>select the lines or polylines of the run&apos;s route</translation>
     </message>
     <message numerus="yes">
         <source>Tratta %1 creata con %n oggetti del disegno.</source>
@@ -7410,7 +7506,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Valori indicativi: diametri dei tubi e dei cavi da verificare con i dati dei costruttori.</source>
-        <translation>Indicative values: conduit and cable diameters to be checked against the manufacturers' data.</translation>
+        <translation>Indicative values: conduit and cable diameters to be checked against the manufacturers&apos; data.</translation>
     </message>
     <message>
         <source>Ø%1</source>
@@ -7470,7 +7566,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Diametro 0 = dal catalogo dei cavi (e dai cavi propri del progetto) per tipo e formazione.</source>
-        <translation>Diameter 0 = from the cable catalogue (and the project's custom cables) by type and formation.</translation>
+        <translation>Diameter 0 = from the cable catalogue (and the project&apos;s custom cables) by type and formation.</translation>
     </message>
     <message>
         <source>Dati elettrici</source>
@@ -7550,7 +7646,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Interno 0 = valore indicativo della serie pesante in PVC; scrivere quello del costruttore se diverso.</source>
-        <translation>Inner 0 = indicative value of the heavy PVC series; write the manufacturer's value if different.</translation>
+        <translation>Inner 0 = indicative value of the heavy PVC series; write the manufacturer&apos;s value if different.</translation>
     </message>
     <message>
         <source>Posa del tubo</source>
@@ -7690,7 +7786,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>Scegli nel disegno le linee o polilinee del percorso della tratta, poi riprova.</source>
-        <translation>Choose in the drawing the lines or polylines of the run's route, then try again.</translation>
+        <translation>Choose in the drawing the lines or polylines of the run&apos;s route, then try again.</translation>
     </message>
     <message>
         <source>il circuito %1</source>
@@ -7698,7 +7794,7 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     </message>
     <message>
         <source>la tratta %1 (le linee del disegno restano)</source>
-        <translation>run %1 (the drawing's lines stay)</translation>
+        <translation>run %1 (the drawing&apos;s lines stay)</translation>
     </message>
     <message>
         <source>il cavo %1</source>
@@ -7855,7 +7951,7 @@ Apply the routes found?</translation>
     </message>
     <message>
         <source>Gli oggetti selezionati diventano il punto di partenza dei circuiti di questo quadro (il centro del loro ingombro).</source>
-        <translation>The selected objects become the starting point of this switchboard's circuits (the center of their extents).</translation>
+        <translation>The selected objects become the starting point of this switchboard&apos;s circuits (the center of their extents).</translation>
     </message>
     <message>
         <source>Quadro</source>
@@ -7902,7 +7998,7 @@ Apply the routes found?</translation>
     </message>
     <message>
         <source>Le linee e polilinee dei layer indicati (non ancora in una tratta) diventano tratte: una per ramo, fra derivazioni ed estremi. Tipo e misura per stile di linea, proposti dalla legenda del disegno.</source>
-        <translation>The lines and polylines of the given layers (not yet in a run) become runs: one per branch, between junctions and ends. Type and size by line style, proposed from the drawing's legend.</translation>
+        <translation>The lines and polylines of the given layers (not yet in a run) become runs: one per branch, between junctions and ends. Type and size by line style, proposed from the drawing&apos;s legend.</translation>
     </message>
     <message>
         <source>Layer (separati da ;)</source>
@@ -7927,8 +8023,8 @@ Apply the routes found?</translation>
     <message numerus="yes">
         <source>%n linee sui layer scelti, %1 m in tutto. Se i metri non sono plausibili, le unità del disegno sono sbagliate: Annulla e sceglierle nel passo precedente.</source>
         <translation>
-            <numerusform>%n line on the chosen layers, %1 m in all. If the metres are not plausible, the drawing's units are wrong: Cancel and choose them in the previous step.</numerusform>
-            <numerusform>%n lines on the chosen layers, %1 m in all. If the metres are not plausible, the drawing's units are wrong: Cancel and choose them in the previous step.</numerusform>
+            <numerusform>%n line on the chosen layers, %1 m in all. If the metres are not plausible, the drawing&apos;s units are wrong: Cancel and choose them in the previous step.</numerusform>
+            <numerusform>%n lines on the chosen layers, %1 m in all. If the metres are not plausible, the drawing&apos;s units are wrong: Cancel and choose them in the previous step.</numerusform>
         </translation>
     </message>
     <message>
@@ -8332,7 +8428,7 @@ Apply the routes found?</translation>
     </message>
     <message>
         <source>La stampante &quot;%1&quot; del disegno non è disponibile: si usa il PDF.</source>
-        <translation>The drawing's printer &quot;%1&quot; is not available: the PDF is used.</translation>
+        <translation>The drawing&apos;s printer &quot;%1&quot; is not available: the PDF is used.</translation>
     </message>
     <message>
         <source>Nessuna stampante: le impostazioni si possono salvare ma non stampare.</source>
@@ -9663,7 +9759,7 @@ With LibreDWG large drawings can take a few minutes.</translation>
     </message>
     <message>
         <source> Si stampa con i colori degli oggetti; per il bianco e nero scegliere Nero.ctb (o Grigi.ctb) nel dialogo Stampa.</source>
-        <translation> Plotting with the objects' colours; for black and white choose Nero.ctb (or Grigi.ctb) in the Plot dialog.</translation>
+        <translation> Plotting with the objects&apos; colours; for black and white choose Nero.ctb (or Grigi.ctb) in the Plot dialog.</translation>
     </message>
     <message>
         <source>Impossibile avviare la stampa.</source>
@@ -10179,7 +10275,7 @@ With LibreDWG large drawings can take a few minutes.</translation>
     </message>
     <message>
         <source>il manifesto non è di CartesioCAD</source>
-        <translation>the manifest is not CartesioCAD's</translation>
+        <translation>the manifest is not CartesioCAD&apos;s</translation>
     </message>
     <message>
         <source>versione del manifesto non valida</source>
@@ -10207,7 +10303,7 @@ With LibreDWG large drawings can take a few minutes.</translation>
     </message>
     <message>
         <source>l&apos;impronta SHA-256 dell&apos;archivio non corrisponde al manifesto firmato</source>
-        <translation>the archive's SHA-256 fingerprint does not match the signed manifest</translation>
+        <translation>the archive&apos;s SHA-256 fingerprint does not match the signed manifest</translation>
     </message>
     <message>
         <source>la cartella del programma non è scrivibile (%1): scaricare l&apos;archivio dalla pagina della versione e scompattarlo a mano</source>
@@ -10541,7 +10637,7 @@ With LibreDWG large drawings can take a few minutes.</translation>
     </message>
     <message>
         <source>Apri la cartella del file</source>
-        <translation>Open the file's folder</translation>
+        <translation>Open the file&apos;s folder</translation>
     </message>
     <message>
         <source>Rimuovi dall&apos;elenco</source>
@@ -10695,7 +10791,7 @@ With LibreDWG large drawings can take a few minutes.</translation>
     </message>
     <message>
         <source>I tipi di linea delle tabelle stili non sono supportati: si stampa quello dell&apos;oggetto</source>
-        <translation>Style table linetypes are not supported: the object's one is plotted</translation>
+        <translation>Style table linetypes are not supported: the object&apos;s one is plotted</translation>
     </message>
     <message>
         <source>Regolazione adattiva</source>

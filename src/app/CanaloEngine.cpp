@@ -208,6 +208,16 @@ QJsonObject CanaloEngine::autoSize(const QJsonObject& state, double reservePct, 
     return stateCall(QStringLiteral("autoSize"), {compact(state), reservePct}, metrics);
 }
 
+QJsonObject CanaloEngine::proposeConduit(const QJsonObject& state, bool keepCount, bool* found, QJsonObject* metrics)
+{
+    const QJsonObject out = QJsonDocument::fromJson(call(QStringLiteral("proposeConduit"), {compact(state), keepCount}).toUtf8()).object();
+    if (found)
+        *found = out.value(QStringLiteral("conduitProposal")).toBool(false);
+    if (metrics)
+        *metrics = out.value(QStringLiteral("metrics")).toObject();
+    return out.value(QStringLiteral("state")).toObject();
+}
+
 QJsonObject CanaloEngine::importDxf(const QJsonObject& state, const QString& dxfText, const QString& fileName, QJsonObject* metrics)
 {
     return stateCall(QStringLiteral("importDxf"), {compact(state), dxfText, fileName}, metrics);
