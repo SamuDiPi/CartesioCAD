@@ -20,6 +20,16 @@ namespace cartesio {
 namespace {
 // Una richiesta non supera qualche centinaio di kB (proposte con migliaia di operazioni): oltre, il canale si chiude.
 constexpr qsizetype kMaxRequest = 8 * 1024 * 1024;
+
+// Il motivo del rifiuto va a Claude (e quindi fuori dal computer): la cartella del profilo, che contiene il nome
+// dell'utente di Windows, diventa %USERPROFILE%.
+QString withoutProfile(QString path)
+{
+    const QString home = QDir::toNativeSeparators(QDir::homePath());
+    if (!home.isEmpty() && path.startsWith(home, Qt::CaseInsensitive))
+        path.replace(0, home.size(), QStringLiteral("%USERPROFILE%"));
+    return path;
+}
 }
 
 ClaudeLink::ClaudeLink(Handler handler, QObject* parent) : QObject(parent), handler_(std::move(handler)) {}
@@ -119,7 +129,7 @@ void ClaudeLink::onConnection()
                 tr("CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude Desktop (%1) non è quello "
                    "della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, "
                    "oppure ricollegare Claude Desktop dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop.")
-                    .arg(who, QDir::toNativeSeparators(QCoreApplication::applicationDirPath()));
+                    .arg(withoutProfile(who), withoutProfile(QDir::toNativeSeparators(QCoreApplication::applicationDirPath())));
             socket->write(QJsonDocument(QJsonObject{{QStringLiteral("rifiutato"), reason}}).toJson(QJsonDocument::Compact) + '\n');
             socket->flush();
             socket->disconnectFromServer();
