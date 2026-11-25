@@ -22,7 +22,7 @@ jobs:
       - name: Strumenti Flatpak
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils appstream desktop-file-utils
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils appstream desktop-file-utils xvfb xauth
           # Ubuntu 24.04 vieta gli spazi dei nomi senza privilegi usati da Flatpak per isolare la compilazione.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
@@ -63,8 +63,9 @@ jobs:
         run: |
           cd prova
           printf 'LOGFILEON %s/scheda.txt\nOPEN "%s/disegno.dxf"\n-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5*4\nSELECTALL\nCANALOINVIA "%s/sezione.dxf"\n-CANALOSCHEDA "%s/sezione.dxf" "%s/tavola.dxf"\nSAVEAS "%s/con_scheda.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > scheda.scr
-          timeout 300 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
-            --env=CARTESIO_RENDER=software --env=QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu --env=CARTESIO_LANG=it \
+          # Chromium vuole un vero sistema grafico: schermo virtuale X (Xvfb) con l'OpenGL software di Mesa.
+          timeout 300 xvfb-run -a -s "-screen 0 1600x1000x24" flatpak run --socket=x11 --filesystem="$PWD" \
+            --env=QT_QPA_PLATFORM=xcb --env=LIBGL_ALWAYS_SOFTWARE=1 --env=CARTESIO_RENDER=software --env=CARTESIO_LANG=it \
             io.github.samudipi.CartesioCAD "$PWD/scheda.scr" > scheda.log 2>&1 || echo "uscita $?"
           echo "--- esito"; grep -E "CANALOSCHEDA|Salvato" scheda.txt || true
           echo "--- uscita"; sort scheda.log | uniq -c | sort -rn | head -30 || true
