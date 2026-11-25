@@ -45,6 +45,13 @@ CanaloCAD (plugin, plugins/CanaloCAD/Canalo.html)
   ufficiale non modificati, per leggere i DWG senza rete. Sorgenti: tag v0.9.3 di
   https://github.com/mlightcad/libredwg-web (copia nell'archivio dei sorgenti di terze parti della release).
 
+Qt WebEngine 6.11.3 (scheda CanaloCAD), dal BaseApp io.qt.qtwebengine.BaseApp 6.11 di Flathub, incluso nel pacchetto
+  Licenza:   LGPL-3.0 (Qt WebEngine); Chromium (BSD-3-Clause) e i suoi componenti di terze parti, ciascuno con la
+             sua licenza (elenco completo nella pagina chrome://credits del motore e nei sorgenti)
+  Sorgenti:  https://invent.kde.org/qt/qt/qtwebengine (tag v6.11.3) e la ricetta di compilazione
+             https://github.com/flathub/io.qt.qtwebengine.BaseApp (ramo branch/6.11). Su richiesta
+             all'autore, per almeno tre anni dalla distribuzione, una copia dei sorgenti corrispondenti.
+
 Non sono dentro il pacchetto, ma servono per eseguirlo e arrivano dal runtime org.kde.Platform 6.11
 (Flathub), ciascuno con la sua licenza: Qt 6 (LGPL-3.0), OpenSSL (Apache-2.0), HarfBuzz, FreeType,
 zlib e le altre librerie di sistema.

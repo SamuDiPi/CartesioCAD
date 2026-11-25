@@ -59,6 +59,20 @@ jobs:
           grep -q "Prova Linux" riletto.dxf
           grep -c CIRCLE riletto.dxf
 
+      - name: Scheda CanaloCAD con Qt WebEngine senza schermo (sezione -> pagina -> tavola e progetto nel disegno)
+        run: |
+          cd prova
+          printf 'LOGFILEON %s/scheda.txt\nOPEN "%s/disegno.dxf"\n-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5*4\nSELECTALL\nCANALOINVIA "%s/sezione.dxf"\n-CANALOSCHEDA "%s/sezione.dxf" "%s/tavola.dxf"\nSAVEAS "%s/con_scheda.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > scheda.scr
+          timeout 300 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
+            --env=CARTESIO_RENDER=software --env=QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+            io.github.samudipi.CartesioCAD "$PWD/scheda.scr" > scheda.log 2>&1 || echo "uscita $?"
+          echo "--- esito"; grep -E "CANALOSCHEDA|Salvato" scheda.txt || true
+          echo "--- uscita"; sort scheda.log | uniq -c | sort -rn | head -30 || true
+          grep -q "sezione importata nella pagina" scheda.txt
+          grep -q "progetto salvato nel disegno" scheda.txt
+          grep -q "#SCHEDA" con_scheda.dxf
+          test -s tavola.dxf
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
         if: always()
         with:

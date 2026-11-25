@@ -226,6 +226,18 @@ if(CARTESIO_BUILD_APP)
         target_link_libraries(CartesioCAD PRIVATE PkgConfig::POPPLER_CPP)
         target_compile_definitions(CartesioCAD PRIVATE CARTESIO_HAS_POPPLER)
     endif()
+    # Scheda CanaloCAD su Linux: Qt WebEngine (nel pacchetto Flatpak dal BaseApp io.qt.qtwebengine.BaseApp di
+    # Flathub). Senza, CanaloCAD si apre nel browser. Su Windows la scheda usa WebView2.
+    if(NOT WIN32)
+        find_package(Qt6 QUIET COMPONENTS WebEngineWidgets WebChannel)
+        if(TARGET Qt6::WebEngineWidgets AND TARGET Qt6::WebChannel)
+            target_link_libraries(CartesioCAD PRIVATE Qt6::WebEngineWidgets Qt6::WebChannel)
+            target_compile_definitions(CartesioCAD PRIVATE CARTESIO_HAS_WEBENGINE)
+            message(STATUS "Scheda CanaloCAD: Qt WebEngine ${Qt6WebEngineWidgets_VERSION}")
+        else()
+            message(STATUS "Scheda CanaloCAD non inclusa: manca Qt WebEngine (CanaloCAD si apre nel browser)")
+        endif()
+    endif()
     target_compile_definitions(CartesioCAD PRIVATE CARTESIO_VERSION="${PROJECT_VERSION}")
     # Commit e data della versione (finestra Informazioni: i sorgenti corrispondenti al programma). Si
     # aggiorna a ogni commit (riconfigurazione automatica) e ricompila solo MainWindowAbout.cpp.

@@ -699,7 +699,7 @@ QImage MainWindow::canaloSheetImage(const QByteArray& dxf, QString* error)
 
 void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
 {
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) || defined(CARTESIO_HAS_WEBENGINE)
     QString why;
     if (!WebView2Host::available(&why)) {
         print(tr("-CANALOSCHEDA: %1").arg(why));
@@ -711,9 +711,16 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
         return;
     }
     const QString data = QString::fromLatin1(in.readAll().toBase64());
+#ifdef Q_OS_WIN
     // Finestra di Windows mai mostrata: la pagina gira senza schermo.
     HWND window = CreateWindowExW(0, L"STATIC", L"CanaloCAD", WS_OVERLAPPEDWINDOW, 0, 0, 1400, 900, nullptr, nullptr,
                                   GetModuleHandleW(nullptr), nullptr);
+#else
+    // Qt WebEngine: la pagina in un widget mai mostrato.
+    QWidget container;
+    container.setAttribute(Qt::WA_DontShowOnScreen);
+    container.resize(1400, 900);
+#endif
     WebView2Host host;
     QEventLoop loop;
     QTimer::singleShot(120000, &loop, [&] {
@@ -801,14 +808,19 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
             });
         });
     });
+#ifdef Q_OS_WIN
     host.start(reinterpret_cast<quintptr>(window), QDir::tempPath() + QStringLiteral("/cartesio-canalo-prova"),
                QUrl::fromLocalFile(canaloHtmlPath()));
     loop.exec();
     DestroyWindow(window);
 #else
+    host.startInWidget(&container, QDir::tempPath() + QStringLiteral("/cartesio-canalo-prova"), QUrl::fromLocalFile(canaloHtmlPath()));
+    loop.exec();
+#endif
+#else
     Q_UNUSED(section);
     Q_UNUSED(sheet);
-    print(tr("-CANALOSCHEDA: disponibile solo su Windows"));
+    print(tr("-CANALOSCHEDA: scheda CanaloCAD non disponibile in questa versione"));
 #endif
 }
 

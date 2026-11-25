@@ -11,8 +11,10 @@ namespace cartesio {
 
 CanaloTab::CanaloTab(QWidget* parent) : QWidget(parent), host_(new WebView2Host(this))
 {
-    setAttribute(Qt::WA_NativeWindow);
-    setAttribute(Qt::WA_DontCreateNativeAncestors);
+    if (!WebView2Host::usesWidget()) {   // WebView2 vive in una finestra nativa; Qt WebEngine è un widget
+        setAttribute(Qt::WA_NativeWindow);
+        setAttribute(Qt::WA_DontCreateNativeAncestors);
+    }
     setFocusPolicy(Qt::StrongFocus);
     connect(host_, &WebView2Host::ready, this, [this] {
         updateBounds();
@@ -22,7 +24,10 @@ CanaloTab::CanaloTab(QWidget* parent) : QWidget(parent), host_(new WebView2Host(
 
 void CanaloTab::start(const QUrl& page, const QString& dataFolder)
 {
-    host_->start(static_cast<quintptr>(winId()), dataFolder, page);
+    if (WebView2Host::usesWidget())
+        host_->startInWidget(this, dataFolder, page);
+    else
+        host_->start(static_cast<quintptr>(winId()), dataFolder, page);
 }
 
 void CanaloTab::updateBounds()

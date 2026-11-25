@@ -129,6 +129,16 @@ bool WebView2Host::isReady() const
     return d_->web != nullptr;
 }
 
+bool WebView2Host::usesWidget()
+{
+    return false;
+}
+
+void WebView2Host::startInWidget(QWidget* container, const QString& dataFolder, const QUrl& page)
+{
+    start(static_cast<quintptr>(container->winId()), dataFolder, page);
+}
+
 void WebView2Host::start(quintptr window, const QString& dataFolder, const QUrl& page)
 {
     QString why;
@@ -314,7 +324,214 @@ void WebView2Host::runAsync(const QString& expression, std::function<void(const 
             .arg(expression).arg(id));
 }
 
-#else   // senza WebView2: la scheda CanaloCAD non c'è, CanaloCAD si apre nel browser.
+#elif defined(CARTESIO_HAS_WEBENGINE)   // Linux: Qt WebEngine
+
+} // namespace cartesio
+
+#include <QFile>
+#include <QStandardPaths>
+#include <QVBoxLayout>
+#include <QWebChannel>
+#include <QWebEngineDownloadRequest>
+#include <QWebEngineNewWindowRequest>
+#include <QWebEnginePage>
+#include <QWebEngineProfile>
+#include <QWebEngineScript>
+#include <QWebEngineScriptCollection>
+#include <QWebEngineSettings>
+#include <QWebEngineView>
+
+namespace cartesio {
+
+namespace {
+
+// Solo la pagina di CanaloCAD: i collegamenti verso siti web si aprono nel browser predefinito.
+class CanaloWebPage : public QWebEnginePage {
+public:
+    CanaloWebPage(QWebEngineProfile* profile, const QUrl& page, QObject* parent) : QWebEnginePage(profile, parent), page_(page)
+    {
+        connect(this, &QWebEnginePage::newWindowRequested, this, [](QWebEngineNewWindowRequest& request) {
+            const QUrl url = request.requestedUrl();
+            if (url.scheme() == QLatin1String("https") || url.scheme() == QLatin1String("http"))
+                QDesktopServices::openUrl(url);
+        });
+    }
+
+protected:
+    bool acceptNavigationRequest(const QUrl& url, NavigationType, bool isMainFrame) override
+    {
+        if (!isMainFrame)
+            return url.scheme() == QLatin1String("data") || url.scheme() == QLatin1String("blob") || url.scheme() == QLatin1String("about");
+        if (url.adjusted(QUrl::RemoveFragment | QUrl::RemoveQuery) == page_.adjusted(QUrl::RemoveFragment | QUrl::RemoveQuery))
+            return true;
+        if (url.scheme() == QLatin1String("https") || url.scheme() == QLatin1String("http"))
+            QDesktopServices::openUrl(url);
+        return false;
+    }
+
+private:
+    QUrl page_;
+};
+
+// Prima degli script della pagina: window.chrome.webview.postMessage come in WebView2, sopra QWebChannel.
+QString hostShim()
+{
+    QFile channel(QStringLiteral(":/qtwebchannel/qwebchannel.js"));
+    QString code = channel.open(QIODevice::ReadOnly) ? QString::fromUtf8(channel.readAll()) : QString();
+    code += QStringLiteral(R"JS(
+;(function () {
+  if (window.chrome && window.chrome.webview) return;
+  var queue = [], bridge = null;
+  window.chrome = window.chrome || {};
+  window.chrome.webview = { postMessage: function (m) { var s = JSON.stringify(m); if (bridge) bridge.post(s); else queue.push(s); } };
+  function connect() {
+    if (typeof QWebChannel === "undefined" || !window.qt || !qt.webChannelTransport) { setTimeout(connect, 20); return; }
+    new QWebChannel(qt.webChannelTransport, function (ch) { bridge = ch.objects.cartesio; queue.splice(0).forEach(function (s) { bridge.post(s); }); });
+  }
+  connect();
+})();
+)JS");
+    return code;
+}
+
+} // namespace
+
+struct WebView2Host::Impl {
+    QPointer<QWebEngineView> view;
+    QPointer<QWebEnginePage> page;
+    QUrl url;
+    WebBridge bridge;
+    bool loaded = false;
+    std::map<int, std::function<void(const QJsonValue&, const QString&)>> pending;
+};
+
+WebView2Host::WebView2Host(QObject* parent) : QObject(parent), d_(std::make_unique<Impl>())
+{
+    connect(&d_->bridge, &WebBridge::received, this, [this](const QString& text) {
+        if (text.size() > 96 * 1024 * 1024)
+            return;
+        const QJsonDocument doc = QJsonDocument::fromJson(text.toUtf8());
+        const QJsonObject obj = doc.object();
+        if (obj.contains(QStringLiteral("__risposta"))) {
+            const int id = obj.value(QStringLiteral("__risposta")).toInt();
+            if (auto it = d_->pending.find(id); it != d_->pending.end()) {
+                auto done = std::move(it->second);
+                d_->pending.erase(it);
+                if (done)
+                    done(obj.value(QStringLiteral("valore")), obj.value(QStringLiteral("errore")).toString());
+            }
+            return;
+        }
+        emit message(doc.isObject() ? QJsonValue(obj) : QJsonValue(text));
+    });
+}
+
+WebView2Host::~WebView2Host() = default;
+
+bool WebView2Host::available(QString*)
+{
+    return true;
+}
+
+bool WebView2Host::usesWidget()
+{
+    return true;
+}
+
+bool WebView2Host::isReady() const
+{
+    return d_->loaded;
+}
+
+void WebView2Host::start(quintptr, const QString&, const QUrl&)
+{
+    failLater(tr("con Qt WebEngine la pagina va in un widget"));
+}
+
+void WebView2Host::startInWidget(QWidget* container, const QString& dataFolder, const QUrl& page)
+{
+    d_->url = page;
+    QDir().mkpath(dataFolder);
+    // Dati della pagina (memoria locale, cache) nella cartella di CartesioCAD, separati da altri programmi.
+    auto* profile = new QWebEngineProfile(QStringLiteral("CanaloCAD"), container);
+    profile->setPersistentStoragePath(dataFolder);
+    profile->setCachePath(dataFolder + QStringLiteral("/cache"));
+    connect(profile, &QWebEngineProfile::downloadRequested, this, [](QWebEngineDownloadRequest* download) {
+        download->setDownloadDirectory(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation));
+        download->accept();
+    });
+    auto* view = new QWebEngineView(container);
+    auto* layout = new QVBoxLayout(container);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(view);
+    auto* webPage = new CanaloWebPage(profile, page, view);
+    QWebEngineSettings* settings = webPage->settings();
+    settings->setAttribute(QWebEngineSettings::JavascriptCanOpenWindows, false);
+    settings->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, false);
+    settings->setAttribute(QWebEngineSettings::LocalContentCanAccessFileUrls, false);
+    auto* channel = new QWebChannel(webPage);
+    channel->registerObject(QStringLiteral("cartesio"), &d_->bridge);
+    webPage->setWebChannel(channel, QWebEngineScript::MainWorld);
+    QWebEngineScript shim;
+    shim.setName(QStringLiteral("cartesio-host"));
+    shim.setInjectionPoint(QWebEngineScript::DocumentCreation);
+    shim.setWorldId(QWebEngineScript::MainWorld);
+    shim.setRunsOnSubFrames(false);
+    shim.setSourceCode(hostShim());
+    webPage->scripts().insert(shim);
+    view->setPage(webPage);
+    d_->view = view;
+    d_->page = webPage;
+    connect(webPage, &QWebEnginePage::loadFinished, this, [this](bool ok) {
+        if (d_->loaded)
+            return;
+        if (ok) {
+            d_->loaded = true;
+            emit ready();
+        } else {
+            failLater(tr("pagina non aperta: %1").arg(d_->url.toLocalFile()));
+        }
+    });
+    view->load(page);
+}
+
+void WebView2Host::setBounds(int, int, int, int) {}   // la pagina segue il contenitore (layout)
+
+void WebView2Host::setVisible(bool visible)
+{
+    if (d_->view)
+        d_->view->setVisible(visible);
+}
+
+void WebView2Host::focus()
+{
+    if (d_->view)
+        d_->view->setFocus();
+}
+
+void WebView2Host::run(const QString& script, std::function<void(const QString& json)> done)
+{
+    if (!d_->page) {
+        if (done)
+            done(QString());
+        return;
+    }
+    d_->page->runJavaScript(script, [done](const QVariant& value) {
+        if (done)
+            done(QString::fromUtf8(QJsonDocument::fromVariant(QVariantList{value}).toJson(QJsonDocument::Compact)).mid(1).chopped(1));
+    });
+}
+
+void WebView2Host::runAsync(const QString& expression, std::function<void(const QJsonValue&, const QString&)> done)
+{
+    const int id = nextCall_++;
+    d_->pending[id] = std::move(done);
+    run(QStringLiteral("(async () => { try { const valore = await (%1); chrome.webview.postMessage({ __risposta: %2, valore }); }"
+                       " catch (e) { chrome.webview.postMessage({ __risposta: %2, errore: String((e && e.message) || e) }); } })(); 0")
+            .arg(expression).arg(id));
+}
+
+#else   // senza WebView2 né Qt WebEngine: la scheda CanaloCAD non c'è, CanaloCAD si apre nel browser.
 
 struct WebView2Host::Impl {};
 WebView2Host::WebView2Host(QObject* parent) : QObject(parent), d_(std::make_unique<Impl>()) {}
@@ -327,6 +544,8 @@ bool WebView2Host::available(QString* why)
 }
 bool WebView2Host::isReady() const { return false; }
 void WebView2Host::start(quintptr, const QString&, const QUrl&) { failLater(tr("disponibile solo su Windows")); }
+void WebView2Host::startInWidget(QWidget*, const QString&, const QUrl&) { failLater(tr("disponibile solo su Windows")); }
+bool WebView2Host::usesWidget() { return false; }
 void WebView2Host::setBounds(int, int, int, int) {}
 void WebView2Host::setVisible(bool) {}
 void WebView2Host::focus() {}
