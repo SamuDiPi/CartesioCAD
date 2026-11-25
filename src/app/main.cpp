@@ -3,7 +3,11 @@
 #include "app/Updater.h"
 
 #include <QApplication>
+#include <QLocale>
 #include <QTimer>
+#include <QTranslator>
+
+#include <cstring>
 
 int main(int argc, char* argv[])
 {
@@ -35,6 +39,27 @@ int main(int argc, char* argv[])
     QGuiApplication::setDesktopFileName(QStringLiteral("io.github.samudipi.CartesioCAD"));   // icona e voce di menu (Wayland)
 #endif
     cartesio::theme::apply(app);
+    // Lingua: l'interfaccia è scritta in italiano; l'inglese viene dalla traduzione compilata nel programma.
+    // Variabile CARTESIO_LANG (it/en) per le prove; poi l'opzione; "automatica" segue la lingua del sistema.
+    // lupdate registra le classi senza lo spazio dei nomi (e le unisce ai file QML con lo stesso nome): la
+    // traduzione di "cartesio::Classe" si cerca anche come "Classe".
+    class Translator : public QTranslator {
+    public:
+        QString translate(const char* context, const char* source, const char* disambiguation, int n) const override
+        {
+            QString text = QTranslator::translate(context, source, disambiguation, n);
+            if (text.isEmpty() && context && std::strncmp(context, "cartesio::", 10) == 0)
+                text = QTranslator::translate(context + 10, source, disambiguation, n);
+            return text;
+        }
+    } translator;
+    {
+        const QByteArray env = qgetenv("CARTESIO_LANG").toLower();
+        const int option = cartesio::appOptions().language;
+        const bool english = env == "en" || (env != "it" && (option == 2 || (option == 0 && QLocale::system().language() != QLocale::Italian)));
+        if (english && translator.load(QStringLiteral(":/i18n/cartesiocad_en.qm")))
+            QCoreApplication::installTranslator(&translator);
+    }
 
     cartesio::MainWindow window;
     window.showMaximized();

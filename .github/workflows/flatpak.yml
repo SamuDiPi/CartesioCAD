@@ -51,7 +51,7 @@ jobs:
           printf '0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n100\n21\n50\n0\nCIRCLE\n8\n0\n10\n50\n20\n25\n40\n20\n0\nTEXT\n8\n0\n10\n10\n20\n60\n40\n5\n1\nProva Linux\n0\nENDSEC\n0\nEOF\n' > disegno.dxf
           printf 'LOGFILEON %s/esito.txt\n-INFORMAZIONI\nOPEN "%s/disegno.dxf"\n-WINDOWPNG %s/finestra.png 1400 850\n-VIEWPNG %s/vista.png\nSAVEAS "%s/salvato.dwg"\nOPEN "%s/salvato.dwg"\nSAVEAS "%s/riletto.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > prova.scr
           timeout 180 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
-            --env=CARTESIO_RENDER=software io.github.samudipi.CartesioCAD "$PWD/prova.scr" > uscita.log 2>&1 || echo "uscita $?"
+            --env=CARTESIO_RENDER=software --env=CARTESIO_LANG=it io.github.samudipi.CartesioCAD "$PWD/prova.scr" > uscita.log 2>&1 || echo "uscita $?"
           echo "--- esito"; cat esito.txt || true
           echo "--- uscita"; sort uscita.log | uniq -c | sort -rn | head -40 || true
           ls -l
@@ -64,7 +64,7 @@ jobs:
           cd prova
           printf 'LOGFILEON %s/scheda.txt\nOPEN "%s/disegno.dxf"\n-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5*4\nSELECTALL\nCANALOINVIA "%s/sezione.dxf"\n-CANALOSCHEDA "%s/sezione.dxf" "%s/tavola.dxf"\nSAVEAS "%s/con_scheda.dxf"\nQUIT\n' "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" "$PWD" > scheda.scr
           timeout 300 flatpak run --filesystem="$PWD" --env=QT_QPA_PLATFORM=offscreen --env=QT_QUICK_BACKEND=software \
-            --env=CARTESIO_RENDER=software --env=QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+            --env=CARTESIO_RENDER=software --env=QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu --env=CARTESIO_LANG=it \
             io.github.samudipi.CartesioCAD "$PWD/scheda.scr" > scheda.log 2>&1 || echo "uscita $?"
           echo "--- esito"; grep -E "CANALOSCHEDA|Salvato" scheda.txt || true
           echo "--- uscita"; sort scheda.log | uniq -c | sort -rn | head -30 || true

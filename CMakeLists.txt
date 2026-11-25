@@ -217,6 +217,16 @@ if(CARTESIO_BUILD_APP)
               src/app/qml/PlotDialog.qml src/app/qml/MainView.qml
               src/app/qml/PlotPreview.qml src/app/qml/StyleEditor.qml src/app/qml/UiCheckBox.qml src/app/qml/UiComboBox.qml
               src/app/qml/UiSpinBox.qml src/app/qml/UiPushButton.qml src/app/qml/UiLineEdit.qml src/app/qml/UiBox.qml)
+    # Interfaccia in inglese: translations/cartesiocad_en.ts compilato (lrelease) nelle risorse (:/i18n). Si aggiorna
+    # con scripts/update-translations.sh. Senza gli strumenti di traduzione di Qt il programma resta in italiano.
+    find_package(Qt6 QUIET COMPONENTS LinguistTools)
+    if(Qt6LinguistTools_FOUND)
+        qt_add_lrelease(CartesioCAD TS_FILES translations/cartesiocad_en.ts QM_FILES_OUTPUT_VARIABLE cartesio_qm_files)
+        qt_add_resources(CartesioCAD "traduzioni" PREFIX "/i18n" BASE "${CMAKE_CURRENT_BINARY_DIR}" FILES ${cartesio_qm_files})
+        message(STATUS "Traduzione inglese inclusa")
+    else()
+        message(STATUS "Traduzione inglese non inclusa: mancano gli strumenti di traduzione di Qt (LinguistTools)")
+    endif()
     target_link_libraries(CartesioCAD PRIVATE cartesio_core cartesio_canalo_engine Qt6::Widgets Qt6::PrintSupport Qt6::Qml Qt6::Quick Qt6::QuickWidgets
                           Qt6::GuiPrivate Qt6::Network OpenSSL::Crypto)
     if(WIN32)

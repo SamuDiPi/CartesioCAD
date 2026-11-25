@@ -57,6 +57,8 @@ struct AppOptions {
     int textRendering = 0;
     // Interfaccia: 0 finestra unica in QML, 1 classica a widget con i dock (vale al riavvio).
     int uiMode = 0;
+    // Lingua dell'interfaccia: 0 automatica (inglese se la lingua del sistema non è l'italiano), 1 italiano, 2 inglese.
+    int language = 0;
     // Controllo degli aggiornamenti all'avvio (al massimo una volta al giorno): spento di default, perché collega il
     // programma a GitHub senza un'azione dell'utente.
     bool checkUpdatesAtStart = false;

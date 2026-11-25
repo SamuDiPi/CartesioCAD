@@ -99,6 +99,7 @@ AppOptions AppOptions::load()
     o.refPathType = i("refPathType", o.refPathType);
     o.textRendering = i("textRendering", o.textRendering);
     o.uiMode = i("uiMode", o.uiMode);
+    o.language = i("language", o.language);
     o.showLayoutTabs = b("showLayoutTabs", o.showLayoutTabs);
     o.showFileTabs = b("showFileTabs", o.showFileTabs);
     o.groupLayoutTabs = b("groupLayoutTabs", o.groupLayoutTabs);
@@ -183,6 +184,7 @@ void AppOptions::save() const
     s.setValue(QStringLiteral("refPathType"), refPathType);
     s.setValue(QStringLiteral("textRendering"), textRendering);
     s.setValue(QStringLiteral("uiMode"), uiMode);
+    s.setValue(QStringLiteral("language"), language);
     s.setValue(QStringLiteral("showLayoutTabs"), showLayoutTabs);
     s.setValue(QStringLiteral("showFileTabs"), showFileTabs);
     s.setValue(QStringLiteral("groupLayoutTabs"), groupLayoutTabs);

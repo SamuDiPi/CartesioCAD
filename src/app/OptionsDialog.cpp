@@ -75,6 +75,8 @@ void OptionsDialog::displayTab()
     number(tr("Margine non stampabile:"), 0.0, 50.0, 1, options_.newLayoutMargin, QStringLiteral(" mm"));
 
     group(tr("Interfaccia"));
+    choice(tr("Lingua:"), {{tr("Automatica (lingua del sistema)"), 0}, {QStringLiteral("Italiano"), 1}, {QStringLiteral("English"), 2}},
+           options_.language, [this](const QVariant& v) { options_.language = v.toInt(); });
     choice(tr("Finestra principale:"),
            {{tr("Finestra unica in QML"), 0}, {tr("Classica a widget, con le tavolozze nei dock"), 1}},
            options_.uiMode, [this](const QVariant& v) { options_.uiMode = v.toInt(); });

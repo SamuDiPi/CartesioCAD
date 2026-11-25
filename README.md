@@ -10,6 +10,7 @@ Scritto in C++20 con Qt 6.
 
 - **Barra multifunzione** con le schede Inizio, Inserisci, Layout, Output, Gestisci, Annota e Vista; barra di accesso rapido e menu dell'applicazione.
 - **Più disegni aperti** in schede. Si possono trascinare file DWG/DXF sulla finestra.
+- **Italiano e inglese**: Opzioni > Generale > Lingua (automatica = inglese se la lingua del sistema non è l'italiano; vale al prossimo avvio). Tradotte barra multifunzione, finestre, tavolozze e messaggi del programma (`translations/cartesiocad_en.ts`, aggiornato con `scripts/update-translations.sh`); restano in italiano le richieste dei comandi nella riga di comando, il manuale e la pagina di CanaloCAD. I nomi dei comandi sono quelli inglesi (LINE, TRIM...), con gli alias italiani dove ci sono.
 - **Annulla completo**: oltre agli oggetti si annullano le modifiche a layer (proprietà, layer nuovi, layer corrente), agli stili di testo, di quota e delle direttrici (nuovi, modificati, rinominati, eliminati, corrente), alla scala di annotazione e alle definizioni dei blocchi (`BSAVE`, gestione attributi, riferimenti esterni: Associa, Stacca, percorsi). Un comando che crea un layer e disegna sopra si annulla con un solo `U`. Non si annulla l'eliminazione dei layer (`PURGE`).
 - **Polilinee con spessore** (larghezza costante o diversa per ogni tratto, letta e scritta nei DXF/DWG): aree piene con gli spigoli raccordati; *Larghezza globale* e larghezze dei tratti nella tavolozza Proprietà.
 - **Pagina *Inizia***, mostrata all'avvio (si può spegnere in Opzioni > Apri e salva):
