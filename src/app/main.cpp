@@ -31,6 +31,10 @@ int main(int argc, char* argv[])
         if (code >= 0)
             return code;
     }
+#ifdef CARTESIO_HAS_WEBENGINE
+    // Qt WebEngine (scheda CanaloCAD su Linux) vuole i contesti OpenGL condivisi prima di creare l'applicazione.
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+#endif
     QApplication app(argc, argv);
     QApplication::setApplicationName("CartesioCAD");
     QApplication::setOrganizationName("CartesioCAD");

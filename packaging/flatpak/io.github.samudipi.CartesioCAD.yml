@@ -25,6 +25,8 @@ finish-args:
   - --filesystem=/media
   - --filesystem=/run/media
   - --filesystem=/mnt
+  # Processo di Qt WebEngine (scheda CanaloCAD) del BaseApp: Qt lo cercherebbe accanto alle librerie del runtime.
+  - --env=QTWEBENGINEPROCESS_PATH=/app/bin/QtWebEngineProcess
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
 cleanup:
