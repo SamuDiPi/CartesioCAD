@@ -676,7 +676,8 @@ void Reader::process(const Record& r, const std::string& section)
             contextData_.push_back({r.text(330).value_or(""), r.text(340).value_or(""), r.integer(290, 0) != 0});
         if (r.type == "XRECORD" && dictionaryNames_.count(r.text(5).value_or(""))
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_IMPIANTO") {
-            if (const auto path = r.text(1); path)
+            // Testi dei nostri XRECORD: 1, ma dopo un passaggio per il DWG LibreDWG li riscrive anche con 3.
+            if (const auto path = r.text(1) ? r.text(1) : r.text(3); path)
                 doc_.setPlantFile(*path);
             if (const auto m = r.number(40); m && *m > 0.0)
                 doc_.setPlantMetersPerUnit(*m);
@@ -686,7 +687,9 @@ void Reader::process(const Record& r, const std::string& section)
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_CANALO") {
             std::string id, json;
             auto flush = [&] {
-                if (!id.empty() && !json.empty())
+                if (id == Document::kCanaloTabProject)
+                    doc_.setCanaloTabProject(json);
+                else if (!id.empty() && !json.empty())
                     doc_.setCanaloTray(id, json);
                 json.clear();
             };
@@ -694,7 +697,7 @@ void Reader::process(const Record& r, const std::string& section)
                 if (code == 2) {
                     flush();
                     id = value;
-                } else if (code == 1) {
+                } else if (code == 1 || code == 3) {   // 3: come lo riscrive LibreDWG dopo il DWG
                     json += value;
                 }
             }
@@ -703,7 +706,7 @@ void Reader::process(const Record& r, const std::string& section)
         if (r.type == "XRECORD" && dictionaryNames_.count(r.text(5).value_or(""))
             && dictionaryNames_[r.text(5).value_or("")] == "CARTESIO_LAYOUTGROUPS") {
             for (const auto& [code, value] : r.values) {
-                if (code == 1)
+                if (code == 1 || code == 3)   // 3: dopo il DWG
                     layoutGroups_.emplace_back(value, std::string());
                 else if (code == 2 && !layoutGroups_.empty())
                     layoutGroups_.back().second = value;
@@ -714,7 +717,7 @@ void Reader::process(const Record& r, const std::string& section)
             // Scale di annotazione di CartesioCAD: 1 nome, 40 carta, 41 disegno; 300 corrente; 290 ANNOALLVISIBLE.
             hasSavedScales_ = true;
             for (const auto& [code, value] : r.values) {
-                if (code == 1)
+                if (code == 1 || code == 3)   // 3: dopo il DWG
                     savedScales_.push_back({value, 1.0, 1.0});
                 else if (code == 40 && !savedScales_.empty())
                     savedScales_.back().paperUnits = toNumber(value).value_or(1.0);

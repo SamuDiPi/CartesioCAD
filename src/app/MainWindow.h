@@ -336,6 +336,12 @@ private:
     CanaloTab* canaloTab_ = nullptr;           // finestra nativa con la pagina
     QPointer<DrawingWidget> canaloFrom_;       // disegno in cui inserire la tavola
     bool canaloReady_ = false;
+    // Disegno di cui la pagina mostra il progetto (salvato nel disegno); l'ultimo disegno attivo prima della scheda.
+    QPointer<DrawingWidget> canaloOwner_;
+    bool canaloOwnerLoaded_ = false;
+    QPointer<DrawingWidget> lastDrawing_;
+    // La pagina mostra il progetto del disegno canaloFrom_ (quello salvato nel disegno, o uno nuovo).
+    void canaloSyncOwner();
     std::vector<std::function<void()>> canaloPending_;
     QFileSystemWatcher* canaloWatcher_ = nullptr;
     QDateTime canaloSeen_;

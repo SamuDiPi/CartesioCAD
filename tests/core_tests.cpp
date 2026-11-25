@@ -3810,6 +3810,65 @@ DxfReadResult readDxfText(const std::string& text, Document& doc)
     return r;
 }
 
+// Canaline di CanaloCAD e progetto della scheda nel DXF: salvati e riletti uguali, anche dopo il passaggio per il
+// DWG, quando LibreDWG riscrive i pezzi di testo dell'XRECORD con il codice 3. I "%%c" dei dati di CanaloCAD restano.
+void testCanaloXrecordRoundTrip()
+{
+    std::string tray = "{\"title\":\"CANALINA\",\"cables\":[";
+    for (int i = 0; i < 40; ++i)
+        tray += "{\"code\":\"FG16OM16-4G10 - L" + std::to_string(i) + " %%c19.5\",\"desc\":\"Cavo \xC3\x98" "19.5 mm\xC2\xB2\"},";
+    tray += "{}]}";
+    const std::string project = "{\n  \"format\": \"CanaloCAD project\",\n  \"projectSections\": [" + tray + "]\n}";
+    std::string flat = project;
+    for (char& c : flat)
+        if (c == '\n')
+            c = ' ';
+
+    Document doc;
+    doc.add(std::make_unique<LineEntity>(Vec2{0, 0}, Vec2{10, 0}));
+    doc.setCanaloTray("CN1", tray);
+    doc.setCanaloTabProject(project);
+    const auto path = std::filesystem::temp_directory_path() / "cartesio_test_canalo.dxf";
+    CHECK(writeDxf(doc, path, nullptr, nullptr, DxfVersion::R2000));
+    {
+        Document again;
+        CHECK(readDxf(path, again).ok);
+        CHECK(again.canaloTray("CN1") && *again.canaloTray("CN1") == tray);
+        CHECK(again.canaloTabProject() == flat);
+        CHECK(again.canaloTrays().size() == 1);   // il progetto non è una canalina
+    }
+    // Come lo restituisce LibreDWG: nell'XRECORD delle canaline i pezzi 1 diventano 3.
+    std::vector<std::string> lines;
+    {
+        std::ifstream in(path);
+        for (std::string line; std::getline(in, line);)
+            lines.push_back(line);
+    }
+    bool inRecord = false;
+    for (std::size_t i = 0; i + 1 < lines.size(); i += 2) {
+        std::string code = lines[i];
+        code.erase(0, code.find_first_not_of(' '));
+        if (!code.empty() && code.back() == '\r')
+            code.pop_back();
+        if (code == "2" && (lines[i + 1].rfind("CN1", 0) == 0 || lines[i + 1].rfind("#SCHEDA", 0) == 0))
+            inRecord = true;
+        else if (code == "0")
+            inRecord = false;
+        else if (inRecord && code == "1")
+            lines[i] = "  3";
+    }
+    {
+        std::ofstream out(path, std::ios::binary);
+        for (const std::string& line : lines)
+            out << line << "\n";
+    }
+    Document converted;
+    CHECK(readDxf(path, converted).ok);
+    CHECK(converted.canaloTray("CN1") && *converted.canaloTray("CN1") == tray);
+    CHECK(converted.canaloTabProject() == flat);
+    std::filesystem::remove(path);
+}
+
 void testMalformedFiles()
 {
     const auto dxf = [](const std::string& tables, const std::string& entities) {
@@ -4041,6 +4100,7 @@ int main()
     testRouting();
     testRunImport();
     testMalformedFiles();
+    testCanaloXrecordRoundTrip();
 
     if (failures == 0)
         std::printf("Tutti i test superati.\n");

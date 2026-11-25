@@ -158,7 +158,7 @@ void MainWindow::guideCheckStep()
         // Una canalina del disegno con almeno "cables" cavi (0: basta che ci sia).
         const int min = done.value(QStringLiteral("cables")).toInt(0);
         for (const auto& [id, json] : d->document().canaloTrays())
-            if (QJsonDocument::fromJson(QByteArray::fromStdString(json)).object().value(QStringLiteral("cables")).toArray().size() >= min)
+            if (Document::isCanaloTrayId(id) && QJsonDocument::fromJson(QByteArray::fromStdString(json)).object().value(QStringLiteral("cables")).toArray().size() >= min)
                 ok = true;
     } else if (type == QLatin1String("circuits")) {
         ok = !circuits_->circuits().empty();

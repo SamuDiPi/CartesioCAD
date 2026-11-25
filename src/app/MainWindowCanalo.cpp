@@ -357,6 +357,15 @@ QString canaloWebDataFolder()
 
 } // namespace
 
+// Progetto della pagina compatto, su una riga (si salva nel disegno); vuoto se non è un progetto valido.
+std::string compactCanaloProject(const QString& text)
+{
+    const QJsonDocument doc = QJsonDocument::fromJson(text.toUtf8());
+    if (!doc.isObject() || !doc.object().value(QStringLiteral("projectSections")).isArray())
+        return {};
+    return doc.toJson(QJsonDocument::Compact).toStdString();
+}
+
 bool MainWindow::canaloEmbedded() const
 {
     static const bool ok = WebView2Host::available();
@@ -403,6 +412,45 @@ void MainWindow::canaloShowTab(std::function<void()> then)
         canaloTab_->start(QUrl::fromLocalFile(canaloHtmlPath()), canaloWebDataFolder());
     }
     fileTabs_->setCurrentIndex(stack_->indexOf(canaloPlaceholder_));
+    canaloSyncOwner();
+}
+
+void MainWindow::canaloSyncOwner()
+{
+    if (!canaloTab_ || !canaloReady_)
+        return;
+    DrawingWidget* d = canaloFrom_;
+    if (!d || (d == canaloOwner_ && canaloOwnerLoaded_))
+        return;   // senza disegno la pagina tiene il suo progetto (salvato solo sul computer)
+    // Prima il progetto attuale della pagina nel disegno di prima (l'ultimo avviso della pagina arriva con un secondo
+    // di ritardo), poi quello del disegno nuovo.
+    QPointer<DrawingWidget> previous = canaloOwnerLoaded_ ? canaloOwner_ : nullptr;
+    canaloOwner_ = d;
+    canaloOwnerLoaded_ = false;
+    if (previous)
+        canaloTab_->host()->runAsync(QStringLiteral("window.CanaloHost.project()"), [previous](const QJsonValue& value, const QString& error) {
+            const std::string json = value.isString() ? compactCanaloProject(value.toString()) : std::string();
+            if (previous && error.isEmpty() && !json.empty() && json != previous->document().canaloTabProject()) {
+                previous->document().setCanaloTabProject(json);
+                previous->notifyChanged();
+            }
+        });
+    const QString text = QString::fromStdString(d->document().canaloTabProject());
+    const QString arg = QString::fromUtf8(QJsonDocument(QJsonArray{text}).toJson(QJsonDocument::Compact)).mid(1).chopped(1);
+    QPointer<DrawingWidget> owner(d);
+    canaloTab_->host()->runAsync(QStringLiteral("window.CanaloHost.loadProject(%1)").arg(arg),
+                                 [this, owner](const QJsonValue& value, const QString& error) {
+        if (!owner || owner != canaloOwner_)
+            return;
+        if (!error.isEmpty()) {
+            print(tr("CanaloCAD: progetto del disegno non aperto nella scheda: %1").arg(error));
+            return;
+        }
+        canaloOwnerLoaded_ = true;
+        const int sections = value.toObject().value(QStringLiteral("sezioni")).toInt();
+        if (!owner->document().canaloTabProject().empty())
+            print(tr("CanaloCAD: progetto di %1 (%n schede canalina), salvato nel disegno.", nullptr, sections).arg(owner->displayName()));
+    });
 }
 
 void MainWindow::positionCanaloTab()
@@ -451,10 +499,21 @@ void MainWindow::canaloMessage(const QJsonValue& value)
     }
     if (kind == QLatin1String("pronta")) {
         canaloReady_ = true;
+        canaloSyncOwner();
         auto pending = std::move(canaloPending_);
         canaloPending_.clear();
         for (auto& f : pending)
             f();
+        return;
+    }
+    if (kind == QLatin1String("progetto")) {   // il progetto della pagina va nel disegno a cui appartiene
+        if (canaloOwner_ && canaloOwnerLoaded_) {
+            const std::string json = compactCanaloProject(msg.value(QStringLiteral("progetto")).toString());
+            if (!json.empty() && json.size() < 64u * 1024u * 1024u && json != canaloOwner_->document().canaloTabProject()) {
+                canaloOwner_->document().setCanaloTabProject(json);
+                canaloOwner_->notifyChanged();
+            }
+        }
         return;
     }
     if (kind == QLatin1String("immagine")) {   // negli appunti di Windows, da incollare in Word o in una relazione
@@ -668,6 +727,21 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
     connect(&host, &WebView2Host::message, &loop, [&](const QJsonValue& value) {
         if (value.toObject().value(QStringLiteral("tipo")).toString() != QLatin1String("pronta"))
             return;
+        // Come la scheda vera: prima il progetto salvato nel disegno aperto (o uno nuovo).
+        const QString saved = current() ? QString::fromStdString(current()->document().canaloTabProject()) : QString();
+        if (!saved.isEmpty()) {
+            QJsonParseError parseError;
+            QJsonDocument::fromJson(saved.toUtf8(), &parseError);
+            if (parseError.error != QJsonParseError::NoError)
+                print(tr("-CANALOSCHEDA: progetto del disegno non valido al carattere %1 (%2): ...%3...")
+                          .arg(parseError.offset).arg(parseError.errorString(), saved.mid(std::max(0, parseError.offset - 60), 120)));
+        }
+        host.runAsync(QStringLiteral("window.CanaloHost.loadProject(%1)")
+                          .arg(QString::fromUtf8(QJsonDocument(QJsonArray{saved}).toJson(QJsonDocument::Compact)).mid(1).chopped(1)),
+                      [this](const QJsonValue& v, const QString& e) {
+            print(e.isEmpty() ? tr("-CANALOSCHEDA: progetto del disegno nella pagina: %1 schede").arg(v.toObject().value(QStringLiteral("sezioni")).toInt())
+                              : tr("-CANALOSCHEDA: progetto del disegno non caricato: %1").arg(e));
+        });
         host.runAsync(QStringLiteral("window.CanaloHost.importDxf(%1, \"%2\")")
                           .arg(QString::fromUtf8(QJsonDocument(QJsonArray{QFileInfo(section).fileName()}).toJson(QJsonDocument::Compact)).mid(1).chopped(1), data),
                       [&](const QJsonValue& result, const QString& error) {
@@ -711,7 +785,18 @@ void MainWindow::canaloTabSelfTest(const QString& section, const QString& sheet)
                         print(tr("-CANALOSCHEDA: stato della pagina letto: %1 tipi di cavo, riempimento %2%")
                                   .arg(a.value(QStringLiteral("cavi")).toArray().size())
                                   .arg(res.value(QStringLiteral("riempimento_pct")).toDouble()));
-                    loop.quit();
+                    // Come l'avviso "progetto" della pagina: il progetto intero nel disegno.
+                    host.runAsync(QStringLiteral("window.CanaloHost.project()"), [&](const QJsonValue& pv, const QString& error4) {
+                        DrawingWidget* d = current();
+                        if (d && error4.isEmpty() && pv.isString()) {
+                            d->document().setCanaloTabProject(compactCanaloProject(pv.toString()));
+                            d->notifyChanged();
+                            print(tr("-CANALOSCHEDA: progetto salvato nel disegno: %1 schede")
+                                      .arg(QJsonDocument::fromJson(pv.toString().toUtf8()).object().value(QStringLiteral("projectSections")).toArray().size()));
+                        } else
+                            print(tr("-CANALOSCHEDA: progetto non salvato nel disegno %1").arg(error4));
+                        loop.quit();
+                    });
                 });
             });
         });

@@ -823,7 +823,8 @@ void CanaloPanel::importFile(const QString& given)
     if (paths.isEmpty())
         return;
     CanaloEngine& engine = CanaloEngine::instance();
-    int letter = static_cast<int>(drawing_->document().canaloTrays().size());
+    int letter = static_cast<int>(std::count_if(drawing_->document().canaloTrays().begin(), drawing_->document().canaloTrays().end(),
+                                                [](const auto& t) { return Document::isCanaloTrayId(t.first); }));
     for (const QString& path : paths) {
         // Il file com'è, come Importa DWG/DXF di CanaloCAD: un DXF passa intero; un DWG si converte con LibreDWG (la
         // libreria che usa anche CanaloCAD) e il DXF ottenuto passa intero.
@@ -878,6 +879,8 @@ void CanaloPanel::placeNextImport()
     QList<QPair<QString, QVariant>> choices;
     choices.append({tr("A una polilinea del disegno: la clicco (la lunghezza del tratto è la sua)"), QStringLiteral("pick")});
     for (const auto& [id, json] : drawing_->document().canaloTrays()) {
+        if (!Document::isCanaloTrayId(id))
+            continue;
         const QJsonObject other = QJsonDocument::fromJson(QByteArray::fromStdString(json)).object();
         choices.append({tr("Alla canalina %1 — %2 (ne prende misure e cavi)").arg(QString::fromStdString(id), sv(other, "title")),
                         QStringLiteral("tray:") + QString::fromStdString(id)});
@@ -1737,7 +1740,7 @@ QJsonObject CanaloPanel::analyze(const QJsonObject& state)
 
 QJsonObject CanaloPanel::trayState(const QString& id) const
 {
-    if (drawing_)
+    if (drawing_ && Document::isCanaloTrayId(id.toStdString()))
         if (const std::string* json = drawing_->document().canaloTray(id.toStdString()))
             return QJsonDocument::fromJson(QByteArray::fromStdString(*json)).object();
     return {};
@@ -1749,6 +1752,8 @@ QJsonArray CanaloPanel::trayList()
     if (!drawing_)
         return out;
     for (const auto& [id, json] : drawing_->document().canaloTrays()) {
+        if (!Document::isCanaloTrayId(id))
+            continue;
         const QJsonObject st = QJsonDocument::fromJson(QByteArray::fromStdString(json)).object();
         const QJsonObject a = analyze(st);
         const QJsonObject r = a.value(QStringLiteral("risultati")).toObject();

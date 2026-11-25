@@ -2080,6 +2080,12 @@ void MainWindow::onTabChanged(int index)
     layerManager_->setDrawing(d);
     setCommandLineShown(d && commandLineAct_->isChecked());
     const bool canaloTab = isCanaloTab(index);
+    if (d)
+        lastDrawing_ = d;
+    else if (canaloTab && lastDrawing_) {   // la scheda CanaloCAD mostra il progetto dell'ultimo disegno usato
+        canaloFrom_ = lastDrawing_;
+        canaloSyncOwner();
+    }
     if (mainView_) {
         mainView_->setView(d ? d->view() : nullptr, d == nullptr && !canaloTab);
         mainView_->setCanaloVisible(canaloTab);

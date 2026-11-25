@@ -362,6 +362,19 @@ public:
         if (canaloTrays_.erase(id))
             ++revision_;
     }
+    // Progetto della scheda CanaloCAD (tutte le sue schede canalina, formato dei file .ccad) legato al disegno. Non fa
+    // parte dell'annulla del disegno (lo gestisce la pagina); nel DXF/DWG va nel dizionario delle canaline con il
+    // codice riservato "#SCHEDA" (i codici che iniziano con "#" non sono canaline).
+    static constexpr const char* kCanaloTabProject = "#SCHEDA";
+    static bool isCanaloTrayId(const std::string& id) { return !id.empty() && id[0] != '#'; }
+    const std::string& canaloTabProject() const { return canaloTabProject_; }
+    void setCanaloTabProject(std::string json)
+    {
+        if (json != canaloTabProject_) {
+            canaloTabProject_ = std::move(json);
+            ++revision_;
+        }
+    }
     // Prossimo codice libero ("CN1", "CN2"...).
     std::string nextCanaloTrayId() const
     {
@@ -550,6 +563,7 @@ private:
     std::string plantFile_;
     double plantMetersPerUnit_ = 0.0;
     std::map<std::string, std::string> canaloTrays_;
+    std::string canaloTabProject_;
     // Ingombri delle entità, ricalcolati quando cambia la revisione.
     // Ingombri degli oggetti, allineati a entities_, con il serial dell'oggetto di cui sono l'ingombro.
     struct CachedBounds {

@@ -44,7 +44,7 @@ Apre la finestra Canalina. Negli script: `-CANALOSEZIONE FG16_4G10*2,FG16_3G2.5,
 
 ## Apri CanaloCAD (`CANALOCAD`, `CANALO`)
 
-Apre l'applicazione CanaloCAD (la copia inclusa in CartesioCAD, o quella indicata nelle Opzioni > Plugin). Su Windows si apre nella scheda **CanaloCAD**, accanto alle schede dei disegni: si passa dal disegno alla canalina con un clic, e chiudendo la scheda i progetti di CanaloCAD restano salvati (nella cartella dei dati locali di CartesioCAD, solo su questo computer). La scheda usa Microsoft Edge WebView2, già presente in Windows 10 e 11; se manca, o su Linux, CanaloCAD si apre nel browser.
+Apre l'applicazione CanaloCAD (la copia inclusa in CartesioCAD, o quella indicata nelle Opzioni > Plugin). Su Windows si apre nella scheda **CanaloCAD**, accanto alle schede dei disegni: si passa dal disegno alla canalina con un clic. **Il progetto della scheda (tutte le sue schede canalina) si salva nel disegno** da cui la si apre, DWG o DXF: riaprendo il disegno, anche su un altro computer o da un collega, la scheda mostra le sue canaline; passando a un altro disegno la scheda mostra quelle dell'altro. Le modifiche fatte nella scheda rendono il disegno da salvare. Aperta senza disegni, la scheda tiene il suo progetto solo su questo computer (e si può sempre salvare come file .ccad). La scheda usa Microsoft Edge WebView2, già presente in Windows 10 e 11; se manca, o su Linux, CanaloCAD si apre nel browser.
 
 ## Invia sezione (`CANALOINVIA`, `CANALOSEND`)
 

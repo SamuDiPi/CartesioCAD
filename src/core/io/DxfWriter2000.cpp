@@ -1433,7 +1433,7 @@ void Writer2000::objects()
     if (plantRecord)
         rootEntries.emplace_back("CARTESIO_IMPIANTO", plantRecord);
     // Canaline portacavi: per ognuna 2 codice e lo stato JSON di CanaloCAD in pezzi da 250 caratteri (1).
-    const unsigned canaloRecord = doc_.canaloTrays().empty() ? 0 : next();
+    const unsigned canaloRecord = doc_.canaloTrays().empty() && doc_.canaloTabProject().empty() ? 0 : next();
     if (canaloRecord)
         rootEntries.emplace_back("CARTESIO_CANALO", canaloRecord);
     dictionary(kRootDict, 0, rootEntries);
@@ -1446,7 +1446,16 @@ void Writer2000::objects()
         pair(330, hex(kRootDict));
         pair(100, "AcDbXrecord");
         pair(280, 1);
-        for (const auto& [id, json] : doc_.canaloTrays()) {
+        // Più il progetto della scheda CanaloCAD, con il codice riservato.
+        std::vector<std::pair<std::string, const std::string*>> records;
+        for (const auto& [id, json] : doc_.canaloTrays())
+            records.emplace_back(id, &json);
+        if (!doc_.canaloTabProject().empty())
+            records.emplace_back(Document::kCanaloTabProject, &doc_.canaloTabProject());
+        for (const auto& [id, jsonPtr] : records) {
+            std::string json = *jsonPtr;
+            std::replace(json.begin(), json.end(), '\n', ' ');
+            std::replace(json.begin(), json.end(), '\r', ' ');
             text(2, id);
             // Pezzi di caratteri interi lunghi al massimo 250 una volta scritti (un carattere non ASCII diventa
             // \U+XXXX, 7 caratteri): le righe dei DXF non superano i 255.
