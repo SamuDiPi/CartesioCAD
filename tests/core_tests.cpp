@@ -3486,6 +3486,12 @@ void testPlant()
     for (const Finding& x : rc.findings)
         tubeOk = tubeOk || (x.level == Level::Ok && x.text.find("tubo rigido Ø40") != std::string::npos);
     CHECK(tubeOk && rc.level == Level::Warning);   // resta l'avviso sul tipo di cavo simile (FG18OM16)
+    // Con 1,5 volte il fascio serve 39,4 mm: il Ø40 rigido (35,4) non basta più, serve il Ø50.
+    tube.tubeRatio = 1.5;
+    rc = checkRun(p, tube);
+    CHECK(rc.level == Level::Error && rc.findings.size() >= 2 && rc.findings[1].text.find("1,5 volte il fascio") != std::string::npos &&
+          rc.findings[1].text.find("serve il Ø50") != std::string::npos);
+    tube.tubeRatio = 1.3;
     // Segnale non schermato nello stesso tubo dell'energia: segregazione non verificata.
     tube.circuits = {"QE C-1", "QE C-4"};
     rc = checkRun(p, tube);

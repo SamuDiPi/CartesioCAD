@@ -578,10 +578,12 @@ RunCheck checkRun(const Project& project, const Run& run, double lengthM)
             ds.push_back(c.d);
         rc.bundle = bundleDiameter(ds);
         rc.fillPct = canalo::fixed(rc.cablesArea / (kPi * rc.tubeInner * rc.tubeInner / 4.0) * 100.0, 1);
-        const double needed = 1.3 * rc.bundle;
+        const double ratio = run.tubeRatio == 1.5 ? 1.5 : 1.3;
+        const double needed = ratio * rc.bundle;
         const std::string text = "tubo " + std::string(run.tubeType) + " Ø" + fmt(run.tubeOuter, 0) + " (interno " + fmt(rc.tubeInner) +
                                  " mm): fascio di " + std::to_string(rc.cableCount) + " cavi Ø" + fmt(rc.bundle) +
-                                 " mm, serve un interno di almeno " + fmt(needed) + " mm (1,3 volte il fascio, CEI 64-8)";
+                                 " mm, serve un interno di almeno " + fmt(needed) + " mm (" + fmt(ratio) + " volte il fascio" +
+                                 (ratio == 1.3 ? ", CEI 64-8)" : ")");
         if (rc.tubeInner + 1e-9 >= needed) {
             add(Level::Ok, text + ": OK");
         } else {

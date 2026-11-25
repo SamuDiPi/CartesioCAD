@@ -6,7 +6,7 @@
 //  - cavi propri: tipi non presenti nel catalogo (diametro, peso, sezione);
 //  - tratte: tubi, canali e passerelle disegnati come linee o polilinee del percorso, con i circuiti che
 //    contengono.
-// Le verifiche delle tratte: riempimento (tubi: diametro interno almeno 1,3 volte quello del fascio di cavi;
+// Le verifiche delle tratte: riempimento (tubi: diametro interno almeno 1,3 volte quello del fascio di cavi, o 1,5;
 // canali: cavi al massimo metà della sezione; passerelle: i calcoli di CanaloCAD), segregazione dei sistemi e,
 // per le passerelle, carico e freccia dello staffaggio. La lettura e la scrittura del file sono dell'applicazione.
 
@@ -57,6 +57,8 @@ struct Run {
     std::string tubeType = "rigido";   // rigido, corrugato
     double tubeOuter = 25.0;
     double tubeInner = 0.0;
+    // Diametro interno minimo rispetto al fascio di cavi: 1,3 (CEI 64-8, default) o 1,5 (capitolati, tratti lunghi).
+    double tubeRatio = 1.3;
     // Canale e passerella: larghezza e altezza utili, setti, coperchio, staffaggio.
     double width = 100.0, height = 60.0;
     int septums = 0;

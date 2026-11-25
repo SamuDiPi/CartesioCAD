@@ -737,11 +737,12 @@ void CanaloPanel::conduitSummary(const QJsonObject& st, const QJsonObject& m, co
         }
         const bool ok = t.value(QStringLiteral("ok")).toBool(true), seg = t.value(QStringLiteral("segregazione")).toBool(true);
         row(tr("Tubo T%1").arg(t.value(QStringLiteral("n")).toInt()),
-            tr("%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (1,3 × fascio, CEI 64-8) — %5; riempimento %6%, Kr %7%8")
+            tr("%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (%5 × fascio%6) — %7; riempimento %8%, Kr %9")
                 .arg(cables)
                 .arg(t.value(QStringLiteral("circuiti")).toInt())
-                .arg(num(dv(t, "fascio")), num(dv(t, "minimo")), ok ? tr("OK") : tr("NON VERIFICATO"), num(dv(t, "riempimento")),
-                     num(dv(t, "kr"), 2), seg ? QString() : tr(" — segnali non schermati con l'energia")),
+                .arg(num(dv(t, "fascio")), num(dv(t, "minimo")), num(dv(c, "ratio", 1.3)),
+                     dv(c, "ratio", 1.3) == 1.3 ? QStringLiteral(", CEI 64-8") : QString(), ok ? tr("OK") : tr("NON VERIFICATO"),
+                     num(dv(t, "riempimento")), num(dv(t, "kr"), 2) + (seg ? QString() : tr(" — segnali non schermati con l'energia"))),
             ok && seg ? 1 : 2);
     }
     const bool seg = m.value(QStringLiteral("segConform")).toBool(true);
@@ -1622,6 +1623,7 @@ QJsonObject conduitStateFor(QJsonObject st, const QJsonObject& options, QString*
     st.insert(QStringLiteral("system"), QStringLiteral("conduit"));
     st.insert(QStringLiteral("conduitType"), conduitTypeKey(options.value(QStringLiteral("tipo_tubo")).toString()));
     st.insert(QStringLiteral("conduitAssign"), QStringLiteral("auto"));
+    st.insert(QStringLiteral("conduitRatio"), options.value(QStringLiteral("rapporto_fascio")).toDouble(1.3) == 1.5 ? 1.5 : 1.3);
     if (options.contains(QStringLiteral("distanza_mm")))
         st.insert(QStringLiteral("conduitGap"), std::clamp(options.value(QStringLiteral("distanza_mm")).toDouble(), 0.0, 1000.0));
     if (const double inner = options.value(QStringLiteral("interno_mm")).toDouble(0.0); inner > 0)
@@ -1977,7 +1979,7 @@ bool CanaloPanel::replaceTray(const QString& id, QJsonObject state)
         return false;
     // Della canalina esistente restano posizione della sezione, percorso, titolo e dati di progetto: cambiano cavi,
     // tipologia e misura.
-    for (const char* key : {"cables", "trayType", "width", "height", "thk", "cartesioAutoSize", "cartesioReserve", "system", "conduitType",
+    for (const char* key : {"cables", "trayType", "width", "height", "thk", "cartesioAutoSize", "cartesioReserve", "system", "conduitType", "conduitRatio",
                             "conduitDn", "conduitInner", "conduitCount", "conduitCols", "conduitGap", "conduitAssign", "trayW", "trayH"})
         if (state.contains(QLatin1String(key)))
             current.insert(QLatin1String(key), state.value(QLatin1String(key)));

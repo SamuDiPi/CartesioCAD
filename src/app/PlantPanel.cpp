@@ -754,6 +754,7 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
     int kind = static_cast<int>(r.kind), septums = r.septums;
     QString tubeType = q(r.tubeType), cover = q(r.cover), support = q(r.support), series = q("TIPOLOGIE|" + canalo::seriesById(r.seriesId).id);
     double outer = r.tubeOuter, inner = r.tubeInner, width = r.width, height = r.height, span = r.spanM, ambient = r.ambientC;
+    QVariant ratio = r.tubeRatio == 1.5 ? 1.5 : 1.3;
     QString laying = q(r.laying);
     FormDialog d(isNew ? tr("Nuova tratta") : tr("Tratta %1").arg(q(r.id)), FormDialog::Ok | FormDialog::Cancel, this);
     d.choice(tr("Tipo"), {{tr("Tubo"), 0}, {tr("Canale"), 1}, {tr("Passerella"), 2}}, kind, [&](const QVariant& v) { kind = v.toInt(); });
@@ -767,6 +768,8 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
     d.choice(tr("Diametro esterno"), sizes, outer, [&](const QVariant& v) { outer = v.toDouble(); });
     d.number(tr("Diametro interno"), 0, 300, 1, inner, QStringLiteral(" mm"));
     d.note(tr("Interno 0 = valore indicativo della serie pesante in PVC; scrivere quello del costruttore se diverso."));
+    d.choice(tr("Diametro interno minimo"), {{tr("1,3 volte il fascio (CEI 64-8)"), 1.3}, {tr("1,5 volte il fascio"), 1.5}}, ratio,
+             [&](const QVariant& v) { ratio = v; });
     d.choice(tr("Posa del tubo"), {{tr("A vista (su parete o soffitto)"), QStringLiteral("vista")}, {tr("Incassato in parete isolante"), QStringLiteral("incassato")}},
              laying, [&](const QVariant& v) { laying = v.toString(); });
     d.group(tr("Canale o passerella"));
@@ -811,6 +814,7 @@ bool PlantPanel::editRun(plant::Run& r, bool isNew)
     r.tubeType = tubeType.toStdString();
     r.tubeOuter = outer;
     r.tubeInner = inner;
+    r.tubeRatio = ratio.toDouble() == 1.5 ? 1.5 : 1.3;
     r.width = width;
     r.height = height;
     r.septums = septums;

@@ -105,6 +105,8 @@ QJsonObject toJson(const Run& r)
         o["diametroEsterno"] = r.tubeOuter;
         if (r.tubeInner > 0.0)
             o["diametroInterno"] = r.tubeInner;
+        if (r.tubeRatio == 1.5)
+            o["rapportoFascio"] = r.tubeRatio;
     } else {
         o["larghezza"] = r.width;
         o["altezza"] = r.height;
@@ -138,6 +140,7 @@ Run runFrom(const QJsonObject& o)
     r.tubeType = o["tubo"].toString(QStringLiteral("rigido")).toStdString();
     r.tubeOuter = o["diametroEsterno"].toDouble(25.0);
     r.tubeInner = o["diametroInterno"].toDouble(0.0);
+    r.tubeRatio = o["rapportoFascio"].toDouble(1.3) == 1.5 ? 1.5 : 1.3;
     r.width = o["larghezza"].toDouble(100.0);
     r.height = o["altezza"].toDouble(60.0);
     r.septums = o["setti"].toInt(0);

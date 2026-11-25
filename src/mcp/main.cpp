@@ -256,7 +256,8 @@ const char* const kTools = R"JSON(
     "diametro": {"type": "number", "description": "con tubazione: diametro esterno nominale in mm (16, 20, 25, 32...); senza, CanaloCAD propone numero e diametro dei tubi (regola dell'1,3 della CEI 64-8)"},
     "numero_tubi": {"type": "integer", "minimum": 1, "maximum": 24, "description": "con tubazione: numero di tubi (i tubi in più restano di riserva)"},
     "distanza_mm": {"type": "number", "description": "con tubazione: distanza tra i tubi, mm"},
-    "interno_mm": {"type": "number", "description": "con tubazione: diametro interno del tubo scelto (dal catalogo), se diverso da quello indicativo"}
+    "interno_mm": {"type": "number", "description": "con tubazione: diametro interno del tubo scelto (dal catalogo), se diverso da quello indicativo"},
+    "rapporto_fascio": {"type": "number", "enum": [1.3, 1.5], "description": "con tubazione: diametro interno minimo rispetto al fascio di cavi, 1,3 (CEI 64-8, default) o 1,5 (capitolati, tratti lunghi)"}
    }
   }
  },
@@ -305,7 +306,8 @@ const char* const kTools = R"JSON(
     "diametro": {"type": "number", "description": "con tubazione: diametro esterno nominale in mm (16, 20, 25, 32...); senza, CanaloCAD propone numero e diametro dei tubi (regola dell'1,3 della CEI 64-8)"},
     "numero_tubi": {"type": "integer", "minimum": 1, "maximum": 24, "description": "con tubazione: numero di tubi (i tubi in più restano di riserva)"},
     "distanza_mm": {"type": "number", "description": "con tubazione: distanza tra i tubi, mm"},
-    "interno_mm": {"type": "number", "description": "con tubazione: diametro interno del tubo scelto (dal catalogo), se diverso da quello indicativo"}
+    "interno_mm": {"type": "number", "description": "con tubazione: diametro interno del tubo scelto (dal catalogo), se diverso da quello indicativo"},
+    "rapporto_fascio": {"type": "number", "enum": [1.3, 1.5], "description": "con tubazione: diametro interno minimo rispetto al fascio di cavi, 1,3 (CEI 64-8, default) o 1,5 (capitolati, tratti lunghi)"}
    },
    "required": ["descrizione"]
   }

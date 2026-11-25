@@ -645,10 +645,6 @@
         <translation>empty (spare)</translation>
     </message>
     <message>
-        <source>%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (1,3 × fascio, CEI 64-8) — %5; riempimento %6%, Kr %7%8</source>
-        <translation>%1 cables, %2 circuits: bundle Ø%3 mm, needs an inner diameter of %4 mm (1.3 × bundle, CEI 64-8) — %5; fill %6%, Kr %7%8</translation>
-    </message>
-    <message>
         <source>NON VERIFICATO</source>
         <translation>NOT VERIFIED</translation>
     </message>
@@ -1223,6 +1219,10 @@
     <message>
         <source>Tubo rigido a vista</source>
         <translation>Surface rigid conduit</translation>
+    </message>
+    <message>
+        <source>%1 cavi, %2 circuiti: fascio Ø%3 mm, serve un interno di %4 mm (%5 × fascio%6) — %7; riempimento %8%, Kr %9</source>
+        <translation>%1 cables, %2 circuits: bundle Ø%3 mm, needs an inner diameter of %4 mm (%5 × bundle%6) — %7; fill %8%, Kr %9</translation>
     </message>
     <message>
         <source>Nessun cavo.</source>
@@ -7647,6 +7647,18 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Interno 0 = valore indicativo della serie pesante in PVC; scrivere quello del costruttore se diverso.</source>
         <translation>Inner 0 = indicative value of the heavy PVC series; write the manufacturer&apos;s value if different.</translation>
+    </message>
+    <message>
+        <source>Diametro interno minimo</source>
+        <translation>Minimum inner diameter</translation>
+    </message>
+    <message>
+        <source>1,3 volte il fascio (CEI 64-8)</source>
+        <translation>1.3 times the bundle (CEI 64-8)</translation>
+    </message>
+    <message>
+        <source>1,5 volte il fascio</source>
+        <translation>1.5 times the bundle</translation>
     </message>
     <message>
         <source>Posa del tubo</source>

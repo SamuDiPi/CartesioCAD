@@ -1566,6 +1566,8 @@ bool MainWindow::handleCanaloTool(const QString& tool, const QJsonObject& args, 
                 if (run->tubeInner > 0 && !options.contains(QStringLiteral("interno_mm")))
                     options.insert(QStringLiteral("interno_mm"), run->tubeInner);
             }
+            if (!options.contains(QStringLiteral("rapporto_fascio")))
+                options.insert(QStringLiteral("rapporto_fascio"), run->tubeRatio);
         }
         if (!options.contains(QStringLiteral("tipologia")))
             options.insert(QStringLiteral("tipologia"), run->kind == plant::RunKind::Duct ? QStringLiteral("cieco") : QStringLiteral("asolata"));

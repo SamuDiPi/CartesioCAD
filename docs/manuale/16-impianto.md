@@ -76,7 +76,7 @@ Si seleziona nel disegno il simbolo del quadro e si sceglie il suo nome: diventa
 **Dove:** Impianto > Impianti elettrici > Verifica impianto; Impianto > *Verifica*.
 
 Per ogni tratta:
-- **tubo**: diametro interno di almeno **1,3 volte il fascio** di cavi (il cerchio più piccolo che li contiene); se non basta indica il diametro giusto;
+- **tubo**: diametro interno di almeno **1,3 volte il fascio** di cavi (il cerchio più piccolo che li contiene, CEI 64-8), oppure 1,5 volte se nella tratta si sceglie *Diametro interno minimo: 1,5 volte il fascio* (capitolati che lo chiedono, tratti lunghi con molte curve); se non basta indica il diametro giusto;
 - **canale**: cavi al massimo al **50%** della sezione;
 - **passerella**: riempimento e calcoli di CanaloCAD, **staffaggio** (carico sul passo e freccia);
 - **segregazione**: segnali non schermati insieme a circuiti di energia nello stesso tubo o scomparto (CEI 64-8 art. 528.1); avviso per i circuiti di sicurezza insieme agli ordinari.
