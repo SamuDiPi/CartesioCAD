@@ -167,6 +167,8 @@ MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;si
 
 A ogni apparecchio dello schema va la voce più specifica (prima quelle con il modello trovato nello schema, poi il tipo `differenziale` per i circuiti con differenziale, poi l'intervallo di corrente più stretto); le sue misure sostituiscono quelle tipiche e servono a impaginare il quadro, e il blocco si inserisce centrato al suo posto (layer `FQ-BLOCCHI`), con la sigla del circuito sotto. Gli accessori in più (blocchi differenziali, strumenti) restano. Gli apparecchi senza voce mantengono gli ingombri tipici e il disegno generico; il programma dice quanti sono. Riferimento e fonte vanno nella distinta.
 
+Se i due campi dei cataloghi sono vuoti, la finestra propone i file `CartesioCAD-cataloghi/carpenterie.csv` e `CartesioCAD-blocchi/apparecchi.csv` nella cartella Documenti (anche quella locale del profilo, se Documenti è sincronizzata altrove), quando esistono.
+
 I blocchi dei costruttori sono protetti dal loro diritto d'autore: CartesioCAD non ne contiene, si scaricano dai siti dei costruttori e si usano secondo le loro condizioni, tenendoli in una cartella propria.
 
 Negli script: `-FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file.ifc] [CSV file.csv] [CATALOGO file.csv] [APPARECCHI file.csv] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]` (`RISALITA`: 0 automatica, 1 nessuna, 2 vani laterali, 3 colonna dedicata; `QUI` disegna nel disegno aperto invece che in uno nuovo).

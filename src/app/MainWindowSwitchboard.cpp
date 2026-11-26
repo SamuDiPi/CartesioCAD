@@ -256,6 +256,22 @@ void MainWindow::showSwitchboardFront()
     int risers = s.value(QStringLiteral("FronteQuadro/risers"), 0).toInt();
     bool busbars = s.value(QStringLiteral("FronteQuadro/busbars"), true).toBool();
     r.devices = s.value(QStringLiteral("FronteQuadro/devices")).toString();
+    // Primo uso: i cataloghi nelle cartelle consigliate dei Documenti, se ci sono (sempre modificabili).
+    // Documenti può essere spostata (sincronizzazione): si guarda anche quella locale del profilo.
+    const QStringList documents{QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation),
+                                QDir::home().filePath(QStringLiteral("Documents"))};
+    const auto standard = [&documents](const QString& relative) {
+        for (const QString& folder : documents) {
+            const QString path = QDir(folder).filePath(relative);
+            if (QFileInfo::exists(path))
+                return QDir::toNativeSeparators(path);
+        }
+        return QString();
+    };
+    if (r.catalog.isEmpty())
+        r.catalog = standard(QStringLiteral("CartesioCAD-cataloghi/carpenterie.csv"));
+    if (r.devices.isEmpty())
+        r.devices = standard(QStringLiteral("CartesioCAD-blocchi/apparecchi.csv"));
     bool newDrawing = s.value(QStringLiteral("FronteQuadro/newDrawing"), true).toBool();
     bool ifc = s.value(QStringLiteral("FronteQuadro/ifc"), true).toBool();
     bool csv = s.value(QStringLiteral("FronteQuadro/csv"), true).toBool();
