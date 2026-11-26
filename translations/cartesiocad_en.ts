@@ -6891,6 +6891,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>%1 of %2 devices not in the catalog: typical dimensions</translation>
     </message>
     <message>
+        <source>%1 apparecchi con il blocco della voce più vicina del catalogo (nessuna voce con poli e corrente esatti): vedere le note nella distinta</source>
+        <translation>%1 devices with the block of the nearest catalog entry (no entry with matching poles and current): see the notes in the bill of materials</translation>
+    </message>
+    <message>
         <source>Fronte quadro %1: %2, %3 x %4 x %5 mm, IP%6, forma %7, moduli %8 su %9%10.</source>
         <translation>Switchboard front %1: %2, %3 x %4 x %5 mm, IP%6, form %7, modules %8 of %9%10.</translation>
     </message>

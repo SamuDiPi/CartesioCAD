@@ -71,6 +71,8 @@ struct BoardOptions {
     bool terminals = true;          // morsettiera nelle file in basso
     RiserMode risers = RiserMode::Auto;  // risalita dei cavi (quadri a pavimento)
     double riserWidth = 0.0;        // larghezza del vano cavi scelta dall'utente (300, 400...); 0 = calcolata
+    std::string family;             // famiglia di blocchi del quadro: prima le sue carpenterie (o senza famiglia)
+    double dinRow = 0.0;            // altezza della fila DIN (quella delle piastre modulari); 0 = 150 mm
     bool busbars = true;            // colonna delle sbarre verticali accanto agli apparecchi (forme 2a e oltre)
     BoardEnvironment environment = BoardEnvironment::TechnicalRoom;
     BoardMounting mounting = BoardMounting::Auto;
@@ -93,12 +95,13 @@ struct EnclosureType {
     std::string blockFile;   // disegno del fronte (DWG/DXF) dal catalogo dell'utente; `block` = nome nel documento
     std::string blockName;   // blocco da prendere nel file (vuoto = tutto il disegno)
     std::string block;
+    std::string family;      // famiglia di blocchi (vuota = valida per tutte)
 };
 
 // Catalogo interno: solo tipi e misure tipiche, nessun produttore.
 std::vector<EnclosureType> builtinEnclosures();
 // Catalogo CSV (separatore ";" o ","; prima riga di intestazione):
-//   codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte[;blocco;nome_blocco]
+//   codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte[;blocco;nome_blocco[;famiglia]]
 // tipo = parete | pavimento | cassetta. Le righe non valide si saltano e si contano in `skipped`.
 std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* skipped = nullptr);
 
@@ -124,7 +127,7 @@ struct DeviceType {
 // CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello[;piastra
 //      [;famiglia]]]
 // tipo = modulare | differenziale | sezionatore | fusibile | spd | strumento | scatolato | scatolato-differenziale |
-//        sezionatore-scatolato | aperto | piastra-modulare | piastra-cieca | sbarre-verticali;
+//        sezionatore-scatolato | aperto | alimentatore | piastra-modulare | piastra-cieca | sbarre-verticali;
 // poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente; piastra = "si" quando il blocco
 // dell'apparecchio comprende la piastra (la fila prende l'altezza del blocco, senza margini).
 std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped = nullptr);
@@ -142,7 +145,10 @@ std::vector<DeviceFamily> parseDeviceFamilies(const std::string& csv);
 std::string assignFamilies(std::vector<BoardDevice>& devices, const std::vector<DeviceFamily>& families);
 // A ogni apparecchio la voce più specifica del catalogo (prima quelle con il modello trovato nello schema, poi
 // l'intervallo di corrente più stretto): misure, blocco, riferimento. Con le famiglie si cercano prima le voci
-// della famiglia dell'apparecchio (o senza famiglia), poi tutte. Restituisce gli apparecchi trovati.
+// della famiglia dell'apparecchio (o senza famiglia), poi tutte. Se nessuna voce ha poli e corrente adatti si
+// prende la più vicina dello stesso tipo (prima per corrente, poi per poli) e lo si scrive nella nota: ogni simbolo
+// dello schema finisce su un blocco, se il catalogo ha almeno una voce del suo tipo. Restituisce gli apparecchi
+// trovati.
 int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<DeviceType>& catalog);
 
 // Una zona del fronte, dall'alto in basso dentro una colonna.
@@ -215,6 +221,7 @@ struct BoardLayout {
     BusbarSpec mainBusbar;               // sbarre principali orizzontali (a pavimento), sulla corrente di arrivo
     double modules = 0.0;                // moduli DIN occupati
     double modulesInstalled = 0.0;       // moduli DIN disponibili nelle file previste
+    double dinRow = 150.0;               // altezza delle file DIN (mm)
     int terminals = 0;
     std::vector<std::string> warnings;
 };

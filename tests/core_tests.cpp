@@ -3209,7 +3209,13 @@ void testSwitchboard()
         CHECK(std::find(names.begin(), names.end(), "B_C3") != names.end());
     }
     std::vector<BoardDevice> gdevs = boards[1].devices;
-    CHECK(applyDeviceCatalog(gdevs, withBlocks) == 1 && gdevs[1].width == 185.0 && gdevs[1].block == "FRONTE");
+    const int gfound = applyDeviceCatalog(gdevs, withBlocks);
+    CHECK(gfound >= 1 && gdevs[1].width == 185.0 && gdevs[1].block == "FRONTE");
+    // Gli altri scatolati prendono la voce più vicina (nessun simbolo senza blocco), con la nota.
+    int nearestCount = 0;
+    for (const BoardDevice& d : gdevs)
+        nearestCount += d.note.find("voce più vicina") != std::string::npos ? 1 : 0;
+    CHECK(nearestCount == gfound - 1);
 
     // Disegno con i blocchi: l'apparecchio con il blocco presente nel documento diventa un inserimento, centrato nel
     // suo posto; gli altri restano disegnati.

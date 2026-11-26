@@ -489,6 +489,7 @@ std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* sk
         e.source = f.size() > 8 ? f[8] : std::string();
         e.blockFile = f.size() > 9 ? f[9] : std::string();
         e.blockName = f.size() > 10 ? f[10] : std::string();
+        e.family = f.size() > 11 ? f[11] : std::string();
         if (e.id.empty() || e.mounting == BoardMounting::Auto || e.width <= 0.0 || e.height <= 0.0 || e.depth <= 0.0
             || e.ip <= 0 || e.modulesPerRow <= 0) {
             ++bad;
@@ -538,6 +539,8 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
             t.residual = true;
         } else if (kind == "strumento")
             t.kind = K::Meter;
+        else if (kind == "alimentatore")
+            t.kind = K::Supply;
         else if (kind == "piastra-modulare")
             t.plate = DeviceType::Plate::Din;
         else if (kind == "piastra-cieca")
@@ -659,16 +662,28 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
     for (BoardDevice& d : devices) {
         const bool frameDevice = d.width > 0.0;   // scatolato, sezionatore scatolato o aperto
         const DeviceType* best = nullptr;
-        // Prima le voci della famiglia dell'apparecchio (o senza famiglia), poi tutte.
-        for (int pass = 0; pass < 2 && !best; ++pass)
+        double bestGap = 0.0;
+        bool approx = false;
+        // Distanza di una voce dall'apparecchio fuori dai suoi intervalli: corrente (relativa), poi poli.
+        const auto gap = [&d](const DeviceType& t) {
+            const double r = d.rated < t.ratedMin ? t.ratedMin - d.rated : d.rated > t.ratedMax ? d.rated - t.ratedMax : 0.0;
+            const int p = d.poles < t.polesMin ? t.polesMin - d.poles : d.poles > t.polesMax ? d.poles - t.polesMax : 0;
+            return r / std::max(1.0, d.rated) + p * 10.0;
+        };
+        // Prima le voci della famiglia dell'apparecchio (o senza famiglia), poi tutte; se nessuna ha poli e corrente
+        // adatti, la più vicina dello stesso tipo (prima nella famiglia, poi in tutte).
+        for (int pass = 0; pass < 4 && !best; ++pass)
         for (const DeviceType& t : catalog) {
             if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
                 || t.plate == DeviceType::Plate::Busbar)
                 continue;
-            if (pass == 0 && !t.family.empty() && !d.family.empty() && t.family != d.family)
+            if ((pass == 0 || pass == 2) && !t.family.empty() && !d.family.empty() && t.family != d.family)
                 continue;
-            if (t.kind != d.kind || d.poles < t.polesMin || d.poles > t.polesMax || d.rated < t.ratedMin - 1e-9
-                || d.rated > t.ratedMax + 1e-9)
+            if (t.kind != d.kind)
+                continue;
+            const bool nearest = pass >= 2;
+            if (!nearest && (d.poles < t.polesMin || d.poles > t.polesMax || d.rated < t.ratedMin - 1e-9
+                             || d.rated > t.ratedMax + 1e-9))
                 continue;
             const bool frameType = t.kind == K::MouldedCase || t.kind == K::AirCircuit || (t.kind == K::Switch
                                                                                           && t.modules <= 0.0);
@@ -683,12 +698,25 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
                 return std::tuple{x.model.empty() ? 1 : 0, x.residual == d.residual ? 0 : 1,
                                   (x.ratedMax - x.ratedMin) + (x.polesMax - x.polesMin)};
             };
+            if (nearest) {
+                const double g = gap(t) + (t.residual == d.residual ? 0.0 : 0.5);
+                if (!best || g < bestGap - 1e-9) {
+                    best = &t;
+                    bestGap = g;
+                    approx = true;
+                }
+                continue;
+            }
             if (!best || rank(t) < rank(*best))
                 best = &t;
         }
         if (!best)
             continue;
         ++found;
+        if (approx) {
+            const std::string what = "blocco della voce più vicina del catalogo (" + best->id + ")";
+            d.note = d.note.empty() ? what : d.note + ", " + what;
+        }
         if (frameDevice) {
             if (best->width > 0.0)
                 d.width = best->width;
@@ -717,7 +745,7 @@ namespace {
 
 // File DIN: apparecchi in ordine, senza spezzarli; poi le file di riserva fino alla capacità richiesta.
 std::vector<BoardSection> dinRows(const std::vector<BoardDevice>& devices, const std::vector<int>& modular, int perRow,
-                                  double reserve, double* used, double* installed)
+                                  double reserve, double* used, double* installed, double rowHeight)
 {
     std::vector<BoardSection> rows;
     double total = 0.0;
@@ -727,7 +755,7 @@ std::vector<BoardSection> dinRows(const std::vector<BoardDevice>& devices, const
         if (rows.empty() || rows.back().usedModules + m > perRow + 1e-9) {
             BoardSection s;
             s.kind = BoardSection::Kind::Modular;
-            s.height = kDinRow;
+            s.height = rowHeight;
             s.capacity = perRow;
             rows.push_back(s);
         }
@@ -739,7 +767,7 @@ std::vector<BoardSection> dinRows(const std::vector<BoardDevice>& devices, const
     while (capacity + 1e-9 < needed) {
         BoardSection s;
         s.kind = BoardSection::Kind::Modular;
-        s.height = kDinRow;
+        s.height = rowHeight;
         s.capacity = perRow;
         rows.push_back(s);
         capacity += perRow;
@@ -799,7 +827,7 @@ std::vector<BoardSection> mouldedRows(const std::vector<BoardDevice>& devices, c
     return rows;
 }
 
-std::vector<BoardSection> terminalRows(double width, int perRow, double reserve)
+std::vector<BoardSection> terminalRows(double width, int perRow, double reserve, double rowHeight)
 {
     std::vector<BoardSection> rows;
     const double rowWidth = perRow * kModule;
@@ -807,7 +835,7 @@ std::vector<BoardSection> terminalRows(double width, int perRow, double reserve)
     while (needed > 1e-9) {
         BoardSection s;
         s.kind = BoardSection::Kind::Terminals;
-        s.height = kDinRow;
+        s.height = rowHeight;
         s.usedModules = std::min(needed, rowWidth) / kModule;
         s.capacity = perRow;
         rows.push_back(s);
@@ -825,8 +853,20 @@ double sectionsHeight(const std::vector<BoardSection>& s)
 }
 
 const EnclosureType* chooseEnclosure(const std::vector<EnclosureType>& catalog, BoardMounting m, double w, double h,
-                                     double d, int ip)
+                                     double d, int ip, const std::string& family)
 {
+    // Con una famiglia: prima le carpenterie della famiglia o senza famiglia, poi tutte.
+    if (!family.empty()) {
+        std::vector<EnclosureType> own;
+        for (const EnclosureType& e : catalog)
+            if (e.family.empty() || e.family == family)
+                own.push_back(e);
+        if (const EnclosureType* e = chooseEnclosure(own, m, w, h, d, ip, std::string())) {
+            for (const EnclosureType& x : catalog)
+                if (x.id == e->id && x.family == e->family)
+                    return &x;
+        }
+    }
     // La più piccola che contiene tutto (poi la meno profonda, l'IP più basso, quella del catalogo dell'utente).
     const auto pick = [&](bool userOnly) {
         const EnclosureType* best = nullptr;
@@ -931,6 +971,7 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     L.devices = input.devices;
     L.incomer = input.incomer;
     L.ip = options.ip > 0 ? options.ip : proposedIp(options.environment);
+    L.dinRow = options.dinRow > 0.0 ? options.dinRow : kDinRow;
     L.form = options.form.empty() ? proposedForm(input.incomer) : options.form;
     L.terminals = options.terminals ? input.terminals.count : 0;
     const double reserve = std::clamp(options.reserve, 0.0, 2.0);
@@ -982,13 +1023,13 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
             for (const BoardSection& s : mouldedRows(L.devices, moulded, usable, reserve))
                 col.sections.push_back(s);
             double used = 0.0, installed = 0.0;
-            for (const BoardSection& s : dinRows(L.devices, modular, perRow, reserve, &used, &installed))
+            for (const BoardSection& s : dinRows(L.devices, modular, perRow, reserve, &used, &installed, L.dinRow))
                 col.sections.push_back(s);
-            for (const BoardSection& s : terminalRows(termWidth, perRow, reserve))
+            for (const BoardSection& s : terminalRows(termWidth, perRow, reserve, L.dinRow))
                 col.sections.push_back(s);
             const double h = sectionsHeight(col.sections) + (m == BoardMounting::Box ? 100.0 : kWallMargin);
             const double d = moulded.empty() ? (m == BoardMounting::Box ? 120.0 : 200.0) : 250.0;
-            if (const EnclosureType* e = chooseEnclosure(catalog, m, width, h, d, L.ip)) {
+            if (const EnclosureType* e = chooseEnclosure(catalog, m, width, h, d, L.ip, options.family)) {
                 L.mounting = m;
                 col.enclosure = *e;
                 col.enclosureFound = true;
@@ -1051,9 +1092,9 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     }
     std::vector<BoardSection> rest = mouldedRows(L.devices, moulded, usable, reserve);
     double used = 0.0, installed = 0.0;
-    for (const BoardSection& s : dinRows(L.devices, modular, perRow, reserve, &used, &installed))
+    for (const BoardSection& s : dinRows(L.devices, modular, perRow, reserve, &used, &installed, L.dinRow))
         rest.push_back(s);
-    for (const BoardSection& s : terminalRows(termWidth, perRow, reserve))
+    for (const BoardSection& s : terminalRows(termWidth, perRow, reserve, L.dinRow))
         rest.push_back(s);
     BoardColumn current;
     current.width = columnWidth;
@@ -1229,7 +1270,7 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     double depth = 0.0;
     for (BoardColumn& c : L.columns) {
         const double needed = c.required;
-        if (const EnclosureType* e = chooseEnclosure(catalog, BoardMounting::Floor, needed, kFloorHeight, L.depth, L.ip)) {
+        if (const EnclosureType* e = chooseEnclosure(catalog, BoardMounting::Floor, needed, kFloorHeight, L.depth, L.ip, options.family)) {
             c.enclosure = *e;
             c.enclosureFound = true;
             c.width = e->width;
@@ -1294,7 +1335,7 @@ int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
         }
         if (c.kind != BoardColumn::Kind::Devices)
             continue;
-        const double room = c.width - 2.0 * kSideMargin;
+        const double room = c.width;   // le piastre arrivano fino ai montanti della colonna
         // File DIN: la piastra modulare più stretta che contiene la guida (moduli della fila).
         double reference = 0.0;   // larghezza delle piastre della colonna, per le cieche
         for (BoardSection& s : c.sections) {
@@ -1527,9 +1568,19 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
         BBox frameBox;
         const bool withPlinth = blockExtent(doc, c.enclosure.block, &frameBox)
                                 && frameBox.max.y - frameBox.min.y >= height + plinth - 10.0;
-        const bool frameBlock = c.enclosureFound
-                                && insertBlock(c.enclosure.block, cx, withPlinth ? origin.y : y0, c.total(),
-                                               height + plinth, true);
+        // Centrata sulla colonna (alcuni blocchi comprendono i pannelli laterali), dal basso.
+        bool frameBlock = false;
+        if (c.enclosureFound && blockExtent(doc, c.enclosure.block, &frameBox)) {
+            const auto block = doc.findBlock(c.enclosure.block);
+            const Vec2 anchor{cx + c.total() / 2.0 - (frameBox.min.x + frameBox.max.x) / 2.0,
+                              (withPlinth ? origin.y : y0) - frameBox.min.y};
+            auto insert = std::make_unique<InsertEntity>(c.enclosure.block, anchor + block->base);
+            insert->block = block;
+            insert->setLayer(blocks);
+            insert->setColor(kColorByLayer);
+            out.push_back(std::move(insert));
+            frameBlock = true;
+        }
         if (!frameBlock)
             p.rect(p.frame, cx, y0, c.total(), height);
         if (c.kind == BoardColumn::Kind::Cable) {
@@ -1787,7 +1838,7 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
         }
         if (din)
             row({L.board, "File DIN con pannello finestrato", std::to_string(din),
-                 "h " + number(kDinRow) + " mm, " + decimal(L.modulesInstalled, 0) + " moduli installati", "", ""});
+                 "h " + number(L.dinRow) + " mm, " + decimal(L.modulesInstalled, 0) + " moduli installati", "", ""});
         if (L.modulesInstalled > L.modules)
             row({L.board, "Coprimoduli di riserva", decimal(std::floor(L.modulesInstalled - L.modules), 0), "moduli DIN",
                  "", ""});

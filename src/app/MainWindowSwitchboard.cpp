@@ -12,6 +12,7 @@
 
 #include <QAction>
 #include <algorithm>
+#include <cmath>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -182,13 +183,31 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
             continue;
         const std::string family = assignFamilies(in.devices, families);
         const int matched = deviceCatalog.empty() ? 0 : applyDeviceCatalog(in.devices, deviceCatalog);
-        BoardLayout L = layoutBoard(in, r.options, catalog);
+        // Opzioni del quadro: la sua famiglia (carpenterie) e l'altezza delle file DIN = la piastra modulare più
+        // bassa della famiglia (o di tutto il catalogo).
+        BoardOptions options = r.options;
+        options.family = family;
+        for (int pass = 0; pass < 2 && options.dinRow <= 0.0; ++pass)
+            for (const DeviceType& t : deviceCatalog)
+                if (t.plate == DeviceType::Plate::Din && !t.block.empty() && t.height > 0.0
+                    && (pass == 1 || t.family.empty() || t.family == family)
+                    && (options.dinRow <= 0.0 || t.height < options.dinRow))
+                    options.dinRow = std::round(t.height / 10.0) * 10.0;
+        BoardLayout L = layoutBoard(in, options, catalog);
         L.family = family;
         applyPlates(L, deviceCatalog);
         if (!deviceCatalog.empty() && matched < static_cast<int>(in.devices.size()))
             L.warnings.push_back(tr("%1 apparecchi su %2 senza voce nel catalogo: ingombri tipici")
                                      .arg(in.devices.size() - matched)
                                      .arg(in.devices.size())
+                                     .toStdString());
+        int nearest = 0;
+        for (const BoardDevice& d : in.devices)
+            nearest += d.note.find("voce più vicina") != std::string::npos ? 1 : 0;
+        if (nearest > 0)
+            L.warnings.push_back(tr("%1 apparecchi con il blocco della voce più vicina del catalogo (nessuna voce "
+                                    "con poli e corrente esatti): vedere le note nella distinta")
+                                     .arg(nearest)
                                      .toStdString());
         if (L.devices.empty()) {
             skipped << QString::fromStdString(in.board);
