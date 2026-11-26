@@ -117,7 +117,7 @@ Gli apparecchi si riconoscono da quanto è scritto nello schema, mai dal nome de
 - gli **SPD** (classe `T1+T2` o `T2`, o la descrizione), il **differenziale** e gli accessori indicati con `+`;
 - i **morsetti** dalla formazione dei cavi fino a 35 mm²; oltre, il cavo arriva all'apparecchio.
 
-Gli ingombri sono **valori tipici** (modulo DIN da 18 mm, file da 150 mm, scatolati e aperti per taglia di corrente): servono a dimensionare il quadro e vanno confermati sul catalogo prima dell'ordine. I quadri piccoli vanno a parete o in cassetta, quelli con scatolati grandi, aperti o molte file a pavimento in colonne affiancate.
+Gli ingombri sono **valori tipici** (modulo DIN da 18 mm, file da 150 mm, scatolati e aperti per taglia di corrente): servono a dimensionare il quadro e vanno confermati sul catalogo prima dell'ordine. I quadri piccoli vanno a parete o in cassetta, quelli con scatolati grandi, aperti o molte file a pavimento in colonne affiancate: gli aperti oltre 1600 A (gli arrivi) hanno una colonna ciascuno, gli altri si impilano nella stessa colonna finché c'è altezza.
 
 Nella finestra si scelgono:
 - **Quadri**: tutti, o le sigle separate da virgola;
@@ -154,17 +154,18 @@ Due colonne facoltative in fondo, `blocco;nome_blocco`, indicano il disegno del 
 Per disegnare il fronte con i **blocchi veri** degli apparecchi (le viste frontali 2D che i costruttori pubblicano nei loro siti) si indica un CSV, una riga per tipo di apparecchio:
 
 ```
-codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte
-SC630-4P;scatolato;4;251;630;;;;costruttore/scatolato630-4p-fronte.dxf;;Serie e codice;sito del costruttore
-MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;sito del costruttore
+codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello
+SC630-4P;scatolato;4;251;630;;;;costruttore/scatolato630-4p-fronte.dxf;;Serie e codice;sito del costruttore;SERIE6
+MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;sito del costruttore;
 ```
 
 - `tipo`: `modulare`, `differenziale` (modulare con il differenziale, moduli compresi), `sezionatore`, `fusibile`, `spd`, `scatolato`, `sezionatore-scatolato`, `aperto`;
 - `poli`: `4`, un intervallo come `3-4`, o vuoto per tutti; `in_min` e `in_max` in A (vuoti = qualsiasi corrente);
 - `moduli`, `larghezza`, `altezza`: vuoti = presi dall'ingombro del blocco (in mm; i moduli dalla larghezza a passo di 18 mm);
 - `blocco`: file DWG o DXF del fronte, relativo alla cartella del CSV; `nome_blocco` se il file contiene più blocchi.
+- `modello` (facoltativo): testo cercato, senza distinguere maiuscole, nel modello scritto nello schema (per esempio la sigla della serie): la voce che lo trova vince su quelle senza modello.
 
-A ogni apparecchio dello schema va la voce più specifica (il tipo `differenziale` per i circuiti con differenziale, poi l'intervallo di corrente più stretto); le sue misure sostituiscono quelle tipiche e servono a impaginare il quadro, e il blocco si inserisce centrato al suo posto (layer `FQ-BLOCCHI`), con la sigla del circuito sotto. Gli accessori in più (blocchi differenziali, strumenti) restano. Gli apparecchi senza voce mantengono gli ingombri tipici e il disegno generico; il programma dice quanti sono. Riferimento e fonte vanno nella distinta.
+A ogni apparecchio dello schema va la voce più specifica (prima quelle con il modello trovato nello schema, poi il tipo `differenziale` per i circuiti con differenziale, poi l'intervallo di corrente più stretto); le sue misure sostituiscono quelle tipiche e servono a impaginare il quadro, e il blocco si inserisce centrato al suo posto (layer `FQ-BLOCCHI`), con la sigla del circuito sotto. Gli accessori in più (blocchi differenziali, strumenti) restano. Gli apparecchi senza voce mantengono gli ingombri tipici e il disegno generico; il programma dice quanti sono. Riferimento e fonte vanno nella distinta.
 
 I blocchi dei costruttori sono protetti dal loro diritto d'autore: CartesioCAD non ne contiene, si scaricano dai siti dei costruttori e si usano secondo le loro condizioni, tenendoli in una cartella propria.
 

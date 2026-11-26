@@ -13,6 +13,7 @@
 #include <random>
 #include <regex>
 #include <set>
+#include <tuple>
 #include <sstream>
 
 namespace cartesio {
@@ -265,6 +266,7 @@ std::vector<BoardInput> boardsFromCircuits(const std::vector<Circuit>& circuits)
         BoardDevice d;
         d.circuit = c.code;
         d.description = c.description;
+        d.model = c.breakerModel;
         if (c.number != 0 && !contains(lower(c.cable), "nessuna linea"))
             cableBundle(c.cable, &d.cableArea, &d.cableSection);
         const std::string exec = lower(c.breakerExecution);
@@ -549,6 +551,7 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
         t.blockName = cell(9);
         t.reference = cell(10);
         t.source = cell(11);
+        t.model = cell(12);
         // Scatolati e aperti hanno larghezza (o il blocco); i modulari moduli, larghezza o blocco.
         if (t.id.empty() || !known || t.polesMin < 0 || t.polesMax < t.polesMin || t.ratedMax < t.ratedMin
             || (t.width <= 0.0 && t.modules <= 0.0 && t.blockFile.empty()) || (frame && t.modules > 0.0 && t.width <= 0.0
@@ -584,9 +587,12 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
                 continue;
             if (t.residual && !d.residual)
                 continue;
+            if (!t.model.empty() && lower(d.model).find(lower(t.model)) == std::string::npos)
+                continue;
             // Più specifica: differenziale per un apparecchio con differenziale, poi l'intervallo più stretto.
             const auto rank = [&d](const DeviceType& x) {
-                return std::pair{x.residual == d.residual ? 0 : 1, (x.ratedMax - x.ratedMin) + (x.polesMax - x.polesMin)};
+                return std::tuple{x.model.empty() ? 1 : 0, x.residual == d.residual ? 0 : 1,
+                                  (x.ratedMax - x.ratedMin) + (x.polesMax - x.polesMin)};
             };
             if (!best || rank(t) < rank(*best))
                 best = &t;
@@ -850,15 +856,29 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         columnWidth = std::max(columnWidth, airColumnWidth(L.devices[static_cast<std::size_t>(i)].width));
     const int perRow = columnWidth >= 800.0 ? 36 : 24;
     const double usable = columnWidth - 2.0 * kSideMargin;
-    for (const int i : air) {
-        BoardColumn c;
-        c.width = columnWidth;
+    // Aperti: dal più grande; oltre 1600 A (gli arrivi) una colonna ciascuno, gli altri impilati finché c'è altezza.
+    std::vector<int> airOrder = air;
+    std::stable_sort(airOrder.begin(), airOrder.end(), [&L](int a, int b) {
+        return L.devices[static_cast<std::size_t>(a)].rated > L.devices[static_cast<std::size_t>(b)].rated;
+    });
+    std::size_t openAir = std::string::npos;   // colonna di aperti con posto libero
+    for (const int i : airOrder) {
+        const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
         BoardSection s;
         s.kind = BoardSection::Kind::Air;
-        s.height = std::max(800.0, std::ceil((L.devices[static_cast<std::size_t>(i)].height + 300.0) / 100.0) * 100.0);
+        s.height = std::max(800.0, std::ceil((d.height + 300.0) / 100.0) * 100.0);
         s.devices = {i};
+        const bool alone = d.rated > 1600.0;
+        if (!alone && openAir != std::string::npos
+            && sectionsHeight(L.columns[openAir].sections) + s.height <= kFloorUsable + 1e-6) {
+            L.columns[openAir].sections.push_back(s);
+            continue;
+        }
+        BoardColumn c;
+        c.width = columnWidth;
         c.sections.push_back(s);
         L.columns.push_back(c);
+        openAir = alone ? std::string::npos : L.columns.size() - 1;
     }
     std::vector<BoardSection> rest = mouldedRows(L.devices, moulded, usable, reserve);
     double used = 0.0, installed = 0.0;

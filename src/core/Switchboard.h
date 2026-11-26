@@ -34,6 +34,7 @@ struct BoardDevice {
     double cableSection = 0.0; // mm², sezione del conduttore più grande della partenza
     // Dal catalogo degli apparecchi (applyDeviceCatalog): blocco da inserire nel disegno, riferimento e fonte.
     std::string block, reference, source;
+    std::string model;         // modello scritto nello schema (per il catalogo degli apparecchi)
 };
 
 const char* boardDeviceKindName(BoardDevice::Kind kind);
@@ -107,14 +108,15 @@ struct DeviceType {
     double modules = 0.0;             // moduli DIN (0 = dalla larghezza del blocco, o il valore tipico)
     double width = 0.0, height = 0.0; // mm del fronte (0 = dal blocco)
     std::string blockFile, blockName, reference, source;
+    std::string model;                // testo da cercare nel modello dello schema (vuoto = qualsiasi)
     std::string block;                // nome del blocco nel documento (lo assegna chi carica i file)
 };
-// CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte
+// CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello]
 // tipo = modulare | differenziale | sezionatore | fusibile | spd | scatolato | sezionatore-scatolato | aperto;
 // poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente.
 std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped = nullptr);
-// A ogni apparecchio la voce più specifica del catalogo (intervallo di corrente più stretto): misure, blocco,
-// riferimento. Restituisce gli apparecchi trovati.
+// A ogni apparecchio la voce più specifica del catalogo (prima quelle con il modello trovato nello schema, poi
+// l'intervallo di corrente più stretto): misure, blocco, riferimento. Restituisce gli apparecchi trovati.
 int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<DeviceType>& catalog);
 
 // Una zona del fronte, dall'alto in basso dentro una colonna.

@@ -3032,6 +3032,19 @@ void testSwitchboard()
     CHECK(devs[1].block == "FQ_M2D" && devs[1].modules == 4.5 && devs[1].reference == "Serie A diff.");
     CHECK(devs[2].block == "FQ_M2" && devs[2].modules == 1.0);
     CHECK(devs[0].block.empty() && devs[3].block.empty());
+    // Con il modello: la voce che lo nomina vince su quella generica.
+    auto byModel = withBlocks;
+    DeviceType special = withBlocks[0];
+    special.id = "SERIE-X";
+    special.model = "serie +";
+    special.block = "FQ_X";
+    byModel.push_back(special);
+    std::vector<BoardDevice> mdevs = boards[0].devices;
+    mdevs[2].model = "SERIE + ALTRO";
+    applyDeviceCatalog(mdevs, byModel);
+    CHECK(mdevs[2].block == "FQ_X" && mdevs[4].block == "FQ_M2");
+    CHECK(parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello\n"
+                             "A;modulare;2;;;2;;;;;;;iC\n")[0].model == "iC");
     std::vector<BoardDevice> gdevs = boards[1].devices;
     CHECK(applyDeviceCatalog(gdevs, withBlocks) == 1 && gdevs[1].width == 185.0 && gdevs[1].block == "FRONTE");
 
