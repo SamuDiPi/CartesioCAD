@@ -6883,6 +6883,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>   block not loaded: %1</translation>
     </message>
     <message>
+        <source>   marca %1 non dichiarata nel catalogo degli apparecchi: valgono le voci senza marca e le più vicine</source>
+        <translation>   brand %1 not declared in the device catalog: entries without a brand and the nearest ones apply</translation>
+    </message>
+    <message>
         <source>   %1 voci dei cataloghi saltate: il file del blocco non c&apos;è (vale la voce successiva).</source>
         <translation>   %1 catalog entries skipped: the block file is missing (the next entry applies).</translation>
     </message>
@@ -6941,6 +6945,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Fronte quadro: %1 quadri. Ingombri tipici: confermarli sul catalogo della carpenteria e degli apparecchi.</source>
         <translation>Switchboard front: %1 switchboards. Typical dimensions: confirm them in the enclosure and device catalogs.</translation>
+    </message>
+    <message>
+        <source>Automatica (dallo schema)</source>
+        <translation>Automatic (from the diagram)</translation>
     </message>
     <message>
         <source>Schema</source>
@@ -7049,6 +7057,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>400 mm</source>
         <translation>400 mm</translation>
+    </message>
+    <message>
+        <source>Marca dei blocchi:</source>
+        <translation>Block brand:</translation>
     </message>
     <message>
         <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo delle carpenterie ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte;blocco;nome_blocco, quello degli apparecchi codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte (blocchi DWG o DXF in mm, accanto al CSV).</source>

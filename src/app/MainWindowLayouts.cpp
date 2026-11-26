@@ -1363,7 +1363,7 @@ bool MainWindow::runScript(const QString& path)
                 continue;
             }
             // Fronte quadro negli script: -FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file] [CSV file] [CATALOGO file]
-            // [APPARECCHI file] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [VANOCAVI 300]
+            // [APPARECCHI file] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [VANOCAVI 300] [FAMIGLIA nome]
             // [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]
             if (word == QLatin1String("-FRONTEQUADRO")) {
                 SwitchboardRequest r;
@@ -1377,7 +1377,8 @@ bool MainWindow::runScript(const QString& path)
                                                     QStringLiteral("CATALOGO"), QStringLiteral("IP"), QStringLiteral("FORMA"),
                                                     QStringLiteral("RISERVA"), QStringLiteral("AMBIENTE"),
                                                     QStringLiteral("MONTAGGIO"), QStringLiteral("RISALITA"),
-                                                    QStringLiteral("APPARECCHI"), QStringLiteral("VANOCAVI")}.contains(key);
+                                                    QStringLiteral("APPARECCHI"), QStringLiteral("VANOCAVI"),
+                                                    QStringLiteral("FAMIGLIA")}.contains(key);
                     const QString value = valued ? nextToken() : QString();
                     if (key == QLatin1String("QUADRI"))
                         r.boards = value;
@@ -1401,6 +1402,8 @@ bool MainWindow::runScript(const QString& path)
                         r.options.terminals = false;
                     else if (key == QLatin1String("RISALITA"))
                         r.options.risers = static_cast<RiserMode>(std::clamp(value.toInt(), 0, 3));
+                    else if (key == QLatin1String("FAMIGLIA"))
+                        r.family = value;
                     else if (key == QLatin1String("VANOCAVI"))
                         r.options.riserWidth = std::clamp(value.toDouble(), 0.0, 1200.0);
                     else if (key == QLatin1String("SENZASBARRE"))

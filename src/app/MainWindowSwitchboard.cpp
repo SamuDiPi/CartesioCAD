@@ -169,6 +169,11 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     }
     for (const QString& f : failedBlocks)
         print(tr("   blocco non caricato: %1").arg(f));
+    if (!r.family.isEmpty()
+        && std::none_of(families.begin(), families.end(),
+                        [&r](const DeviceFamily& f) { return QString::fromStdString(f.name) == r.family; }))
+        print(tr("   marca %1 non dichiarata nel catalogo degli apparecchi: valgono le voci senza marca e le più "
+                 "vicine").arg(r.family));
     if (missingBlocks > 0)
         print(tr("   %1 voci dei cataloghi saltate: il file del blocco non c'è (vale la voce successiva).")
                   .arg(missingBlocks));
@@ -181,7 +186,13 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     for (BoardInput in : boardsFromCircuits(circuits)) {
         if (!wanted.isEmpty() && !wanted.contains(QString::fromStdString(in.board).toUpper()))
             continue;
-        const std::string family = assignFamilies(in.devices, families);
+        // Marca scelta dall'utente: vale per tutti gli apparecchi del quadro; altrimenti si riconosce dallo schema.
+        std::string family = assignFamilies(in.devices, families);
+        if (!r.family.isEmpty()) {
+            family = r.family.toStdString();
+            for (BoardDevice& d : in.devices)
+                d.family = family;
+        }
         const int matched = deviceCatalog.empty() ? 0 : applyDeviceCatalog(in.devices, deviceCatalog);
         // Opzioni del quadro: la sua famiglia (carpenterie) e l'altezza delle file DIN = la piastra modulare più
         // bassa della famiglia (o di tutto il catalogo).
@@ -318,6 +329,14 @@ void MainWindow::showSwitchboardFront()
         r.catalog = standard(QStringLiteral("CartesioCAD-cataloghi/carpenterie.csv"));
     if (r.devices.isEmpty())
         r.devices = standard(QStringLiteral("CartesioCAD-blocchi/apparecchi.csv"));
+    // Marche (famiglie di blocchi) dichiarate nel catalogo degli apparecchi: scelta automatica (dallo schema) o fissa.
+    r.family = s.value(QStringLiteral("FronteQuadro/family")).toString();
+    QList<QPair<QString, QVariant>> brands{{tr("Automatica (dallo schema)"), QString()}};
+    if (QFile file(r.devices); !r.devices.isEmpty() && file.open(QIODevice::ReadOnly))
+        for (const DeviceFamily& f : parseDeviceFamilies(file.readAll().toStdString()))
+            brands.append({QString::fromStdString(f.name), QString::fromStdString(f.name)});
+    if (std::none_of(brands.begin(), brands.end(), [&r](const auto& b) { return b.second.toString() == r.family; }))
+        r.family.clear();
     bool newDrawing = s.value(QStringLiteral("FronteQuadro/newDrawing"), true).toBool();
     bool ifc = s.value(QStringLiteral("FronteQuadro/ifc"), true).toBool();
     bool csv = s.value(QStringLiteral("FronteQuadro/csv"), true).toBool();
@@ -355,6 +374,7 @@ void MainWindow::showSwitchboardFront()
                 tr("vuoto = tipi generici"), tr("CSV (*.csv)"));
     dialog.path(tr("Catalogo apparecchi con i blocchi (CSV):"), r.devices, FormDialog::OpenFile,
                 tr("vuoto = ingombri tipici"), tr("CSV (*.csv)"));
+    dialog.choice(tr("Marca dei blocchi:"), brands, r.family, [&r](const QVariant& v) { r.family = v.toString(); });
     dialog.group(tr("Risultato"));
     dialog.check(tr("Disegno in un nuovo disegno (altrimenti in quello aperto)"), newDrawing);
     dialog.check(tr("File IFC per il BIM"), ifc);
@@ -383,6 +403,7 @@ void MainWindow::showSwitchboardFront()
     s.setValue(QStringLiteral("FronteQuadro/riserWidth"), riserWidth);
     s.setValue(QStringLiteral("FronteQuadro/busbars"), busbars);
     s.setValue(QStringLiteral("FronteQuadro/devices"), r.devices);
+    s.setValue(QStringLiteral("FronteQuadro/family"), r.family);
     s.setValue(QStringLiteral("FronteQuadro/newDrawing"), newDrawing);
     s.setValue(QStringLiteral("FronteQuadro/ifc"), ifc);
     s.setValue(QStringLiteral("FronteQuadro/csv"), csv);
