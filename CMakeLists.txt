@@ -47,6 +47,7 @@ add_library(cartesio_core STATIC
     src/core/FindReplace.cpp
     src/core/QuickSelect.h
     src/core/QuickSelect.cpp
+    src/core/DataExport.cpp
     src/core/InputParser.cpp
     src/core/commands/CommandManager.cpp
     src/core/commands/Selection.cpp
@@ -125,6 +126,8 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowAttributes.cpp
         src/app/MainWindowFind.cpp
         src/app/MainWindowQuickSelect.cpp
+        src/app/CommandLineTool.cpp
+        src/app/ConvertFile.h
         src/app/MainWindowDiag.cpp
         src/app/MainWindowConvert.cpp
         src/app/MainWindowTransmit.cpp
@@ -273,6 +276,14 @@ if(CARTESIO_BUILD_APP)
     target_compile_definitions(cartesio-mcp PRIVATE CARTESIO_VERSION="${PROJECT_VERSION}")
     add_dependencies(CartesioCAD cartesio-mcp)
 
+    # Riga di comando su Windows (CartesioCAD.exe non ha console): cartesio-cli.exe avvia CartesioCAD.exe della sua
+    # cartella con --converti / --csv, ne mostra i messaggi nel terminale e restituisce il codice di uscita.
+    if(WIN32)
+        add_executable(cartesio-cli src/cli/main.cpp)
+        target_link_libraries(cartesio-cli PRIVATE Qt6::Core)
+        add_dependencies(CartesioCAD cartesio-cli)
+    endif()
+
     # Supporto DWG: i convertitori di LibreDWG (compilati con le correzioni da scripts/build-libredwg.sh, o
     # quelli ufficiali di scripts/fetch-libredwg.sh) vengono copiati nella cartella "libredwg" accanto all'eseguibile.
     set(CARTESIO_LIBREDWG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/libredwg-0.14.8413"
@@ -358,7 +369,7 @@ if(CARTESIO_BUILD_APP)
             COMMENT "Copia delle DLL accanto a CartesioCAD.exe"
             VERBATIM)
 
-        install(TARGETS CartesioCAD cartesio-mcp RUNTIME DESTINATION .)
+        install(TARGETS CartesioCAD cartesio-mcp cartesio-cli RUNTIME DESTINATION .)
         install(CODE "execute_process(COMMAND \"${CMAKE_COMMAND}\"
             \"-DEXE=\${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:CartesioCAD>\"
             \"-DPLATFORM_PLUGIN=$<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>\"

@@ -4,9 +4,11 @@
 #include "app/MainWindow.h"
 
 #include "app/AppOptions.h"
+#include "app/ConvertFile.h"
 #include "app/DrawingWidget.h"
 #include "app/FormDialog.h"
 #include "app/PlotEngine.h"
+#include "core/DataExport.h"
 #include "core/DocCompare.h"
 
 #include <QCoreApplication>
@@ -17,6 +19,9 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QMessageBox>
+#include <QSaveFile>
+#include <QStandardPaths>
 #include <QProgressDialog>
 #include <QSettings>
 #include <QTextStream>
@@ -66,6 +71,92 @@ bool readInBackground(const QString& path, Document& doc, QString* error, DxfRea
 }
 
 } // namespace
+
+int convertFormatFromPath(const QString& path)
+{
+    const QString ext = QFileInfo(path).suffix().toLower();
+    return ext == QLatin1String("dxf") ? ConvertFileDxf2000
+           : ext == QLatin1String("dwg") ? ConvertFileDwg
+           : ext == QLatin1String("pdf") ? ConvertFilePdf
+                                         : -1;
+}
+
+ConvertFileResult convertDrawingFile(const QString& file, const QString& destination, int format, bool verify,
+                                     const DraftSettings& settings, bool inThread)
+{
+    ConvertFileResult r;
+    Document doc;
+    DxfReadResult result;
+    const bool read = inThread ? readInBackground(file, doc, &r.error, &result)
+                               : DrawingWidget::readFile(file, doc, &r.error, &result);
+    if (!read)
+        return r;
+    DrawingWidget::loadXrefs(file, doc, result);
+    // Un disegno nascosto fa da tramite: stessa scrittura (DXF/DWG) e stessa stampa (PDF) dei comandi normali.
+    DrawingWidget drawing(settings, QFileInfo(file).fileName());
+    drawing.adopt(std::move(doc), file, result, nullptr);
+    const DocSummary before = summarizeDocument(drawing.document());
+    r.objects = before.total;
+    r.stage = ConvertFileResult::Write;
+    bool ok = false;
+    if (format == ConvertFilePdf) {
+        // I layout con qualcosa sopra (i Layout1/Layout2 vuoti dei modelli no); nessuno: il modello.
+        std::set<int> used;
+        for (const auto& e : drawing.document().entities())
+            if (e->space() > 0)
+                used.insert(e->space());
+        std::vector<PlotJob> jobs;
+        for (const Layout& l : drawing.document().layouts())
+            if (used.count(l.id))
+                jobs.push_back(plotJobFor(drawing, l.id));
+        if (jobs.empty()) {
+            PlotJob model = plotJobFor(drawing, 0);
+            // Senza schermo "Schermo" e "Vista" non hanno senso: estensioni adattate al foglio, centrate, con
+            // l'orientamento del disegno.
+            if (model.settings.plotType == PlotType::Display || model.settings.plotType == PlotType::View
+                || model.settings.plotType == PlotType::Layout) {
+                model.settings.plotType = PlotType::Extents;
+                model.settings.setFlag(kPlotUseStandardScale, true);
+                model.settings.standardScaleType = 0;
+                model.settings.setFlag(kPlotCentered, true);
+                const BBox ext = drawing.document().extents(0);
+                if (ext.isValid())
+                    setOrientation(model.settings, ext.width() >= ext.height(), false);
+            }
+            jobs.push_back(model);
+        }
+        ok = plotJobsToPdf(drawing, destination, jobs, &r.error);
+    } else {
+        const DxfVersion version = format == ConvertFileDxfR12 ? DxfVersion::R12 : DxfVersion::R2000;
+        ok = drawing.saveTo(destination, &r.error, version);
+    }
+    if (!ok)
+        return r;
+    r.stage = ConvertFileResult::Done;
+    if (verify && format != ConvertFilePdf) {
+        Document again;
+        QString readError;
+        const bool reread = inThread ? readInBackground(destination, again, &readError, nullptr)
+                                     : DrawingWidget::readFile(destination, again, &readError);
+        if (!reread) {
+            r.verifyProblem = readError;
+        } else {
+            const DocComparison c = compareSummaries(before, summarizeDocument(again));
+            if (c.identical()) {
+                r.verified = true;
+            } else {
+                r.verifyProblem = QString::number(c.differences.size());
+                const QString detail = QString::fromStdString(c.report(8));
+                for (const QString& d : detail.split(QLatin1Char('\n')).mid(1))
+                    if (!d.trimmed().isEmpty())
+                        r.differences << d.trimmed();
+                if (r.differences.isEmpty())
+                    r.differences << QObject::tr("%1 differenze").arg(c.differences.size());
+            }
+        }
+    }
+    return r;
+}
 
 void MainWindow::showBatchConvert()
 {
@@ -177,82 +268,33 @@ QString MainWindow::runBatchConvert(const BatchConvertOptions& options, bool int
         QElapsedTimer timer;
         timer.start();
 
-        Document doc;
-        QString error;
-        DxfReadResult result;
-        const bool read = interactive ? readInBackground(file, doc, &error, &result)
-                                      : DrawingWidget::readFile(file, doc, &error, &result);
-        if (!read) {
-            lines << tr("ERRORE   %1: lettura non riuscita (%2).").arg(relative, error.simplified().left(300));
+        const ConvertFileResult r = convertDrawingFile(file, destination, options.format, options.verify, settings_, interactive);
+        if (r.stage == ConvertFileResult::Read) {
+            lines << tr("ERRORE   %1: lettura non riuscita (%2).").arg(relative, r.error.simplified().left(300));
             ++failed;
             continue;
         }
-        DrawingWidget::loadXrefs(file, doc, result);
-        // Un disegno nascosto fa da tramite: stessa scrittura (DXF/DWG) e stessa stampa (PDF) dei comandi normali.
-        DrawingWidget drawing(settings_, QFileInfo(file).fileName());
-        drawing.adopt(std::move(doc), file, result, nullptr);
-        const DocSummary before = summarizeDocument(drawing.document());
-        bool ok = false;
-        if (options.format == ConvertPdf) {
-            // I layout con qualcosa sopra (i Layout1/Layout2 vuoti dei modelli no); nessuno: il modello.
-            std::set<int> used;
-            for (const auto& e : drawing.document().entities())
-                if (e->space() > 0)
-                    used.insert(e->space());
-            std::vector<PlotJob> jobs;
-            for (const Layout& l : drawing.document().layouts())
-                if (used.count(l.id))
-                    jobs.push_back(plotJobFor(drawing, l.id));
-            if (jobs.empty()) {
-                PlotJob model = plotJobFor(drawing, 0);
-                // Senza schermo "Schermo" e "Vista" non hanno senso: estensioni adattate al foglio, centrate, con
-                // l'orientamento del disegno.
-                if (model.settings.plotType == PlotType::Display || model.settings.plotType == PlotType::View
-                    || model.settings.plotType == PlotType::Layout) {
-                    model.settings.plotType = PlotType::Extents;
-                    model.settings.setFlag(kPlotUseStandardScale, true);
-                    model.settings.standardScaleType = 0;
-                    model.settings.setFlag(kPlotCentered, true);
-                    const BBox ext = drawing.document().extents(0);
-                    if (ext.isValid())
-                        setOrientation(model.settings, ext.width() >= ext.height(), false);
-                }
-                jobs.push_back(model);
-            }
-            ok = plotJobsToPdf(drawing, destination, jobs, &error);
-        } else {
-            const DxfVersion version = options.format == ConvertDxfR12 ? DxfVersion::R12 : DxfVersion::R2000;
-            ok = drawing.saveTo(destination, &error, version);
-        }
-        if (!ok) {
-            lines << tr("ERRORE   %1: scrittura non riuscita (%2).").arg(relative, error.simplified().left(300));
+        if (r.stage == ConvertFileResult::Write) {
+            lines << tr("ERRORE   %1: scrittura non riuscita (%2).").arg(relative, r.error.simplified().left(300));
             ++failed;
             continue;
         }
         ++converted;
         QString line = tr("OK       %1 -> %2 (%3 oggetti, %4 s)")
                            .arg(relative, target.relativeFilePath(destination))
-                           .arg(before.total)
+                           .arg(r.objects)
                            .arg(timer.elapsed() / 1000.0, 0, 'f', 1);
         if (options.verify && options.format != ConvertPdf) {
-            Document again;
-            QString readError;
-            const bool reread = interactive ? readInBackground(destination, again, &readError, nullptr)
-                                            : DrawingWidget::readFile(destination, again, &readError);
-            if (!reread) {
-                line += tr("  VERIFICA: il file scritto non si rilegge (%1).").arg(readError.simplified().left(200));
+            if (r.verified) {
+                line += tr("  verificato");
+            } else if (r.differences.isEmpty()) {
+                line += tr("  VERIFICA: il file scritto non si rilegge (%1).").arg(r.verifyProblem.simplified().left(200));
                 ++withDifferences;
             } else {
-                const DocComparison c = compareSummaries(before, summarizeDocument(again));
-                if (c.identical()) {
-                    line += tr("  verificato");
-                } else {
-                    ++withDifferences;
-                    line += tr("  VERIFICA: %1 differenze").arg(c.differences.size());
-                    const QString detail = QString::fromStdString(c.report(8));
-                    for (const QString& d : detail.split(QLatin1Char('\n')).mid(1))
-                        line += QLatin1Char('\n') + QStringLiteral("           ") + d.trimmed();
-                }
+                ++withDifferences;
+                line += tr("  VERIFICA: %1 differenze").arg(r.verifyProblem);
+                for (const QString& d : r.differences)
+                    line += QLatin1Char('\n') + QStringLiteral("           ") + d;
             }
         }
         lines << line;
@@ -281,6 +323,84 @@ QString MainWindow::runBatchConvert(const BatchConvertOptions& options, bool int
     }
     print(tr("Conversione in serie terminata: %1 Rapporto: %2").arg(summary, QDir::toNativeSeparators(reportPath)));
     return reportPath;
+}
+
+// ------------------------------------------------------------------ ESTRAIDATI
+
+bool MainWindow::writeDataExport(DrawingWidget* d, const QString& path, const DataExportOptions& options)
+{
+    const DataExportResult r = exportData(d->document(), options);
+    QSaveFile file(path);
+    // Con il BOM UTF-8 Excel riconosce le lettere accentate.
+    if (!file.open(QIODevice::WriteOnly) || file.write("\xEF\xBB\xBF") < 0
+        || file.write(r.csv.data(), static_cast<qint64>(r.csv.size())) < 0 || !file.commit()) {
+        print(tr("Impossibile scrivere %1.").arg(QDir::toNativeSeparators(path)));
+        return false;
+    }
+    print(tr("Dati estratti (%1): %2 righe in %3.")
+              .arg(options.mode == DataExportOptions::Mode::Count     ? tr("distinta dei blocchi")
+                   : options.mode == DataExportOptions::Mode::Objects ? tr("oggetti")
+                                                                      : tr("blocchi con attributi"))
+              .arg(r.rows)
+              .arg(QDir::toNativeSeparators(path)));
+    return true;
+}
+
+void MainWindow::showDataExport()
+{
+    DrawingWidget* d = current();
+    if (!d) {
+        print(tr("ESTRAIDATI: nessun disegno aperto."));
+        return;
+    }
+    QSettings s = convertSettings();
+    DataExportOptions o;
+    int mode = s.value(QStringLiteral("DataExport/mode"), 0).toInt();
+    bool onlySelection = !d->selection().empty();
+    bool layouts = s.value(QStringLiteral("DataExport/layouts"), true).toBool();
+    int separator = s.value(QStringLiteral("DataExport/separator"), 0).toInt();
+    const QFileInfo drawing(d->filePath());
+    QString path = drawing.fileName().isEmpty()
+                       ? QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).filePath(tr("dati.csv"))
+                       : drawing.dir().filePath(drawing.completeBaseName() + tr("-dati.csv"));
+
+    FormDialog dialog(tr("Estrai dati in CSV"), FormDialog::Ok | FormDialog::Cancel, this);
+    dialog.group(tr("Cosa"));
+    dialog.choice(tr("Tabella:"),
+                  {{tr("Blocchi con attributi (una riga per blocco)"), 0},
+                   {tr("Distinta dei blocchi (con le quantità)"), 1},
+                   {tr("Tutti gli oggetti (lunghezze, aree, testi)"), 2}},
+                  mode, [&mode](const QVariant& v) { mode = v.toInt(); });
+    const int only = dialog.check(tr("Solo gli oggetti selezionati (%1)").arg(d->selection().size()), onlySelection);
+    if (d->selection().empty())
+        dialog.setFieldValue(only, false);
+    dialog.check(tr("Anche gli oggetti dei layout (oltre al modello)"), layouts);
+    dialog.group(tr("File"));
+    dialog.choice(tr("Formato:"),
+                  {{tr("Excel in italiano (\";\" e virgola decimale)"), 0},
+                   {tr("CSV standard (\",\" e punto decimale)"), 1}},
+                  separator, [&separator](const QVariant& v) { separator = v.toInt(); });
+    dialog.path(tr("Salva in:"), path, FormDialog::SaveFile, QString(), tr("Tabella CSV (*.csv)"));
+    dialog.note(tr("I testi che iniziano con = + - @ prendono un apostrofo davanti, così il foglio di calcolo non li "
+                   "esegue come formule."));
+    dialog.setSize(640, 420);
+    if (dialog.exec() != QDialog::Accepted || path.isEmpty())
+        return;
+    if (!path.endsWith(QLatin1String(".csv"), Qt::CaseInsensitive))
+        path += QStringLiteral(".csv");
+    if (QFileInfo::exists(path)
+        && QMessageBox::question(this, tr("Estrai dati in CSV"), tr("%1 esiste già. Sostituirlo?").arg(QDir::toNativeSeparators(path)))
+               != QMessageBox::Yes)
+        return;
+    s.setValue(QStringLiteral("DataExport/mode"), mode);
+    s.setValue(QStringLiteral("DataExport/layouts"), layouts);
+    s.setValue(QStringLiteral("DataExport/separator"), separator);
+    o.mode = mode == 1 ? DataExportOptions::Mode::Count : mode == 2 ? DataExportOptions::Mode::Objects : DataExportOptions::Mode::Blocks;
+    if (onlySelection && !d->selection().empty())
+        o.only = d->selection();
+    o.layouts = layouts;
+    o.separator = separator == 1 ? ',' : ';';
+    writeDataExport(d, path, o);
 }
 
 } // namespace cartesio

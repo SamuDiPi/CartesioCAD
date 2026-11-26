@@ -1,3 +1,4 @@
+#include "app/CommandLineTool.h"
 #include "app/MainWindow.h"
 #include "app/Theme.h"
 #include "app/Updater.h"
@@ -31,6 +32,12 @@ int main(int argc, char* argv[])
         if (code >= 0)
             return code;
     }
+    // Conversione e dati in CSV dalla riga di comando del sistema: senza finestra (su Linux anche senza schermo).
+    const bool tool = cartesio::isCommandLineTool(QStringList(argv, argv + argc));
+#ifdef Q_OS_LINUX
+    if (tool && !qEnvironmentVariableIsSet("QT_QPA_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+#endif
 #ifdef CARTESIO_HAS_WEBENGINE
     // Qt WebEngine (scheda CanaloCAD su Linux) vuole i contesti OpenGL condivisi prima di creare l'applicazione.
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
@@ -64,6 +71,9 @@ int main(int argc, char* argv[])
         if (english && translator.load(QStringLiteral(":/i18n/cartesiocad_en.qm")))
             QCoreApplication::installTranslator(&translator);
     }
+
+    if (tool)
+        return cartesio::runCommandLineTool(QApplication::arguments());
 
     cartesio::MainWindow window;
     window.showMaximized();

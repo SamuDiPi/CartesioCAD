@@ -71,6 +71,22 @@ jobs:
           if grep -E "of null|corrupted|double free|free\(\)" uscita.log; then echo "errori alla chiusura"; exit 1; fi
           test "$rc" -eq 0
 
+      - name: Riga di comando (--converti e --csv, senza finestra)
+        run: |
+          cd prova
+          rc=0
+          flatpak run io.github.samudipi.CartesioCAD --versione || rc=$?
+          flatpak run io.github.samudipi.CartesioCAD --converti "$PWD/disegno.dxf" "$PWD/cli.pdf" || rc=$?
+          flatpak run io.github.samudipi.CartesioCAD --converti "$PWD/disegno.dxf" "$PWD/cli.dwg" --verifica || rc=$?
+          flatpak run io.github.samudipi.CartesioCAD --csv "$PWD/disegno.dxf" "$PWD/cli.csv" --modo oggetti || rc=$?
+          cat cli.csv
+          head -c 5 cli.pdf | grep -q '%PDF-'
+          test -s cli.dwg
+          grep -q "Cerchio" cli.csv
+          set +e; flatpak run io.github.samudipi.CartesioCAD --converti "$PWD/disegno.dxf" "$PWD/disegno.dxf"; same=$?; set -e
+          test "$same" -eq 1
+          test "$rc" -eq 0
+
       - name: Connettore dell'Assistente IA (come lo avvia Claude Code, senza schermo)
         run: |
           # Cartella di sessione dell'utente come su un desktop (sul runner non c'è): lì Flatpak mette la cartella

@@ -43,6 +43,39 @@ Converte tutti i DWG e DXF di una cartella (anche le sottocartelle, ricreate nel
 - *Verifica* (facoltativa): ogni file scritto si rilegge e si confronta con l'originale.
 - Nella cartella di destinazione si crea *Rapporto conversione.txt* con l'esito di ogni file; gli originali non si toccano.
 - Negli script: `-DWGCONVERT sorgente destinazione DXF|DXF12|DWG|PDF [SUB] [SOVRASCRIVI]`.
+- Dalla riga di comando del sistema, senza aprire il programma: `--converti` (vedi sotto).
+
+## Estrai dati in CSV (`ESTRAIDATI`, `ESPORTADATI`, `DATICSV`)
+
+**Dove:** pulsante dell'applicazione > Utilità disegno > *Estrai dati in CSV*.
+
+Scrive i dati del disegno in una tabella CSV da aprire con Excel o un altro foglio di calcolo (computi, distinte, elenchi di prese e utenze). Tre tabelle:
+- **Blocchi con attributi**: una riga per ogni blocco inserito, con nome, layer, spazio (modello o layout), posizione, rotazione e scala, e una colonna per ogni attributo (es. QUADRO, CIRCUITO, POTENZA).
+- **Distinta dei blocchi**: i blocchi con lo stesso nome e gli stessi valori degli attributi raggruppati in una riga, con la **quantità**.
+- **Tutti gli oggetti**: tipo, layer, colore, tipo di linea, spazio, punto di riferimento, **lunghezza** (linee, archi, polilinee, cerchi, ellissi, spline), **area** (cerchi, ellissi intere, polilinee chiuse) e testo o nome del blocco.
+
+Opzioni: solo gli oggetti selezionati, anche gli oggetti dei layout, formato *Excel in italiano* (separatore `;` e virgola decimale, predefinito) o *CSV standard* (`,` e punto decimale). Il file è in UTF-8 con il segno iniziale che Excel usa per riconoscere le lettere accentate.
+
+I testi che iniziano con `=`, `+`, `-` o `@` prendono un apostrofo davanti: un foglio di calcolo non li esegue come formule, anche se il disegno arriva da altri.
+
+Negli script: `-ESTRAIDATI file.csv [BLOCCHI|CONTEGGIO|OGGETTI] [SELEZIONE] [VIRGOLA] [SOLOMODELLO]` (il file si sostituisce se esiste).
+
+## Riga di comando del sistema (senza finestra)
+
+Conversioni e dati in CSV si possono fare da un terminale o da un file `.bat`, senza aprire CartesioCAD:
+- **Windows**: `cartesio-cli.exe`, nella cartella del programma (es. `"C:\Program Files\CartesioCAD\cartesio-cli.exe" --converti pianta.dwg pianta.pdf`).
+- **Linux** (Flatpak): `flatpak run io.github.samudipi.CartesioCAD --converti pianta.dwg pianta.pdf`.
+
+| Comando | Cosa fa |
+|---|---|
+| `--converti disegno uscita.dxf\|dwg\|pdf [--r12] [--verifica] [--sovrascrivi]` | Converte un disegno; il formato viene dall'estensione dell'uscita (`--r12`: DXF R12 invece di DXF 2000). |
+| `--converti cartella cartella-di-uscita --formato dxf\|dxf12\|dwg\|pdf [--sottocartelle] [--verifica] [--sovrascrivi]` | Converte tutti i DWG e DXF di una cartella, come `DWGCONVERT`. |
+| `--csv disegno uscita.csv [--modo blocchi\|conteggio\|oggetti] [--solo-modello] [--separatore ,] [--sovrascrivi]` | Dati del disegno in CSV, come `ESTRAIDATI`. |
+| `--versione`, `--aiuto` | Versione del programma ed elenco delle opzioni. |
+
+- `--verifica` rilegge ogni file scritto e lo confronta con l'originale.
+- Il file originale non viene mai sovrascritto; un file di uscita che esiste già si sostituisce solo con `--sovrascrivi`.
+- Codice di uscita (per gli script): 0 riuscito, 1 errore, 2 argomenti non validi, 3 convertito ma con differenze alla verifica.
 
 ## Controlla (`AUDIT`, `CONTROLLA`, `VERIFICA`)
 

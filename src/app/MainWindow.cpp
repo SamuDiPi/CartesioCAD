@@ -130,6 +130,7 @@ const QStringList kUiCommands = {
     QStringLiteral("AGGIORNAMENTI"), QStringLiteral("AGGIORNA"), QStringLiteral("VERSIONEPRECEDENTE"), QStringLiteral("ASSISTENTE"),
     QStringLiteral("LAYERSTATE"), QStringLiteral("LAS"), QStringLiteral("STATILAYER"),
     QStringLiteral("DWGCONVERT"), QStringLiteral("CONVERTI"), QStringLiteral("CONVERSIONE"),
+    QStringLiteral("ESTRAIDATI"), QStringLiteral("ESPORTADATI"), QStringLiteral("DATICSV"),
     QStringLiteral("BEDIT"), QStringLiteral("BE"), QStringLiteral("EDITBLOCCO"), QStringLiteral("BSAVE"), QStringLiteral("BS"),
     QStringLiteral("SALVABLOCCO"), QStringLiteral("BCLOSE"), QStringLiteral("BC"), QStringLiteral("CHIUDIBLOCCO"),
     QStringLiteral("NEW"), QStringLiteral("NUOVO"), QStringLiteral("OPEN"), QStringLiteral("APRI"),
@@ -482,6 +483,8 @@ QWidget* MainWindow::buildTopArea()
     drawingUtilities->addAction(tr("Controlla (AUDIT)"), this, [this] { runCommand(QStringLiteral("AUDIT")); });
     drawingUtilities->addAction(tr("Recupera un file danneggiato (RECOVER)..."), this, [this] { recoverFile(); });
     drawingUtilities->addAction(tr("Archivia per l'invio (ETRANSMIT)..."), this, [this] { etransmit(); });
+    drawingUtilities->addAction(tr("Estrai dati in CSV (ESTRAIDATI)..."), this, [this] { showDataExport(); });
+    drawingUtilities->addAction(tr("Conversione in serie (DWGCONVERT)..."), this, [this] { showBatchConvert(); });
     appMenu->addSeparator();
     recentMenu_ = appMenu->addMenu(tr("Documenti recenti"));
     appMenu->addSeparator();
@@ -2169,6 +2172,8 @@ bool MainWindow::handleUiCommand(const QString& word)
         later([this] { closeDrawingAt(fileTabs_->currentIndex()); });
     else if (is({"DWGCONVERT", "CONVERTI", "CONVERSIONE"}))
         later([this] { showBatchConvert(); });
+    else if (is({"ESTRAIDATI", "ESPORTADATI", "DATICSV"}))
+        later([this] { showDataExport(); });
     else if (is({"LAYERSTATE", "LAS", "STATILAYER"}))
         later([this] { showLayerStates(); });
     else if (is({"BEDIT", "BE", "EDITBLOCCO"}))
@@ -2430,6 +2435,7 @@ void MainWindow::showHelp()
     print(tr("          MEASUREGEOM (MEA, misura rapida)  COPYBASE (Ctrl+Maiusc+C)  ADDSELECTED"));
     print(tr("Stili:    STYLE (ST)  MLEADERSTYLE (MLS)  DIMSTYLE   Quote: DIMTEDIT  DIMEDIT   Disegno: SPLINE (SPL)"));
     print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE  ASSISTENTE"));
+    print(tr("          ESTRAIDATI (dati in CSV)  DWGCONVERT (conversione in serie)"));
     print(tr("Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS"));
     print(tr("          Tutto/Ultimo/Precedente/Rimuovi nelle richieste  ISOLATEOBJECTS  HIDEOBJECTS  UNISOLATEOBJECTS"));
     print(tr("Script:   SCRIPT (SCR)  SETVAR  -LAYER  COLOR  OSMODE  ORTHOMODE  TILEMODE  ATTREQ ..."));

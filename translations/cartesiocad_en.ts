@@ -2604,6 +2604,14 @@ Command: LAYON</translation>
         <translation>Archive for sending (ETRANSMIT)...</translation>
     </message>
     <message>
+        <source>Estrai dati in CSV (ESTRAIDATI)...</source>
+        <translation>Extract data to CSV (ESTRAIDATI)...</translation>
+    </message>
+    <message>
+        <source>Conversione in serie (DWGCONVERT)...</source>
+        <translation>Batch conversion (DWGCONVERT)...</translation>
+    </message>
+    <message>
         <source>Documenti recenti</source>
         <translation>Recent documents</translation>
     </message>
@@ -3362,6 +3370,10 @@ It is advisable to save a copy.</translation>
     <message>
         <source>File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE  ASSISTENTE</source>
         <translation>File:     AUDIT  RECOVER  ETRANSMIT (archive to send)  AGGIORNAMENTI  VERSIONEPRECEDENTE  ASSISTENTE</translation>
+    </message>
+    <message>
+        <source>          ESTRAIDATI (dati in CSV)  DWGCONVERT (conversione in serie)</source>
+        <translation>          ESTRAIDATI (data to CSV)  DWGCONVERT (batch conversion)</translation>
     </message>
     <message>
         <source>Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS</source>
@@ -4615,6 +4627,94 @@ comparison</translation>
         <translation>  CHECK: the written file cannot be read back (%1).</translation>
     </message>
     <message>
+        <source>Dati estratti (%1): %2 righe in %3.</source>
+        <translation>Data extracted (%1): %2 rows in %3.</translation>
+    </message>
+    <message>
+        <source>distinta dei blocchi</source>
+        <translation>block bill of materials</translation>
+    </message>
+    <message>
+        <source>oggetti</source>
+        <translation>objects</translation>
+    </message>
+    <message>
+        <source>blocchi con attributi</source>
+        <translation>blocks with attributes</translation>
+    </message>
+    <message>
+        <source>ESTRAIDATI: nessun disegno aperto.</source>
+        <translation>ESTRAIDATI: no drawing open.</translation>
+    </message>
+    <message>
+        <source>dati.csv</source>
+        <translation>data.csv</translation>
+    </message>
+    <message>
+        <source>-dati.csv</source>
+        <translation>-data.csv</translation>
+    </message>
+    <message>
+        <source>Estrai dati in CSV</source>
+        <translation>Extract data to CSV</translation>
+    </message>
+    <message>
+        <source>Cosa</source>
+        <translation>What</translation>
+    </message>
+    <message>
+        <source>Tabella:</source>
+        <translation>Table:</translation>
+    </message>
+    <message>
+        <source>Blocchi con attributi (una riga per blocco)</source>
+        <translation>Blocks with attributes (one row per block)</translation>
+    </message>
+    <message>
+        <source>Distinta dei blocchi (con le quantità)</source>
+        <translation>Block bill of materials (with quantities)</translation>
+    </message>
+    <message>
+        <source>Tutti gli oggetti (lunghezze, aree, testi)</source>
+        <translation>All objects (lengths, areas, texts)</translation>
+    </message>
+    <message>
+        <source>Excel in italiano (&quot;;&quot; e virgola decimale)</source>
+        <translation>Excel with Italian settings (&quot;;&quot; and decimal comma)</translation>
+    </message>
+    <message>
+        <source>CSV standard (&quot;,&quot; e punto decimale)</source>
+        <translation>Standard CSV (&quot;,&quot; and decimal point)</translation>
+    </message>
+    <message>
+        <source>Solo gli oggetti selezionati (%1)</source>
+        <translation>Only the selected objects (%1)</translation>
+    </message>
+    <message>
+        <source>Anche gli oggetti dei layout (oltre al modello)</source>
+        <translation>Also the objects in layouts (besides model space)</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>File</translation>
+    </message>
+    <message>
+        <source>Salva in:</source>
+        <translation>Save to:</translation>
+    </message>
+    <message>
+        <source>Tabella CSV (*.csv)</source>
+        <translation>CSV table (*.csv)</translation>
+    </message>
+    <message>
+        <source>I testi che iniziano con = + - @ prendono un apostrofo davanti, così il foglio di calcolo non li esegue come formule.</source>
+        <translation>Texts starting with = + - @ get a leading apostrophe, so the spreadsheet does not run them as formulas.</translation>
+    </message>
+    <message>
+        <source>%1 esiste già. Sostituirlo?</source>
+        <translation>%1 already exists. Replace it?</translation>
+    </message>
+    <message>
         <source>  verificato</source>
         <translation>  checked</translation>
     </message>
@@ -5077,6 +5177,10 @@ comparison</translation>
     <message>
         <source>-CURSORPNG: %1 x %2 pixel (rapporto %3), punto caldo %4,%5</source>
         <translation>-CURSORPNG: %1 x %2 pixels (ratio %3), hot spot %4,%5</translation>
+    </message>
+    <message>
+        <source>-ESTRAIDATI: opzione sconosciuta %1</source>
+        <translation>-ESTRAIDATI: unknown option %1</translation>
     </message>
     <message>
         <source>Stato ripristinato: %1 layer.</source>
@@ -9354,8 +9458,144 @@ With LibreDWG large drawings can take a few minutes.</translation>
         <translation>The LibreDWG converter did not produce the file.</translation>
     </message>
     <message>
+        <source>CartesioCAD %1 - riga di comando (senza finestra)
+
+  --converti &lt;disegno.dwg|dxf&gt; &lt;uscita.dxf|dwg|pdf&gt; [--r12] [--verifica] [--sovrascrivi]
+      Converte un disegno; il formato viene dall&apos;estensione dell&apos;uscita (--r12: DXF R12 invece di 2000).
+  --converti &lt;cartella&gt; &lt;cartella di uscita&gt; --formato dxf|dxf12|dwg|pdf [--sottocartelle] [--verifica] [--sovrascrivi]
+      Converte tutti i DWG/DXF di una cartella (con --sottocartelle anche quelli delle sottocartelle).
+  --csv &lt;disegno.dwg|dxf&gt; &lt;uscita.csv&gt; [--modo blocchi|conteggio|oggetti] [--solo-modello] [--separatore ,]
+      Dati del disegno in una tabella: blocchi con attributi (predefinito), distinta dei blocchi con le
+      quantità, oppure tutti gli oggetti con layer, lunghezza e area. Separatore predefinito &quot;;&quot; con la
+      virgola decimale (Excel in italiano); &quot;--separatore ,&quot; per il CSV standard.
+  --versione   --aiuto
+
+--verifica rilegge ogni file scritto e lo confronta con l&apos;originale. Il file originale non viene mai
+sovrascritto; un file di uscita già esistente solo con --sovrascrivi.
+Uscita: 0 riuscito, 1 errore, 2 argomenti non validi, 3 convertito ma con differenze alla verifica.</source>
+        <translation>CartesioCAD %1 - command line (no window)
+
+  --converti &lt;drawing.dwg|dxf&gt; &lt;output.dxf|dwg|pdf&gt; [--r12] [--verifica] [--sovrascrivi]
+      Converts a drawing; the format comes from the output extension (--r12: DXF R12 instead of 2000).
+  --converti &lt;folder&gt; &lt;output folder&gt; --formato dxf|dxf12|dwg|pdf [--sottocartelle] [--verifica] [--sovrascrivi]
+      Converts all DWG/DXF files in a folder (with --sottocartelle also those in subfolders).
+  --csv &lt;drawing.dwg|dxf&gt; &lt;output.csv&gt; [--modo blocchi|conteggio|oggetti] [--solo-modello] [--separatore ,]
+      Drawing data in a table: blocks with attributes (default), bill of materials of the blocks with
+      quantities, or all objects with layer, length and area. Default separator &quot;;&quot; with decimal comma
+      (Excel with Italian settings); &quot;--separatore ,&quot; for standard CSV.
+  --versione   --aiuto
+
+--verifica reads every written file back and compares it with the original. The original file is never
+overwritten; an existing output file only with --sovrascrivi.
+Exit code: 0 success, 1 error, 2 invalid arguments, 3 converted but with differences at the check.</translation>
+    </message>
+    <message>
+        <source>manca il valore di %1</source>
+        <translation>missing value for %1</translation>
+    </message>
+    <message>
+        <source>opzione sconosciuta %1</source>
+        <translation>unknown option %1</translation>
+    </message>
+    <message>
+        <source>SALTATO  %1: il risultato coinciderebbe con l&apos;originale.</source>
+        <translation>SKIPPED  %1: the result would be the original file.</translation>
+    </message>
+    <message>
+        <source>SALTATO  %1: %2 esiste già (--sovrascrivi per sostituirlo).</source>
+        <translation>SKIPPED  %1: %2 already exists (--sovrascrivi to replace it).</translation>
+    </message>
+    <message>
+        <source>ERRORE   %1: %2 non riuscita (%3).</source>
+        <translation>ERROR    %1: %2 failed (%3).</translation>
+    </message>
+    <message>
+        <source>lettura</source>
+        <translation>reading</translation>
+    </message>
+    <message>
+        <source>scrittura</source>
+        <translation>writing</translation>
+    </message>
+    <message>
+        <source>OK       %1 -&gt; %2 (%3 oggetti)</source>
+        <translation>OK       %1 -&gt; %2 (%3 objects)</translation>
+    </message>
+    <message>
+        <source>  verificato</source>
+        <translation>  verified</translation>
+    </message>
+    <message>
+        <source>  VERIFICA: il file scritto non si rilegge (%1)</source>
+        <translation>  CHECK: the written file cannot be read back (%1)</translation>
+    </message>
+    <message>
+        <source>  VERIFICA: %1 differenze</source>
+        <translation>  CHECK: %1 differences</translation>
+    </message>
+    <message>
+        <source>--converti vuole il disegno (o la cartella) e l&apos;uscita.
+
+</source>
+        <translation>--converti needs the drawing (or folder) and the output.
+
+</translation>
+    </message>
+    <message>
+        <source>Con una cartella serve --formato dxf, dxf12, dwg o pdf.</source>
+        <translation>With a folder, --formato dxf, dxf12, dwg or pdf is needed.</translation>
+    </message>
+    <message>
+        <source>%1 disegni da convertire.</source>
+        <translation>%1 drawings to convert.</translation>
+    </message>
+    <message>
+        <source>%1 convertiti, %2 errori, %3 con differenze alla verifica.</source>
+        <translation>%1 converted, %2 errors, %3 with differences at the check.</translation>
+    </message>
+    <message>
+        <source>File non trovato: %1</source>
+        <translation>File not found: %1</translation>
+    </message>
+    <message>
+        <source>L&apos;uscita deve finire con .dxf, .dwg o .pdf: %1</source>
+        <translation>The output must end with .dxf, .dwg or .pdf: %1</translation>
+    </message>
+    <message>
+        <source>--csv vuole il disegno e il file CSV.
+
+</source>
+        <translation>--csv needs the drawing and the CSV file.
+
+</translation>
+    </message>
+    <message>
+        <source>--modo vale blocchi, conteggio o oggetti.</source>
+        <translation>--modo is blocchi (blocks), conteggio (count) or oggetti (objects).</translation>
+    </message>
+    <message>
+        <source>--separatore vale &quot;;&quot; oppure &quot;,&quot;.</source>
+        <translation>--separatore is &quot;;&quot; or &quot;,&quot;.</translation>
+    </message>
+    <message>
+        <source>L&apos;uscita deve finire con .csv: %1</source>
+        <translation>The output must end with .csv: %1</translation>
+    </message>
+    <message>
+        <source>%1 esiste già (--sovrascrivi per sostituirlo).</source>
+        <translation>%1 already exists (--sovrascrivi to replace it).</translation>
+    </message>
+    <message>
+        <source>ERRORE   %1: lettura non riuscita (%2).</source>
+        <translation>ERROR    %1: reading failed (%2).</translation>
+    </message>
+    <message>
         <source>Impossibile scrivere %1.</source>
         <translation>Cannot write %1.</translation>
+    </message>
+    <message>
+        <source>OK       %1 -&gt; %2 (%3 righe, %4)</source>
+        <translation>OK       %1 -&gt; %2 (%3 rows, %4)</translation>
     </message>
     <message>
         <source>Impossibile avviare ODA File Converter.</source>
@@ -9788,6 +10028,10 @@ With LibreDWG large drawings can take a few minutes.</translation>
     <message>
         <source>DXF 2000</source>
         <translation>DXF 2000</translation>
+    </message>
+    <message>
+        <source>%1 differenze</source>
+        <translation>%1 differences</translation>
     </message>
     <message>
         <source>Modello</source>

@@ -3,6 +3,7 @@
 #include "app/AppOptions.h"
 #include "app/ClaudeLink.h"
 #include "app/DraftSettings.h"
+#include "core/DataExport.h"
 #include "app/PlotDialog.h"
 #include "app/Updater.h"
 #include "core/Entity.h"
@@ -115,6 +116,9 @@ private:
     void showBatchConvert();
     // Restituisce il percorso del rapporto. `interactive`: finestra di avanzamento e letture in un altro thread.
     QString runBatchConvert(const BatchConvertOptions& options, bool interactive);
+    // ESTRAIDATI: dati del disegno in CSV (core/DataExport).
+    void showDataExport();
+    bool writeDataExport(DrawingWidget* d, const QString& path, const DataExportOptions& options);
     bool saveBlockEdit(DrawingWidget* editor);
     void closeBlockEditor();
     void newDrawing();

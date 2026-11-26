@@ -23,7 +23,7 @@ SAVEAS 2000 pianta.dwg
 EXPORTPDF pianta.pdf
 ```
 
-Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`, `SCRIPT`, `CANALOINVIA`, `CANALOINS`, `-CANALOVERIFICA`, `-CANALOTAVOLA`, `-DWGCONVERT`, `-PLOT` (vedi *Stampa*) e `LOGFILEON` (copia dei messaggi in un file), seguiti dal nome del file (relativo alla cartella dello script).
+Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`, `SCRIPT`, `CANALOINVIA`, `CANALOINS`, `-CANALOVERIFICA`, `-CANALOTAVOLA`, `-DWGCONVERT`, `-ESTRAIDATI`, `-PLOT` (vedi *Stampa*) e `LOGFILEON` (copia dei messaggi in un file), seguiti dal nome del file (relativo alla cartella dello script).
 
 ## Variabili di sistema (`SETVAR`, `SET`, `IMPOSTAVAR`)
 

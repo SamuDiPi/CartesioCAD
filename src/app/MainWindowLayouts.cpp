@@ -1341,6 +1341,27 @@ bool MainWindow::runScript(const QString& path)
                 runBatchConvert(o, false);
                 continue;
             }
+            // Dati in CSV negli script: -ESTRAIDATI file.csv [BLOCCHI|CONTEGGIO|OGGETTI] [SELEZIONE] [VIRGOLA] [SOLOMODELLO]
+            // (il file si sostituisce se esiste).
+            if (d && word == QLatin1String("-ESTRAIDATI")) {
+                const QString path = resolve(nextToken());
+                DataExportOptions o;
+                while (i > 0 && i < n && text[i - 1] != QLatin1Char(10)) {
+                    const QString flag = nextToken().toUpper();
+                    if (flag.isEmpty())
+                        break;
+                    if (flag == QLatin1String("SELEZIONE"))
+                        o.only = d->selection();
+                    else if (flag == QLatin1String("VIRGOLA"))
+                        o.separator = ',';
+                    else if (flag == QLatin1String("SOLOMODELLO"))
+                        o.layouts = false;
+                    else if (!parseDataExportMode(flag.toStdString(), &o.mode))
+                        print(tr("-ESTRAIDATI: opzione sconosciuta %1").arg(flag));
+                }
+                writeDataExport(d, path, o);
+                continue;
+            }
             // Stati dei layer negli script: -LAYERSTATE S|R|D nome (salva, ripristina, elimina).
             if (d && word == QLatin1String("-LAYERSTATE")) {
                 const QString action = nextToken().toUpper();
@@ -1927,6 +1948,10 @@ bool MainWindow::runScript(const QString& path)
                 } else if (which == QLatin1String("SEGNALA")) {
                     FormDialog::grabNext(target);
                     showReportDialog();
+                    continue;
+                } else if (which == QLatin1String("ESTRAIDATI")) {
+                    FormDialog::grabNext(target);
+                    showDataExport();
                     continue;
                 } else if (which == QLatin1String("MOTIVI")) {
                     FormDialog::grabNext(target);

@@ -62,6 +62,7 @@ Le icone sono disegnate appositamente: CartesioCAD non usa marchi, icone o altri
 | `BEDIT` | `BE`, `EDITBLOCCO` | Editor blocchi: il blocco selezionato (o scelto dall'elenco) si apre in una scheda e si modifica con i comandi normali; `BSAVE` (o Salva) aggiorna la definizione e tutti gli inserimenti, `BCLOSE` chiude. Anche con il doppio clic su un blocco senza attributi. |
 | `BLOCKSPALETTE` | `BLOCCHI`, `LIBRERIA`, `SIMBOLI`, `ADC` | Tavolozza Blocchi (libreria simboli) con anteprime: blocchi del disegno, di un file libreria DWG/DXF o di una cartella (ogni disegno è un simbolo), recenti; clic per inserire o trascinamento sul disegno (inserito nel punto di rilascio), tasto destro per modificare (BEDIT) o aprire il file. I simboli di un file in altre unità si scalano (es. libreria in cm, disegno in mm); i blocchi tecnici (`_ArchTick`, `_Dot`...) non compaiono. |
 | `DWGCONVERT` | `CONVERTI`, `CONVERSIONE` | Conversione in serie: tutti i DWG/DXF di una cartella (anche le sottocartelle, ricreate nella destinazione) in DXF 2000, DXF R12, DWG o PDF (i layout con qualcosa sopra, altrimenti il modello alle estensioni adattato al foglio). Verifica facoltativa (ogni file scritto si rilegge e si confronta) e *Rapporto conversione.txt* con l'esito di ogni file; gli originali non si toccano. Negli script: `-DWGCONVERT sorgente destinazione DXF\|DXF12\|DWG\|PDF [SUB] [SOVRASCRIVI]`. |
+| `ESTRAIDATI` | `ESPORTADATI`, `DATICSV` | Dati del disegno in una tabella CSV per Excel: blocchi con i loro attributi (una colonna per attributo), distinta dei blocchi con le quantità, oppure tutti gli oggetti con layer, lunghezza, area e testo. Solo la selezione a scelta; separatore `;` con la virgola decimale o CSV standard. Negli script `-ESTRAIDATI file.csv [BLOCCHI\|CONTEGGIO\|OGGETTI] [SELEZIONE] [VIRGOLA] [SOLOMODELLO]`. |
 | `XCLIP` | `XC`, `RITAGLIO` | Ritaglio di blocchi e riferimenti esterni con un contorno rettangolare o poligonale; `ON`/`OFF`/`Elimina`. Il ritaglio si legge e si scrive nei DXF/DWG (SPATIAL_FILTER) e segue il blocco se si sposta o ruota. |
 | `LAYERSTATE` | `LAS`, `STATILAYER` | Stati dei layer: salva con un nome accensione, congelamento, blocco, colore, tipo e spessore di linea e stampa di tutti i layer, e li ripristina (con Annulla). Salvati nel DXF 2000. |
 | `HATCHEDIT` | `HE`, `MODTRATT` | Cambia motivo, scala e angolo di un tratteggio esistente (anche dalla tavolozza Proprietà). |
@@ -228,6 +229,19 @@ Opzioni: `SPAZIO` (MODELLO o nome del layout), `IMPOSTAZIONE` (impostazione di p
 
 Nei file si possono usare `OPEN`, `NEW`, `QSAVE`, `SAVEAS`, `CLOSE`, `EXPORTPDF`, `SCRIPT`, `CANALOINVIA`, `CANALOINS`, `-CANALOVERIFICA` (senza finestra) e `LOGFILEON` (copia dei messaggi in un file) seguiti dal nome del file, e le variabili `CLAYER`, `CECOLOR`, `TEXTSIZE`, `OSMODE`, `ORTHOMODE`, `GRIDMODE`, `SNAPMODE`, `DYNMODE`, `TILEMODE`, `ATTREQ`, `FILEDIA`, `CMDECHO`, `LTSCALE`, `INSUNITS`, `CELTYPE`, `CELWEIGHT`, `LWDISPLAY`, `CVPORT`.
 
+### Riga di comando del sistema
+
+Senza aprire la finestra, da un terminale o da un file `.bat` (su Windows con `cartesio-cli.exe`, nella cartella del programma; su Linux con `flatpak run io.github.samudipi.CartesioCAD`):
+
+```
+cartesio-cli --converti pianta.dwg pianta.pdf
+cartesio-cli --converti pianta.dwg pianta.dxf --verifica
+cartesio-cli --converti C:\Progetti\Tavole C:\Progetti\PDF --formato pdf --sottocartelle
+cartesio-cli --csv pianta.dwg prese.csv --modo conteggio
+```
+
+Opzioni: `--r12`, `--verifica` (rilegge e confronta), `--sovrascrivi`, `--formato dxf|dxf12|dwg|pdf` e `--sottocartelle` per le cartelle, `--modo blocchi|conteggio|oggetti`, `--solo-modello` e `--separatore ,` per il CSV, `--versione`, `--aiuto`. L'originale non viene mai sovrascritto. Codice di uscita: 0 riuscito, 1 errore, 2 argomenti non validi, 3 convertito con differenze alla verifica.
+
 ## Pubblicare una versione
 
 1. Aggiornare `VERSION` in `CMakeLists.txt`, fare il commit, compilare e `cmake --install build --prefix dist/CartesioCAD`.
@@ -333,13 +347,17 @@ src/
 
 ## Roadmap
 
-- [x] `ROTATE`, `SCALE`, `MIRROR`, `EXTEND`, `FILLET`, `ARRAY`, maniglie, layout, attributi, script, PDF
-- [x] `CHAMFER`, `STRETCH`, `BREAK`, `JOIN`, tratteggio per punto interno
-- [ ] `LENGTHEN`, `ALIGN`
-- [x] Tipi di linea e spessori di linea, stampa
-- [x] Direttrici e stili di quota
-- [ ] Tabelle, stili di testo
-- [ ] Indice spaziale per disegni molto grandi
+Fatto (dalle prime versioni a oggi): disegno e modifica 2D completi, testi, quote, direttrici, tabelle, stili di testo e di quota, blocchi con attributi, layout e stampa, tipi e spessori di linea, riferimenti esterni e immagini, DWG/DXF, conversione in serie e da riga di comando, dati in CSV, confronto di revisioni, Impianto e CanaloCAD, Assistente IA, aggiornamenti firmati, italiano e inglese, pacchetto Flatpak per Linux.
+
+Prossimi passi:
+- [ ] Qt 6.12.1 e OpenSSL 4.1.1 (correzioni di sicurezza) appena disponibili in MSYS2
+- [ ] Traduzione inglese completa (richieste dei comandi, manuale, CanaloCAD)
+- [ ] Salvataggio DWG più veloce e senza perdite (nuova versione stabile di LibreDWG)
+- [ ] Importazione SVG come blocco
+- [ ] Cambio di stato dei blocchi dinamici
+- [ ] Pacchetti winget (Windows) e AppImage (Linux)
+- [ ] Portate dei cavi confrontate con il testo della norma
+- [ ] Oggetti 3D (solo lettura)
 
 ## Privacy e sicurezza
 

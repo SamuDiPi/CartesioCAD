@@ -19,6 +19,7 @@
 #include "core/Canalo.h"
 #include "core/Plant.h"
 #include "core/Ampacity.h"
+#include "core/DataExport.h"
 #include "core/commands/CommandManager.h"
 #include "core/io/Dxf.h"
 
@@ -2886,6 +2887,59 @@ void testQuickSelect()
     CHECK(wildcardMatches("EL-?M", "el-fm") && !wildcardMatches("QD*", "QGBT"));
 }
 
+// ESTRAIDATI: blocchi con attributi, conteggio per distinta, oggetti con misure; separatori, virgolette e formule.
+void testDataExport()
+{
+    Document doc;
+    const int fm = doc.addLayer(Layer{"EL-FM", 3, true});
+    doc.setCurrentLayer(fm);
+    const EntityId line = doc.add(std::make_unique<LineEntity>(Vec2{0, 0}, Vec2{3, 4}));
+    doc.add(std::make_unique<CircleEntity>(Vec2{10, 10}, 1));
+    doc.add(std::make_unique<PolylineEntity>(std::vector<PolyVertex>{{{0, 0}}, {{2, 0}}, {{2, 1}}, {{0, 1}}}, true));
+    doc.setCurrentLayer(0);
+    auto a = std::make_unique<InsertEntity>("PRESA", Vec2{5.5, 5});
+    a->rotation = kPi / 2.0;
+    a->attributes.push_back({"quadro", TextEntity({5, 5}, 2, "QD1"), 0});
+    a->attributes.push_back({"CIRCUITO", TextEntity({5, 5}, 2, "C3; FM"), 0});
+    const EntityId p1 = doc.add(std::move(a));
+    auto b = std::make_unique<InsertEntity>("PRESA", Vec2{9, 5});
+    b->attributes.push_back({"QUADRO", TextEntity({9, 5}, 2, "QD1"), 0});
+    b->attributes.push_back({"CIRCUITO", TextEntity({9, 5}, 2, "C3; FM"), 0});
+    doc.add(std::move(b));
+    auto c = std::make_unique<InsertEntity>("LUCE", Vec2{1, 1});
+    c->attributes.push_back({"NOTE", TextEntity({1, 1}, 2, "=CMD()"), 0});
+    doc.add(std::move(c));
+
+    DataExportOptions o;
+    DataExportResult r = exportData(doc, o);
+    CHECK(r.rows == 3);
+    CHECK(r.csv.rfind("Blocco;Layer;Spazio;X;Y;Rotazione;Scala X;Scala Y;QUADRO;CIRCUITO;NOTE\r\n", 0) == 0);
+    CHECK(r.csv.find("PRESA;0;Modello;5,5;5;90;1;1;QD1;\"C3; FM\";\r\n") != std::string::npos);
+    CHECK(r.csv.find("'=CMD()") != std::string::npos);   // mai una formula nel foglio di calcolo
+
+    o.mode = DataExportOptions::Mode::Count;
+    r = exportData(doc, o);
+    CHECK(r.rows == 2);
+    CHECK(r.csv.find("PRESA;QD1;\"C3; FM\";;2\r\n") != std::string::npos);
+    CHECK(r.csv.find("LUCE;;;'=CMD();1\r\n") != std::string::npos);
+
+    o.mode = DataExportOptions::Mode::Objects;
+    o.separator = ',';
+    r = exportData(doc, o);
+    CHECK(r.rows == 6);
+    CHECK(r.csv.find("Linea,EL-FM,") != std::string::npos);
+    CHECK(r.csv.find(",0,0,5,,") != std::string::npos);                 // lunghezza della linea 3-4-5, senza area
+    CHECK(r.csv.find(",10,10,6.2832,3.1416,") != std::string::npos);    // cerchio: circonferenza e area col punto
+    CHECK(r.csv.find(",0,0,6,2,") != std::string::npos);                // rettangolo chiuso 2x1
+
+    o.mode = DataExportOptions::Mode::Blocks;
+    o.only = {p1, line};
+    r = exportData(doc, o);
+    CHECK(r.rows == 1);
+    DataExportOptions::Mode m;
+    CHECK(parseDataExportMode("conteggio", &m) && m == DataExportOptions::Mode::Count && !parseDataExportMode("x", &m));
+}
+
 // Blocchi dinamici: lo stato salvato (*U...) conserva il nome del blocco dinamico, anche dopo il salvataggio.
 void testDynamicBlockName()
 {
@@ -4026,6 +4080,7 @@ void testManualCoversCommands()
 int main()
 {
     testInputParser();
+    testDataExport();
     testUndoRedo();
     testPick();
     testLineCommand();
