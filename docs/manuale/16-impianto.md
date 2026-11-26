@@ -104,3 +104,38 @@ Accanto al percorso disegna la sezione ingrandita della tratta: tubo con il fasc
 **Dove:** Impianto > Tratte > *Distinta...*
 
 Conta i materiali delle tratte disegnate nel disegno corrente: tubi (con curve, manicotti e cassette di derivazione), canali e passerelle (con coperchi, setti, curve, derivazioni, giunzioni e staffe al passo), metri di cavo per tipo e formazione. Curve e derivazioni si ricavano dal percorso (cambi di direzione oltre 15°, punti dove si incontrano tre o più tratti). Si salva per **Excel** (CSV) e/o come **tabella nel disegno** (layer `IMP-DISTINTA`). Quantità senza sfrido.
+
+## Fronte quadro (`FRONTEQUADRO`, `FQ`)
+
+**Dove:** Impianto > Impianti elettrici > *Fronte quadro*.
+
+Dallo schema unifilare in PDF (lo stesso dei *Circuiti*) prepara il fronte di ogni quadro: ingombro, carpenteria, grado IP e forma di segregazione, disegnati in scala 1:1 in millimetri con le quote e i dati sopra il fronte (layer `FQ-CARPENTERIA`, `FQ-APPARECCHI`, `FQ-TESTI`, `FQ-QUOTE`). Insieme si salvano, accanto al PDF, la **distinta** in CSV per Excel (carpenteria, zoccoli, file DIN, coprimoduli di riserva, morsetti, apparecchi) e il file **IFC4** per il BIM: un `IfcElectricDistributionBoard` per quadro con il suo ingombro e le proprietà (grado IP, forma, carpenteria, riferimento, corrente d'arrivo, moduli occupati e disponibili).
+
+Gli apparecchi si riconoscono da quanto è scritto nello schema, mai dal nome del prodotto:
+- l'**esecuzione** (modulare, scatolato, aperto, anche con un accessorio modulare come `SCATOLATO/MODULARE`), i **poli** e la **corrente nominale**;
+- la **curva**: `gL`, `gG` o `aM` sono fusibili (il formato come `10.3x38` dà il portafusibili), nessuna curva è un sezionatore;
+- gli **SPD** (classe `T1+T2` o `T2`, o la descrizione), il **differenziale** e gli accessori indicati con `+`;
+- i **morsetti** dalla formazione dei cavi fino a 35 mm²; oltre, il cavo arriva all'apparecchio.
+
+Gli ingombri sono **valori tipici** (modulo DIN da 18 mm, file da 150 mm, scatolati e aperti per taglia di corrente): servono a dimensionare il quadro e vanno confermati sul catalogo prima dell'ordine. I quadri piccoli vanno a parete o in cassetta, quelli con scatolati grandi, aperti o molte file a pavimento in colonne affiancate.
+
+Nella finestra si scelgono:
+- **Quadri**: tutti, o le sigle separate da virgola;
+- **Ambiente**, che propone il grado IP (locale tecnico IP31, ambiente ordinario IP43, esterno IP55, lavaggi o polveri IP65), oppure il **grado IP** scritto a mano;
+- **Forma di segregazione** (CEI EN 61439-2): proposta dalla corrente d'arrivo (1 fino a 250 A, 2b fino a 1600 A, 3b oltre) o scelta;
+- **Installazione**: automatica, a parete, a pavimento, cassetta;
+- **Spazio di riserva** (25% di partenza), **morsettiera** nelle file in basso, **vano cavi** laterale da 300 mm nei quadri a pavimento;
+- il **catalogo delle carpenterie**.
+
+### Catalogo delle carpenterie
+
+CartesioCAD contiene solo tipi generici con misure tipiche (per esempio `PAV-800x2000x400-IP31`). Per avere nel disegno e nella distinta il riferimento commerciale della carpenteria si indica un proprio file CSV, una riga per carpenteria:
+
+```
+codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte
+P600-1050;parete;600;1050;200;43;24;Serie e codice del costruttore;catalogo 2026 pag. 12
+```
+
+`tipo` vale `parete`, `pavimento` o `cassetta`; misure in mm; `moduli_per_fila` vuoto o 0 = 24 fino a 600 mm di larghezza, 36 da 800 mm. Il separatore può essere `;` o `,`; le righe non valide si saltano e se ne indica il numero. Fra quelle adatte si sceglie la carpenteria più piccola con grado IP almeno pari a quello richiesto.
+
+Negli script: `-FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file.ifc] [CSV file.csv] [CATALOGO file.csv] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [SENZAMORSETTI] [VANOCAVI] [QUI] [NODISEGNO]` (`QUI` disegna nel disegno aperto invece che in uno nuovo).

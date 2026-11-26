@@ -4,6 +4,7 @@
 #include "app/ClaudeLink.h"
 #include "app/DraftSettings.h"
 #include "core/DataExport.h"
+#include "core/Switchboard.h"
 #include "app/PlotDialog.h"
 #include "app/Updater.h"
 #include "core/Entity.h"
@@ -60,6 +61,17 @@ class StartPage;
 class CanaloTab;
 class BlockLibrary;
 struct DocSummary;
+
+// FRONTEQUADRO: cosa leggere e cosa produrre (vedi MainWindowSwitchboard.cpp).
+struct SwitchboardRequest {
+    QString pdf;            // schema unifilare
+    QString boards;         // sigle dei quadri separate da virgola (vuoto = tutti)
+    QString catalog;        // catalogo CSV delle carpenterie (vuoto = solo i tipi generici)
+    BoardOptions options;
+    bool draw = true;
+    bool newDrawing = true; // altrimenti nel disegno aperto, scalato sulle sue unità
+    QString ifc, csv;       // vuoti = non si scrivono
+};
 
 // Finestra principale: barra di accesso rapido, barra multifunzione,
 // schede dei disegni, riga di comando mobile, tavolozze e barra di stato.
@@ -119,6 +131,9 @@ private:
     // ESTRAIDATI: dati del disegno in CSV (core/DataExport).
     void showDataExport();
     bool writeDataExport(DrawingWidget* d, const QString& path, const DataExportOptions& options);
+    // FRONTEQUADRO: fronte dei quadri dallo schema unifilare in PDF. Restituisce l'errore (vuoto se riuscito).
+    void showSwitchboardFront();
+    QString runSwitchboardFront(const SwitchboardRequest& request);
     bool saveBlockEdit(DrawingWidget* editor);
     void closeBlockEditor();
     void newDrawing();

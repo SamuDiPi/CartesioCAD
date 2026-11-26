@@ -1362,6 +1362,55 @@ bool MainWindow::runScript(const QString& path)
                 writeDataExport(d, path, o);
                 continue;
             }
+            // Fronte quadro negli script: -FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file] [CSV file] [CATALOGO file]
+            // [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [SENZAMORSETTI] [VANOCAVI] [QUI] [NODISEGNO]
+            if (word == QLatin1String("-FRONTEQUADRO")) {
+                SwitchboardRequest r;
+                r.pdf = resolve(nextToken());
+                while (i > 0 && i < n && text[i - 1] != QLatin1Char(10)) {
+                    const QString flag = nextToken();
+                    if (flag.isEmpty())
+                        break;
+                    const QString key = flag.toUpper();
+                    const bool valued = QStringList{QStringLiteral("QUADRI"), QStringLiteral("IFC"), QStringLiteral("CSV"),
+                                                    QStringLiteral("CATALOGO"), QStringLiteral("IP"), QStringLiteral("FORMA"),
+                                                    QStringLiteral("RISERVA"), QStringLiteral("AMBIENTE"),
+                                                    QStringLiteral("MONTAGGIO")}.contains(key);
+                    const QString value = valued ? nextToken() : QString();
+                    if (key == QLatin1String("QUADRI"))
+                        r.boards = value;
+                    else if (key == QLatin1String("IFC"))
+                        r.ifc = resolve(value);
+                    else if (key == QLatin1String("CSV"))
+                        r.csv = resolve(value);
+                    else if (key == QLatin1String("CATALOGO"))
+                        r.catalog = resolve(value);
+                    else if (key == QLatin1String("IP"))
+                        r.options.ip = value.toInt();
+                    else if (key == QLatin1String("FORMA"))
+                        r.options.form = value.toStdString();
+                    else if (key == QLatin1String("RISERVA"))
+                        r.options.reserve = value.toDouble() / 100.0;
+                    else if (key == QLatin1String("AMBIENTE"))
+                        r.options.environment = static_cast<BoardEnvironment>(std::clamp(value.toInt(), 0, 3));
+                    else if (key == QLatin1String("MONTAGGIO"))
+                        r.options.mounting = static_cast<BoardMounting>(std::clamp(value.toInt(), 0, 3));
+                    else if (key == QLatin1String("SENZAMORSETTI"))
+                        r.options.terminals = false;
+                    else if (key == QLatin1String("VANOCAVI"))
+                        r.options.cableCompartment = true;
+                    else if (key == QLatin1String("QUI"))
+                        r.newDrawing = false;
+                    else if (key == QLatin1String("NODISEGNO"))
+                        r.draw = false;
+                    else
+                        print(tr("-FRONTEQUADRO: opzione sconosciuta %1").arg(flag));
+                }
+                const QString error = runSwitchboardFront(r);
+                if (!error.isEmpty())
+                    print(tr("Fronte quadro: %1").arg(error));
+                continue;
+            }
             // Stati dei layer negli script: -LAYERSTATE S|R|D nome (salva, ripristina, elimina).
             if (d && word == QLatin1String("-LAYERSTATE")) {
                 const QString action = nextToken().toUpper();
@@ -1952,6 +2001,10 @@ bool MainWindow::runScript(const QString& path)
                 } else if (which == QLatin1String("ESTRAIDATI")) {
                     FormDialog::grabNext(target);
                     showDataExport();
+                    continue;
+                } else if (which == QLatin1String("FRONTEQUADRO")) {
+                    FormDialog::grabNext(target);
+                    showSwitchboardFront();
                     continue;
                 } else if (which == QLatin1String("MOTIVI")) {
                     FormDialog::grabNext(target);

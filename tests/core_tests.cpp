@@ -20,6 +20,7 @@
 #include "core/Plant.h"
 #include "core/Ampacity.h"
 #include "core/DataExport.h"
+#include "core/Switchboard.h"
 #include "core/commands/CommandManager.h"
 #include "core/io/Dxf.h"
 
@@ -2887,6 +2888,98 @@ void testQuickSelect()
     CHECK(wildcardMatches("EL-?M", "el-fm") && !wildcardMatches("QD*", "QGBT"));
 }
 
+// FRONTEQUADRO: riconoscimento degli apparecchi, scelta della carpenteria, catalogo CSV, disegno, distinta, IFC.
+void testSwitchboard()
+{
+    const auto circuit = [](const char* board, int number, const char* poles, const char* exec, const char* model = "",
+                            const char* diff = "---", const char* cable = "1(3G2,5)", const char* descr = "Utenza") {
+        Circuit c;
+        c.board = board;
+        c.number = number;
+        c.code = std::string(board) + " C-" + std::to_string(number);
+        c.description = descr;
+        c.breakerPoles = poles;
+        c.breakerExecution = exec;
+        c.breakerModel = model;
+        c.differential = diff;
+        c.cable = cable;
+        return c;
+    };
+    std::vector<Circuit> cs = {
+        circuit("QD1", 0, "MARCA / 4 x 63", "MODULARE / --- "),                      // sezionatore generale
+        circuit("QD1", 1, "MARCA / 2 x 16", "MODULARE / C", "SERIE + DIFF", "0,03 / A"),   // con blocco differenziale
+        circuit("QD1", 2, "MARCA / 1 x 10", "MODULARE / C"),
+        circuit("QD1", 3, "MARCA / 4 x 32", "MODULARE / GL", "10.3x38 T2", "---", "1(5G6)", "SPD"),
+        circuit("QD1", 4, "MARCA / 4 x 25", "MODULARE / C", "", "---", "4(1x50)+(1PE25)"),   // fasi oltre 35 mm²: niente morsetti
+        circuit("QGBT", 0, "MARCA / SERIE / 4 x 2.500", "APERTO / ---"),
+        circuit("QGBT", 1, "MARCA / 4 x 400", "SCATOLATO/MODULARE / TM", "", "0,3 / A"),
+        circuit("QGBT", 2, "MARCA / 4 x 160", "SCATOLATO / TM"),
+        circuit("MT", 0, "", "", "", "---", "", "Arrivo media tensione"),
+    };
+    const auto boards = boardsFromCircuits(cs);
+    CHECK(boards.size() == 3 && boards[0].board == "QD1" && boards[2].devices.empty());
+    const auto& qd = boards[0].devices;
+    CHECK(qd.size() == 5);
+    CHECK(qd[0].kind == BoardDevice::Kind::Switch && qd[0].poles == 4 && qd[0].modules == 4.0);
+    CHECK(qd[1].kind == BoardDevice::Kind::Modular && qd[1].residual && qd[1].modules == 4.0);
+    CHECK(qd[2].modules == 1.0);
+    CHECK(qd[3].kind == BoardDevice::Kind::Spd && qd[3].modules == 8.0);   // 4 portafusibili + 4 moduli SPD tipo 2
+    CHECK(boards[0].incomer == 63.0);
+    CHECK(boards[0].terminals.count == 3 + 3 + 5 + 1);   // 3G2,5 x2 + 5G6 + PE25; le fasi da 50 mm² all'apparecchio
+    const auto& qg = boards[1].devices;
+    CHECK(qg.size() == 3 && qg[0].kind == BoardDevice::Kind::AirCircuit && qg[0].rated == 2500.0 && qg[0].width == 520.0);
+    CHECK(qg[1].kind == BoardDevice::Kind::MouldedCase && qg[1].modules == 2.0 && qg[1].width == 4 * 46.0);
+    CHECK(proposedIp(BoardEnvironment::Outdoor) == 55 && proposedForm(2500.0) == "3b" && proposedForm(100.0) == "1");
+
+    // Quadro piccolo: a parete, carpenteria del catalogo interno, dati proposti.
+    const BoardLayout small = layoutBoard(boards[0], BoardOptions{}, builtinEnclosures());
+    CHECK(small.mounting == BoardMounting::Wall || small.mounting == BoardMounting::Box);
+    CHECK(small.enclosureFound && small.ip == 31 && small.form == "1");
+    CHECK(small.modules == 21.0 && small.modulesInstalled >= small.modules * 1.25);
+    // Con un aperto: a pavimento, profondità 600, forma 3b, la colonna dell'aperto almeno 600 + 520 di apparecchio.
+    BoardOptions o;
+    o.environment = BoardEnvironment::Washdown;
+    o.form = "4b";
+    const BoardLayout big = layoutBoard(boards[1], o, builtinEnclosures());
+    CHECK(big.mounting == BoardMounting::Floor && big.depth == 600.0 && big.ip == 65 && big.form == "4b");
+    CHECK(!big.columns.empty() && big.columns[0].width >= 660.0);
+
+    // Catalogo dell'utente: il riferimento commerciale passa alla carpenteria scelta; righe non valide saltate.
+    int skipped = 0;
+    const auto own = parseEnclosureCatalog("codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte\n"
+                                           "X1;parete;600;1050;200;43;24;Rif. commerciale 1;catalogo 2026\n"
+                                           "X2;scaffale;600;1050;200;43;24;;\n"
+                                           "X3,pavimento,800,2000,400,55,0,Rif. 3,listino\n",
+                                           &skipped);
+    CHECK(own.size() == 2 && skipped == 1 && own[0].mounting == BoardMounting::Wall && own[0].ip == 43);
+    CHECK(own[1].mounting == BoardMounting::Floor && own[1].width == 800.0 && own[1].reference == "Rif. 3");
+    BoardOptions wall;
+    wall.mounting = BoardMounting::Wall;
+    wall.ip = 43;
+    const BoardLayout chosen = layoutBoard(boards[0], wall, own);
+    CHECK(chosen.enclosureFound && chosen.enclosure.reference == "Rif. commerciale 1");
+
+    // Disegno: layer FQ-*, oggetti, ingombro con le quote.
+    Document doc;
+    BBox box;
+    auto ents = drawBoardFront(doc, small, {0.0, 0.0}, &box);
+    CHECK(ents.size() > 20 && box.isValid() && box.max.x - box.min.x >= small.width);
+    bool layers = false;
+    for (const Layer& l : doc.layers())
+        layers = layers || l.name == "FQ-CARPENTERIA";
+    CHECK(layers);
+    doc.commit(std::move(ents));
+    CHECK(doc.canUndo());
+
+    // Distinta e IFC.
+    const std::string bom = boardBillOfMaterials({small, big});
+    CHECK(bom.rfind("Quadro;Voce;", 0) == 0 && bom.find("QGBT;Carpenteria") != std::string::npos);
+    const std::string ifc = boardsToIfc({small, big}, "Prova");
+    CHECK(ifc.rfind("ISO-10303-21;", 0) == 0 && ifc.find("FILE_SCHEMA(('IFC4'))") != std::string::npos);
+    CHECK(ifc.find(".SWITCHBOARD.") != std::string::npos && ifc.find("'IP65'") != std::string::npos);
+    CHECK(ifc == boardsToIfc({small, big}, "Prova"));   // identificativi stabili
+}
+
 // ESTRAIDATI: blocchi con attributi, conteggio per distinta, oggetti con misure; separatori, virgolette e formule.
 void testDataExport()
 {
@@ -4081,6 +4174,7 @@ int main()
 {
     testInputParser();
     testDataExport();
+    testSwitchboard();
     testUndoRedo();
     testPick();
     testLineCommand();

@@ -4,6 +4,7 @@
 #include "app/PdfWords.h"
 #include "core/PointLegend.h"
 #include "core/SingleLine.h"
+#include "core/Switchboard.h"
 #include "core/io/Dxf.h"
 
 #include <chrono>
@@ -68,6 +69,45 @@ int main(int argc, char** argv)
             for (const auto& [d, n] : families)
                 std::printf("     %3d x %s\n", n, d.c_str());
         }
+        return 0;
+    }
+    // Fronte quadro: --fronte [quadro] [uscita.dxf] [uscita.ifc] [distinta.csv]
+    if (argc > 2 && std::string(argv[2]) == "--fronte") {
+        const std::string only = argc > 3 ? argv[3] : std::string();
+        std::vector<BoardLayout> layouts;
+        for (const BoardInput& in : boardsFromCircuits(circuits)) {
+            if (!only.empty() && only != "*" && in.board != only)
+                continue;
+            BoardLayout L = layoutBoard(in, BoardOptions{}, builtinEnclosures());
+            std::printf("%-12s app. %2zu  In %6.0f A  %s  col. %d  %4.0fx%4.0fx%3.0f  IP%d forma %s  moduli %5.1f/%5.1f  morsetti %d  %s\n",
+                        L.board.c_str(), L.devices.size(), L.incomer,
+                        L.mounting == BoardMounting::Floor ? "pav" : L.mounting == BoardMounting::Wall ? "par" : "cas",
+                        L.enclosureCount, L.width, L.mounting == BoardMounting::Floor ? 2100.0 : L.enclosure.height,
+                        L.depth, L.ip, L.form.c_str(), L.modules, L.modulesInstalled, L.terminals,
+                        L.enclosureFound ? L.enclosure.id.c_str() : "NESSUNA");
+            for (const auto& w : L.warnings)
+                std::printf("   ! %s\n", w.c_str());
+            if (!only.empty() && only != "*")
+                for (const BoardDevice& d : L.devices)
+                    std::printf("   %-16s %-22s %dP %6.0f A  mod %4.1f  %4.0fx%-4.0f %s\n", d.circuit.c_str(),
+                                boardDeviceKindName(d.kind), d.poles, d.rated, d.modules, d.width, d.height, d.note.c_str());
+            layouts.push_back(std::move(L));
+        }
+        if (argc > 4) {
+            Document doc;
+            double x = 0.0;
+            for (const BoardLayout& L : layouts)
+                if (!L.devices.empty()) {
+                    BBox b;
+                    doc.commit(drawBoardFront(doc, L, {x, 0.0}, &b));
+                    x = b.max.x + 600.0;
+                }
+            writeDxf(doc, argv[4], nullptr, nullptr, DxfVersion::R2000);
+        }
+        if (argc > 5)
+            std::ofstream(argv[5], std::ios::binary) << boardsToIfc(layouts, "Prova fronte quadro");
+        if (argc > 6)
+            std::ofstream(argv[6], std::ios::binary) << boardBillOfMaterials(layouts);
         return 0;
     }
     const std::string board = argc > 2 ? argv[2] : std::string();

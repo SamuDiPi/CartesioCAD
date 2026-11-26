@@ -222,6 +222,10 @@ void parsePage(const std::vector<Run>& runs, int page, std::vector<Circuit>& out
         circuit.phase = text(Field::Phase);
         circuit.breaker = join({text(Field::Brand), text(Field::Model), text(Field::Curve), text(Field::Rated)}, " - ");
         circuit.differential = text(Field::Differential);
+        circuit.breakerPoles = text(Field::Brand);
+        circuit.breakerModel = text(Field::Model);
+        circuit.breakerExecution = text(Field::Curve);
+        circuit.breakerRated = text(Field::Rated);
         circuit.cable = join({text(Field::CableType), text(Field::CableName), text(Field::Section)}, " - ");
         circuit.length = text(Field::Length);
         circuit.page = page;

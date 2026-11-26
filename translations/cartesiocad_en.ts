@@ -3376,6 +3376,10 @@ It is advisable to save a copy.</translation>
         <translation>          ESTRAIDATI (data to CSV)  DWGCONVERT (batch conversion)</translation>
     </message>
     <message>
+        <source>Impianto: CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, fronte quadri dallo schema)</source>
+        <translation>Systems:  CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, switchboard fronts from the diagram)</translation>
+    </message>
+    <message>
         <source>Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS</source>
         <translation>Selection: Shift+Space next overlapping object  dragging = lasso  SELECTPREVIOUS</translation>
     </message>
@@ -3806,6 +3810,16 @@ Command: TRATTA</translation>
 Comando: VERIFICAIMPIANTO</source>
         <translation>Checks all the runs: fill, segregation, supports
 Command: VERIFICAIMPIANTO</translation>
+    </message>
+    <message>
+        <source>Fronte quadro</source>
+        <translation>Switchboard front</translation>
+    </message>
+    <message>
+        <source>Dallo schema unifilare in PDF il fronte dei quadri con ingombri, carpenteria, grado IP e forma, più la distinta CSV e il file IFC per il BIM
+Comando: FRONTEQUADRO</source>
+        <translation>From the PDF single-line diagram, the front of the switchboards with dimensions, enclosure, IP rating and form, plus the CSV bill of materials and the IFC file for BIM
+Command: FRONTEQUADRO</translation>
     </message>
     <message>
         <source>Canalo.html non trovato: manca la copia in plugins\CanaloCAD accanto a CartesioCAD.exe. Indicarne il percorso nelle Opzioni (scheda Plugin).</source>
@@ -5181,6 +5195,14 @@ comparison</translation>
     <message>
         <source>-ESTRAIDATI: opzione sconosciuta %1</source>
         <translation>-ESTRAIDATI: unknown option %1</translation>
+    </message>
+    <message>
+        <source>-FRONTEQUADRO: opzione sconosciuta %1</source>
+        <translation>-FRONTEQUADRO: unknown option %1</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: %1</source>
+        <translation>Switchboard front: %1</translation>
     </message>
     <message>
         <source>Stato ripristinato: %1 layer.</source>
@@ -6831,6 +6853,190 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Segnalazione: il browser non si è aperto. Indirizzo: %1</source>
         <translation>Report: the browser did not open. Address: %1</translation>
+    </message>
+    <message>
+        <source>Nel PDF non ci sono schemi unifilari riconoscibili (manca la riga &quot;Sigla utenza&quot;).</source>
+        <translation>The PDF has no recognizable single-line diagrams (the &quot;Sigla utenza&quot; row is missing).</translation>
+    </message>
+    <message>
+        <source>Impossibile leggere il catalogo %1.</source>
+        <translation>Cannot read the catalog %1.</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: %1 carpenterie dal catalogo %2%3.</source>
+        <translation>Switchboard front: %1 enclosures from the catalog %2%3.</translation>
+    </message>
+    <message>
+        <source> (%1 righe non valide saltate)</source>
+        <translation> (%1 invalid rows skipped)</translation>
+    </message>
+    <message>
+        <source>Fronte quadro %1: %2, %3 x %4 x %5 mm, IP%6, forma %7, moduli %8 su %9%10.</source>
+        <translation>Switchboard front %1: %2, %3 x %4 x %5 mm, IP%6, form %7, modules %8 of %9%10.</translation>
+    </message>
+    <message>
+        <source>carpenteria da scegliere</source>
+        <translation>enclosure to be chosen</translation>
+    </message>
+    <message>
+        <source>, %1 colonne</source>
+        <translation>, %1 columns</translation>
+    </message>
+    <message>
+        <source>   attenzione: %1</source>
+        <translation>   warning: %1</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: senza apparecchi di bassa tensione riconosciuti (saltati): %1.</source>
+        <translation>Switchboard front: no recognized low-voltage devices (skipped): %1.</translation>
+    </message>
+    <message>
+        <source>Nessun quadro con apparecchi riconosciuti nello schema.</source>
+        <translation>No switchboard with recognized devices in the diagram.</translation>
+    </message>
+    <message>
+        <source>I quadri indicati non sono nello schema o non hanno apparecchi riconosciuti.</source>
+        <translation>The given switchboards are not in the diagram or have no recognized devices.</translation>
+    </message>
+    <message>
+        <source>Fronti quadri</source>
+        <translation>Switchboard fronts</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: IFC salvato in %1.</source>
+        <translation>Switchboard front: IFC saved to %1.</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: distinta salvata in %1.</source>
+        <translation>Switchboard front: bill of materials saved to %1.</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: %1 quadri. Ingombri tipici: confermarli sul catalogo della carpenteria e degli apparecchi.</source>
+        <translation>Switchboard front: %1 switchboards. Typical dimensions: confirm them in the enclosure and device catalogs.</translation>
+    </message>
+    <message>
+        <source>Schema</source>
+        <translation>Diagram</translation>
+    </message>
+    <message>
+        <source>Schema unifilare (PDF):</source>
+        <translation>Single-line diagram (PDF):</translation>
+    </message>
+    <message>
+        <source>PDF (*.pdf)</source>
+        <translation>PDF (*.pdf)</translation>
+    </message>
+    <message>
+        <source>Quadri:</source>
+        <translation>Switchboards:</translation>
+    </message>
+    <message>
+        <source>vuoto = tutti; oppure sigle separate da virgola</source>
+        <translation>empty = all; or names separated by commas</translation>
+    </message>
+    <message>
+        <source>Quadro</source>
+        <translation>Switchboard</translation>
+    </message>
+    <message>
+        <source>Ambiente:</source>
+        <translation>Environment:</translation>
+    </message>
+    <message>
+        <source>Locale tecnico (IP31)</source>
+        <translation>Technical room (IP31)</translation>
+    </message>
+    <message>
+        <source>Ambiente ordinario o pubblico (IP43)</source>
+        <translation>Ordinary or public area (IP43)</translation>
+    </message>
+    <message>
+        <source>Esterno (IP55)</source>
+        <translation>Outdoor (IP55)</translation>
+    </message>
+    <message>
+        <source>Lavaggi o polveri (IP65)</source>
+        <translation>Washdown or dust (IP65)</translation>
+    </message>
+    <message>
+        <source>Grado IP (0 = dall&apos;ambiente):</source>
+        <translation>IP rating (0 = from the environment):</translation>
+    </message>
+    <message>
+        <source>Forma di segregazione:</source>
+        <translation>Form of separation:</translation>
+    </message>
+    <message>
+        <source>Proposta dalla corrente</source>
+        <translation>Proposed from the current</translation>
+    </message>
+    <message>
+        <source>Installazione:</source>
+        <translation>Installation:</translation>
+    </message>
+    <message>
+        <source>Automatica</source>
+        <translation>Automatic</translation>
+    </message>
+    <message>
+        <source>A parete</source>
+        <translation>Wall-mounted</translation>
+    </message>
+    <message>
+        <source>A pavimento</source>
+        <translation>Floor-standing</translation>
+    </message>
+    <message>
+        <source>Cassetta</source>
+        <translation>Small enclosure</translation>
+    </message>
+    <message>
+        <source>Spazio di riserva:</source>
+        <translation>Spare space:</translation>
+    </message>
+    <message>
+        <source>Morsettiera nelle file in basso</source>
+        <translation>Terminal block in the bottom rows</translation>
+    </message>
+    <message>
+        <source>Vano cavi laterale nei quadri a pavimento</source>
+        <translation>Side cable compartment in floor-standing switchboards</translation>
+    </message>
+    <message>
+        <source>Catalogo carpenterie (CSV, facoltativo):</source>
+        <translation>Enclosure catalog (CSV, optional):</translation>
+    </message>
+    <message>
+        <source>vuoto = tipi generici</source>
+        <translation>empty = generic types</translation>
+    </message>
+    <message>
+        <source>CSV (*.csv)</source>
+        <translation>CSV (*.csv)</translation>
+    </message>
+    <message>
+        <source>Disegno in un nuovo disegno (altrimenti in quello aperto)</source>
+        <translation>Draw in a new drawing (otherwise in the open one)</translation>
+    </message>
+    <message>
+        <source>File IFC per il BIM</source>
+        <translation>IFC file for BIM</translation>
+    </message>
+    <message>
+        <source>Distinta CSV</source>
+        <translation>CSV bill of materials</translation>
+    </message>
+    <message>
+        <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo CSV ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte.</source>
+        <translation>Devices are recognized from the type, poles and current written in the diagram; dimensions are typical values and the enclosure must be confirmed in the catalog before ordering. The CSV catalog has the columns codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte.</translation>
+    </message>
+    <message>
+        <source>Fronte quadro: scegliere lo schema in PDF.</source>
+        <translation>Switchboard front: choose the PDF diagram.</translation>
+    </message>
+    <message>
+        <source> - fronti quadri</source>
+        <translation> - switchboard fronts</translation>
     </message>
 </context>
 <context>

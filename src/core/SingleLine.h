@@ -34,6 +34,8 @@ struct Circuit {
     std::string current;       // Ib / cosfi
     std::string phase;         // "Monofase L3+N / NO"
     std::string breaker;       // marca, polarità, modello, curva, corrente nominale
+    // Le stesse voci separate (fronte quadro): "marca / poli x In", modello, "esecuzione / curva", "In (max/min/reg)".
+    std::string breakerPoles, breakerModel, breakerExecution, breakerRated;
     std::string differential;  // I differenziale / classe
     std::string cable;         // tipologia, sigla, sezione
     std::string length;        // lunghezza [m]

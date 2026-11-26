@@ -247,7 +247,7 @@ std::pair<int, int> mergeSchema(plant::Project& project, const std::vector<carte
         c->ib = firstNumber(sc.current);
         c->lengthM = firstNumber(sc.length);
         c->breaker = sc.breaker;
-        // Corrente nominale dall'interruttore ("SCHNEIDER / 4 x 25 - ..." = 4 poli da 25 A).
+        // Corrente nominale dall'interruttore ("MARCA / 4 x 25 - ..." = 4 poli da 25 A).
         static const QRegularExpression inRe(QStringLiteral("(\\d+)\\s*[xX]\\s*(\\d+(?:[.,]\\d+)?)"));
         const auto m = inRe.match(q(sc.breaker));
         if (m.hasMatch())

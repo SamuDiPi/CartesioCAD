@@ -131,6 +131,7 @@ const QStringList kUiCommands = {
     QStringLiteral("LAYERSTATE"), QStringLiteral("LAS"), QStringLiteral("STATILAYER"),
     QStringLiteral("DWGCONVERT"), QStringLiteral("CONVERTI"), QStringLiteral("CONVERSIONE"),
     QStringLiteral("ESTRAIDATI"), QStringLiteral("ESPORTADATI"), QStringLiteral("DATICSV"),
+    QStringLiteral("FRONTEQUADRO"), QStringLiteral("FRONTEQ"), QStringLiteral("FQ"),
     QStringLiteral("BEDIT"), QStringLiteral("BE"), QStringLiteral("EDITBLOCCO"), QStringLiteral("BSAVE"), QStringLiteral("BS"),
     QStringLiteral("SALVABLOCCO"), QStringLiteral("BCLOSE"), QStringLiteral("BC"), QStringLiteral("CHIUDIBLOCCO"),
     QStringLiteral("NEW"), QStringLiteral("NUOVO"), QStringLiteral("OPEN"), QStringLiteral("APRI"),
@@ -2174,6 +2175,8 @@ bool MainWindow::handleUiCommand(const QString& word)
         later([this] { showBatchConvert(); });
     else if (is({"ESTRAIDATI", "ESPORTADATI", "DATICSV"}))
         later([this] { showDataExport(); });
+    else if (is({"FRONTEQUADRO", "FRONTEQ", "FQ"}))
+        later([this] { showSwitchboardFront(); });
     else if (is({"LAYERSTATE", "LAS", "STATILAYER"}))
         later([this] { showLayerStates(); });
     else if (is({"BEDIT", "BE", "EDITBLOCCO"}))
@@ -2436,6 +2439,7 @@ void MainWindow::showHelp()
     print(tr("Stili:    STYLE (ST)  MLEADERSTYLE (MLS)  DIMSTYLE   Quote: DIMTEDIT  DIMEDIT   Disegno: SPLINE (SPL)"));
     print(tr("File:     AUDIT  RECOVER  ETRANSMIT (archivio da inviare)  AGGIORNAMENTI  VERSIONEPRECEDENTE  ASSISTENTE"));
     print(tr("          ESTRAIDATI (dati in CSV)  DWGCONVERT (conversione in serie)"));
+    print(tr("Impianto: CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, fronte quadri dallo schema)"));
     print(tr("Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS"));
     print(tr("          Tutto/Ultimo/Precedente/Rimuovi nelle richieste  ISOLATEOBJECTS  HIDEOBJECTS  UNISOLATEOBJECTS"));
     print(tr("Script:   SCRIPT (SCR)  SETVAR  -LAYER  COLOR  OSMODE  ORTHOMODE  TILEMODE  ATTREQ ..."));

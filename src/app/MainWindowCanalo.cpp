@@ -116,6 +116,11 @@ void MainWindow::setupCanalo(Ribbon* ribbon)
     connect(checkPlantAct, &QAction::triggered, this, [this] { plantCheck(); });
     drawingActions_ << runAct << checkPlantAct;
     electric->addSmallColumn({plantAct, runAct, checkPlantAct});
+    auto* frontAct = makeAction(tr("Fronte quadro"), glyphIcon(QStringLiteral("▦")), {},
+                                tr("Dallo schema unifilare in PDF il fronte dei quadri con ingombri, carpenteria, grado IP e "
+                                   "forma, più la distinta CSV e il file IFC per il BIM\nComando: FRONTEQUADRO"));
+    connect(frontAct, &QAction::triggered, this, [this] { showSwitchboardFront(); });
+    electric->addLargeButton(frontAct);
 }
 
 void MainWindow::canaloOpen()
