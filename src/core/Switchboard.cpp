@@ -515,6 +515,9 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
         DeviceType t;
         t.id = f[0];
         const std::string kind = lower(f[1]);
+        if (kind == "famiglia")
+            continue;   // dichiarazione di una famiglia (parseDeviceFamilies)
+        t.family = cell(14);
         using K = BoardDevice::Kind;
         bool known = true;
         if (kind == "modulare")
@@ -530,6 +533,15 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
             t.kind = K::Spd;
         else if (kind == "scatolato")
             t.kind = K::MouldedCase;
+        else if (kind == "scatolato-differenziale") {
+            t.kind = K::MouldedCase;
+            t.residual = true;
+        } else if (kind == "strumento")
+            t.kind = K::Meter;
+        else if (kind == "piastra-modulare")
+            t.plate = DeviceType::Plate::Din;
+        else if (kind == "piastra-cieca")
+            t.plate = DeviceType::Plate::Blank;
         else if (kind == "aperto")
             t.kind = K::AirCircuit;
         else
@@ -552,6 +564,13 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
         t.reference = cell(10);
         t.source = cell(11);
         t.model = cell(12);
+        if (const std::string p = lower(cell(13)); p == "si" || p == "sì" || p == "1" || p == "x")
+            if (t.plate == DeviceType::Plate::None)
+                t.plate = DeviceType::Plate::Device;
+        if ((t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank) && !t.blockFile.empty()) {
+            out.push_back(t);   // piastra: basta il blocco
+            continue;
+        }
         // Scatolati e aperti hanno larghezza (o il blocco); i modulari moduli, larghezza o blocco.
         if (t.id.empty() || !known || t.polesMin < 0 || t.polesMax < t.polesMin || t.ratedMax < t.ratedMin
             || (t.width <= 0.0 && t.modules <= 0.0 && t.blockFile.empty()) || (frame && t.modules > 0.0 && t.width <= 0.0
@@ -570,6 +589,65 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
     return out;
 }
 
+std::vector<DeviceFamily> parseDeviceFamilies(const std::string& csv)
+{
+    std::vector<DeviceFamily> out;
+    for (const std::string& line : catalogLines(csv)) {
+        const std::vector<std::string> f = splitCsvLine(line);
+        if (f.size() < 2 || lower(f[1]) != "famiglia" || f[0].empty())
+            continue;
+        DeviceFamily fam;
+        fam.name = f[0];
+        std::string words = f.size() > 12 ? f[12] : std::string();
+        std::size_t start = 0;
+        while (start <= words.size()) {
+            const std::size_t bar = words.find('|', start);
+            const std::string w = lower(trim(words.substr(start, bar == std::string::npos ? std::string::npos : bar - start)));
+            if (!w.empty())
+                fam.keywords.push_back(w);
+            if (bar == std::string::npos)
+                break;
+            start = bar + 1;
+        }
+        out.push_back(fam);
+    }
+    return out;
+}
+
+std::string assignFamilies(std::vector<BoardDevice>& devices, const std::vector<DeviceFamily>& families)
+{
+    if (families.empty())
+        return {};
+    std::map<std::string, int> count;
+    std::vector<bool> matched(devices.size(), false);
+    for (std::size_t i = 0; i < devices.size(); ++i) {
+        BoardDevice& d = devices[i];
+        const std::string text = lower(d.model + " " + d.description);
+        for (const DeviceFamily& fam : families) {
+            const bool hit = std::any_of(fam.keywords.begin(), fam.keywords.end(),
+                                         [&text](const std::string& w) { return text.find(w) != std::string::npos; });
+            if (hit) {
+                d.family = fam.name;
+                matched[i] = true;
+                ++count[fam.name];
+                break;
+            }
+        }
+    }
+    // Famiglia del quadro: la più frequente fra gli apparecchi riconosciuti (a parità la prima dichiarata).
+    std::string board = families.front().name;
+    int best = 0;
+    for (const DeviceFamily& fam : families)
+        if (count[fam.name] > best) {
+            best = count[fam.name];
+            board = fam.name;
+        }
+    for (std::size_t i = 0; i < devices.size(); ++i)
+        if (!matched[i])
+            devices[i].family = board;
+    return board;
+}
+
 int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<DeviceType>& catalog)
 {
     using K = BoardDevice::Kind;
@@ -577,7 +655,13 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
     for (BoardDevice& d : devices) {
         const bool frameDevice = d.width > 0.0;   // scatolato, sezionatore scatolato o aperto
         const DeviceType* best = nullptr;
+        // Prima le voci della famiglia dell'apparecchio (o senza famiglia), poi tutte.
+        for (int pass = 0; pass < 2 && !best; ++pass)
         for (const DeviceType& t : catalog) {
+            if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank)
+                continue;
+            if (pass == 0 && !t.family.empty() && !d.family.empty() && t.family != d.family)
+                continue;
             if (t.kind != d.kind || d.poles < t.polesMin || d.poles > t.polesMax || d.rated < t.ratedMin - 1e-9
                 || d.rated > t.ratedMax + 1e-9)
                 continue;
@@ -619,6 +703,7 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
         d.block = best->block;
         d.reference = best->reference;
         d.source = best->source;
+        d.plate = best->plate == DeviceType::Plate::Device && !best->block.empty();
     }
     return found;
 }
@@ -671,12 +756,14 @@ std::vector<BoardSection> mouldedRows(const std::vector<BoardDevice>& devices, c
     std::map<double, std::pair<int, double>> perFrame;   // altezza fila -> (apparecchi, larghezza massima)
     for (const int i : order) {
         const BoardDevice& d = devices[static_cast<std::size_t>(i)];
-        const double rowHeight = std::max(mouldedFrame(d.rated).row, std::ceil((d.height + 100.0) / 50.0) * 50.0);
+        // Con la piastra del costruttore la fila è alta quanto la piastra (passo 50 mm), una per fila.
+        const double rowHeight = d.plate ? std::max(100.0, std::ceil(d.height / 50.0 - 1e-6) * 50.0)
+                                         : std::max(mouldedFrame(d.rated).row, std::ceil((d.height + 100.0) / 50.0) * 50.0);
         double used = 0.0;
         if (!rows.empty() && rows.back().height == rowHeight)
             for (const int j : rows.back().devices)
                 used += devices[static_cast<std::size_t>(j)].width + 40.0;
-        if (rows.empty() || rows.back().height != rowHeight || used + d.width > usableWidth) {
+        if (rows.empty() || rows.back().height != rowHeight || used + d.width > usableWidth || d.plate) {
             BoardSection s;
             s.kind = BoardSection::Kind::MouldedCase;
             s.height = rowHeight;
@@ -754,7 +841,72 @@ const EnclosureType* chooseEnclosure(const std::vector<EnclosureType>& catalog, 
     return best;
 }
 
+// DIN 43671, rame nudo, corrente alternata, aria 35 °C, sbarra 65 °C: portata in A per 1, 2 e 3 barre per fase
+// (barre distanziate dello spessore). 0 = configurazione non in tabella.
+struct BusbarRow {
+    double width, thickness;
+    double rating[3];
+};
+constexpr BusbarRow kBusbarTable[] = {
+    {20.0, 5.0, {274.0, 0.0, 0.0}},     {30.0, 5.0, {379.0, 0.0, 0.0}},     {40.0, 5.0, {482.0, 0.0, 0.0}},
+    {50.0, 5.0, {583.0, 0.0, 0.0}},     {60.0, 5.0, {688.0, 0.0, 0.0}},     {80.0, 5.0, {885.0, 0.0, 0.0}},
+    {100.0, 5.0, {1080.0, 0.0, 0.0}},   {30.0, 10.0, {573.0, 0.0, 0.0}},    {40.0, 10.0, {715.0, 1290.0, 0.0}},
+    {50.0, 10.0, {852.0, 1510.0, 0.0}}, {60.0, 10.0, {985.0, 1720.0, 2390.0}}, {80.0, 10.0, {1240.0, 2110.0, 2790.0}},
+    {100.0, 10.0, {1490.0, 2480.0, 3220.0}}, {120.0, 10.0, {1740.0, 2860.0, 3660.0}},
+};
+
 } // namespace
+
+double diversityFactor(int circuits)
+{
+    return circuits <= 1 ? 1.0 : circuits <= 3 ? 0.9 : circuits <= 5 ? 0.8 : circuits <= 9 ? 0.7 : 0.6;
+}
+
+BusbarSpec chooseBusbar(double current, int ip)
+{
+    BusbarSpec best;
+    best.current = current;
+    best.factor = std::sqrt((65.0 - (ip <= 31 ? 45.0 : 50.0)) / 30.0);
+    double bestSection = 0.0;
+    for (const BusbarRow& r : kBusbarTable)
+        for (int n = 1; n <= 3; ++n) {
+            const double table = r.rating[n - 1];
+            if (table <= 0.0 || table * best.factor + 1e-6 < current)
+                continue;
+            const double section = n * r.width * r.thickness;
+            if (best.bars == 0 || section < bestSection - 1e-6 || (std::abs(section - bestSection) < 1e-6 && n < best.bars)) {
+                best.bars = n;
+                best.barWidth = r.width;
+                best.barThickness = r.thickness;
+                best.tableRating = table;
+                bestSection = section;
+            }
+        }
+    if (best.bars == 0)
+        return best;
+    best.rating = best.tableRating * best.factor;
+    // PE (IEC 61439-1 tab. 5) dalla sezione di fase S: fino a 400 mm² S/2, fino a 800 mm² 200, oltre S/4.
+    const double s = best.section();
+    const double pe = s <= 16.0 ? s : s <= 35.0 ? 16.0 : s <= 400.0 ? s / 2.0 : s <= 800.0 ? 200.0 : s / 4.0;
+    for (const BusbarRow& r : kBusbarTable)
+        if (r.width * r.thickness + 1e-6 >= pe
+            && (best.peWidth == 0.0 || r.width * r.thickness < best.peWidth * best.peThickness - 1e-6)) {
+            best.peWidth = r.width;
+            best.peThickness = r.thickness;
+        }
+    return best;
+}
+
+std::string busbarText(const BusbarSpec& b)
+{
+    if (b.bars == 0)
+        return "fuori tabella";
+    const std::string bar = number(b.barWidth) + "x" + number(b.barThickness);
+    std::string s = "3F+N Cu " + (b.bars > 1 ? std::to_string(b.bars) + "x(" + bar + ")" : bar);
+    if (b.peWidth > 0.0)
+        s += " + PE " + number(b.peWidth) + "x" + number(b.peThickness);
+    return s;
+}
 
 BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, const std::vector<EnclosureType>& catalog)
 {
@@ -866,7 +1018,8 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
         BoardSection s;
         s.kind = BoardSection::Kind::Air;
-        s.height = std::max(800.0, std::ceil((d.height + 300.0) / 100.0) * 100.0);
+        s.height = d.plate ? std::max(300.0, std::ceil(d.height / 50.0 - 1e-6) * 50.0)
+                           : std::max(800.0, std::ceil((d.height + 300.0) / 100.0) * 100.0);
         s.devices = {i};
         const bool alone = d.rated > 1600.0;
         if (!alone && openAir != std::string::npos
@@ -902,105 +1055,165 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     L.depth = (!air.empty() || input.incomer > 630.0) ? 600.0 : 400.0;
     L.height = kFloorHeight;
 
-    // Sbarre verticali: nelle forme 2a e oltre in un vano proprio accanto agli apparecchi (nella forma 1 stanno sul
-    // fondo). Le colonne degli aperti hanno le sbarre orizzontali.
-    const double busbar = !options.busbars || L.form.empty() || L.form[0] == '1' ? 0.0
-                        : input.incomer <= 1600.0                               ? 150.0
-                        : input.incomer <= 3200.0                               ? 200.0
-                                                                                : 300.0;
-    for (BoardColumn& c : L.columns)
-        if (c.sections.empty() || c.sections[0].kind != BoardSection::Kind::Air)
-            c.busbarWidth = busbar;
+    // Sbarre principali orizzontali (in alto, sul retro di tutte le colonne): sulla corrente di arrivo.
+    L.mainBusbar = chooseBusbar(input.incomer, L.ip);
+    if (!L.mainBusbar.ok())
+        L.warnings.push_back("corrente di arrivo " + number(input.incomer)
+                             + " A oltre le sbarre in tabella (3 barre 120x10): condotto sbarre o sistema sbarre del costruttore");
 
-    // Risalita dei cavi. Riempimento massimo del vano 35% (cavi in fascio su scala o passerella verticale), sezione
-    // utile del vano = larghezza x (profondità - 100 mm). Gli aperti (arrivi) hanno i cavi o il condotto in colonna.
-    constexpr double kRiserFill = 0.35;
-    const double riserDepth = L.depth - 100.0;
-    const auto riserWidth = [&](double area, std::initializer_list<double> steps) {
-        for (const double w : steps)
-            if (area <= w * riserDepth * kRiserFill + 1e-6)
-                return w;
-        return -1.0;   // non basta il vano più grande
+    const auto isAir = [](const BoardColumn& c) {
+        return !c.sections.empty() && c.sections[0].kind == BoardSection::Kind::Air;
     };
-    std::vector<double> columnArea(L.columns.size(), 0.0);
-    double bigArea = 0.0;
-    std::vector<std::pair<std::size_t, double>> big;   // (colonna, area) dei cavi da 95 mm² in su
-    for (std::size_t ci = 0; ci < L.columns.size(); ++ci)
-        for (const BoardSection& s : L.columns[ci].sections)
+    // Corrente delle sbarre verticali di una colonna: somma delle correnti nominali per il fattore di contemporaneità,
+    // almeno la partenza più grande, al più l'arrivo. Cavi della colonna: area e sezione più grande.
+    const auto columnLoad = [&](const BoardColumn& c, double* area, double* section) {
+        double sum = 0.0, biggest = 0.0;
+        int circuits = 0;
+        *area = 0.0;
+        *section = 0.0;
+        for (const BoardSection& s : c.sections)
             for (const int i : s.devices) {
                 const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
-                if (d.kind == BoardDevice::Kind::AirCircuit || d.cableArea <= 0.0)
-                    continue;
-                columnArea[ci] += d.cableArea;
-                if (d.cableSection >= 95.0) {
-                    bigArea += d.cableArea;
-                    big.push_back({ci, d.cableArea});
+                if (d.rated > 0.0 && d.kind != BoardDevice::Kind::Meter && d.kind != BoardDevice::Kind::Supply
+                    && d.kind != BoardDevice::Kind::Spd) {
+                    sum += d.rated;
+                    biggest = std::max(biggest, d.rated);
+                    ++circuits;
+                }
+                if (d.kind != BoardDevice::Kind::AirCircuit && d.cableArea > 0.0) {
+                    *area += d.cableArea;
+                    *section = std::max(*section, d.cableSection);
                 }
             }
-    RiserMode risers = options.risers;
-    if (risers == RiserMode::Auto) {
-        // Colonna dedicata quando i cavi grandi non stanno in un vano laterale da 300 mm.
-        risers = bigArea > 300.0 * riserDepth * kRiserFill ? RiserMode::Column : RiserMode::Side;
-        if (risers == RiserMode::Column && options.risers == RiserMode::Auto) {
-            for (const auto& [ci, a] : big)
-                columnArea[ci] -= a;   // i cavi grandi vanno nella colonna, il resto nei vani laterali
+        double load = std::max(biggest, sum * diversityFactor(circuits));
+        if (input.incomer > 0.0)
+            load = std::min(load, input.incomer);
+        return load;
+    };
+
+    // Sbarre verticali: nelle forme 2a e oltre in una colonna propria a sinistra degli apparecchi (nella forma 1
+    // stanno sul fondo della colonna). Le colonne degli aperti si collegano direttamente alle sbarre principali.
+    // Larghezza: barra di piatto più 100 mm per lato (isolatori e derivazioni); profondità: 4 poli affiancati con
+    // passo = pacco di barre + 50 mm, più 100 mm davanti e dietro.
+    const bool vertical = options.busbars && !L.form.empty() && L.form[0] != '1';
+    std::vector<BoardColumn> devices = std::move(L.columns);
+    L.columns.clear();
+    std::vector<double> area(devices.size(), 0.0), section(devices.size(), 0.0);
+    std::vector<BoardColumn> bus(devices.size());
+    for (std::size_t i = 0; i < devices.size(); ++i) {
+        const double load = columnLoad(devices[i], &area[i], &section[i]);
+        devices[i].required = devices[i].width;
+        if (!vertical || isAir(devices[i]))
+            continue;
+        BoardColumn& b = bus[i];
+        b.kind = BoardColumn::Kind::Busbar;
+        b.busbar = chooseBusbar(load, L.ip);
+        if (!b.busbar.ok()) {
+            L.warnings.push_back("sbarre verticali della colonna " + std::to_string(i + 1) + " (" + number(load)
+                                 + " A) oltre la tabella: sistema sbarre del costruttore");
+            b.required = 400.0;
+            continue;
         }
-    }
-    double dedicated = 0.0;
-    if (risers == RiserMode::Column) {
-        dedicated = options.risers == RiserMode::Column
-                        ? std::accumulate(columnArea.begin(), columnArea.end(), 0.0)
-                        : bigArea;
-        if (options.risers == RiserMode::Column)
-            std::fill(columnArea.begin(), columnArea.end(), 0.0);
-    }
-    if (risers != RiserMode::None) {
-        for (std::size_t ci = 0; ci < L.columns.size(); ++ci) {
-            BoardColumn& c = L.columns[ci];
-            if (columnArea[ci] <= 0.0 || (!c.sections.empty() && c.sections[0].kind == BoardSection::Kind::Air))
-                continue;
-            double w = riserWidth(columnArea[ci], {150.0, 200.0, 250.0, 300.0, 400.0});
-            if (w < 0.0) {
-                w = 400.0;
-                L.warnings.push_back("risalita cavi della colonna " + std::to_string(ci + 1)
-                                     + " oltre il 35% anche con un vano da 400 mm: prevedere una colonna di risalita");
-            }
-            c.cableWidth = w;
-            c.cableArea = columnArea[ci];
-        }
-        if (dedicated > 0.0) {
-            BoardColumn r;
-            r.kind = BoardColumn::Kind::Riser;
-            r.cableArea = dedicated;
-            double w = riserWidth(dedicated, {400.0, 600.0, 800.0, 1000.0, 1200.0});
-            if (w < 0.0) {
-                w = 1200.0;
-                L.warnings.push_back("cavi oltre la capacità di una colonna di risalita da 1200 mm: dividerli in più colonne");
-            }
-            r.width = w;
-            L.columns.push_back(r);
-        }
+        b.required = std::max(300.0, b.busbar.barWidth + 200.0);
+        const double pack = b.busbar.bars * b.busbar.barThickness + (b.busbar.bars - 1) * b.busbar.barThickness;
+        const double depth = 4.0 * (pack + 50.0) + 200.0;
+        if (depth > L.depth + 1e-6)
+            L.depth = depth <= 600.0 ? 600.0 : 800.0;
     }
 
-    // Carpenteria di ogni colonna: la più piccola del catalogo che contiene sbarre, apparecchi e risalita; il vano
-    // apparecchi prende lo spazio in più.
+    // Risalita dei cavi in colonne proprie. Riempimento massimo 35% della sezione utile = larghezza x (profondità -
+    // 100 mm); larghezza minima per il raggio di curvatura del cavo più grande: 300 mm fino a 95 mm², 400 fino a
+    // 185 mm², 600 oltre. Gli aperti (arrivi) hanno i cavi o il condotto nella loro colonna.
+    constexpr double kRiserFill = 0.35;
+    const double riserDepth = L.depth - 100.0;
+    const auto cableColumn = [&](double a, double s) {
+        BoardColumn c;
+        c.kind = BoardColumn::Kind::Cable;
+        c.cableArea = a;
+        c.cableSection = s;
+        const double minimum = s > 185.0 ? 600.0 : s > 95.0 ? 400.0 : 300.0;
+        c.required = -1.0;
+        for (const double w : {300.0, 400.0, 600.0, 800.0, 1000.0, 1200.0})
+            if (w + 1e-6 >= minimum && a <= w * riserDepth * kRiserFill + 1e-6) {
+                c.required = w;
+                break;
+            }
+        if (c.required < 0.0) {
+            c.required = 1200.0;
+            L.warnings.push_back("cavi (" + number(a / 100.0) + " cm²) oltre il 35% di una colonna da 1200 mm: "
+                                 "dividerli in più colonne di risalita");
+        }
+        return c;
+    };
+    RiserMode risers = options.risers;
+    double allArea = 0.0, allSection = 0.0;
+    for (std::size_t i = 0; i < devices.size(); ++i)
+        if (!isAir(devices[i])) {
+            allArea += area[i];
+            allSection = std::max(allSection, section[i]);
+        }
+    if (allArea <= 0.0)
+        risers = RiserMode::None;
+
+    // Composizione: [sbarre][apparecchi][cavi]; in automatico due colonne apparecchi vicine condividono il vano cavi
+    // in mezzo ([sbarre][apparecchi][cavi][apparecchi][sbarre]) quando i loro cavi stanno in 600 mm.
+    const auto addBus = [&](std::size_t i) {
+        if (bus[i].kind == BoardColumn::Kind::Busbar)
+            L.columns.push_back(bus[i]);
+    };
+    for (std::size_t i = 0; i < devices.size(); ++i) {
+        if (isAir(devices[i]) || risers == RiserMode::None || risers == RiserMode::Column) {
+            addBus(i);
+            L.columns.push_back(devices[i]);
+            continue;
+        }
+        const bool pairable = risers == RiserMode::Auto && i + 1 < devices.size() && !isAir(devices[i + 1]);
+        if (pairable) {
+            const double a = area[i] + area[i + 1], s = std::max(section[i], section[i + 1]);
+            BoardColumn shared = cableColumn(a, s);
+            if (a > 0.0 && shared.required <= 600.0 + 1e-6) {
+                addBus(i);
+                L.columns.push_back(devices[i]);
+                L.columns.push_back(shared);
+                L.columns.push_back(devices[i + 1]);
+                addBus(i + 1);
+                ++i;
+                continue;
+            }
+        }
+        addBus(i);
+        L.columns.push_back(devices[i]);
+        if (area[i] > 0.0)
+            L.columns.push_back(cableColumn(area[i], section[i]));
+    }
+    if (risers == RiserMode::Column)
+        L.columns.push_back(cableColumn(allArea, allSection));
+    for (BoardColumn& c : L.columns)
+        if (c.kind == BoardColumn::Kind::Cable)
+            c.cableFill = c.cableArea / (c.required * riserDepth);
+
+    // Carpenteria di ogni colonna: la più piccola del catalogo larga almeno quanto richiesto; la colonna prende la
+    // larghezza della carpenteria.
     std::map<std::string, int> count;
     bool allFound = true;
     double depth = 0.0;
     for (BoardColumn& c : L.columns) {
-        const double needed = c.total();
+        const double needed = c.required;
         if (const EnclosureType* e = chooseEnclosure(catalog, BoardMounting::Floor, needed, kFloorHeight, L.depth, L.ip)) {
             c.enclosure = *e;
             c.enclosureFound = true;
-            c.width = e->width - c.busbarWidth - c.cableWidth;
+            c.width = e->width;
             depth = std::max(depth, e->depth);
             if (c.kind == BoardColumn::Kind::Devices)
                 ++count[e->id];
         } else {
+            c.width = needed;
             allFound = false;
             L.warnings.push_back("nessuna carpenteria a pavimento del catalogo per una colonna da " + number(needed)
                                  + " mm, IP" + std::to_string(L.ip));
         }
+        if (c.kind == BoardColumn::Kind::Cable)
+            c.cableFill = c.cableArea / (c.width * riserDepth);
     }
     if (depth > 0.0)
         L.depth = depth;
@@ -1019,6 +1232,63 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     if (input.incomer > 4000.0)
         L.warnings.push_back("corrente di arrivo oltre 4000 A: verificare sbarre e colonne con il costruttore");
     return L;
+}
+
+int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
+{
+    int done = 0;
+    // Voci di un tipo di piastra alte come la fila, che stanno nella colonna (prima quelle della famiglia del quadro).
+    const auto candidates = [&](DeviceType::Plate want, double height, double room) {
+        std::vector<const DeviceType*> out;
+        for (int pass = 0; pass < 2 && out.empty(); ++pass)
+            for (const DeviceType& t : catalog)
+                if (t.plate == want && !t.block.empty() && std::abs(t.height - height) <= 1.0 && t.width <= room + 1e-6
+                    && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family))
+                    out.push_back(&t);
+        return out;
+    };
+    for (BoardColumn& c : L.columns) {
+        if (c.kind != BoardColumn::Kind::Devices)
+            continue;
+        const double room = c.width - 2.0 * kSideMargin;
+        // File DIN: la piastra modulare più stretta che contiene la guida (moduli della fila).
+        double reference = 0.0;   // larghezza delle piastre della colonna, per le cieche
+        for (BoardSection& s : c.sections) {
+            if (s.kind == BoardSection::Kind::Modular || s.kind == BoardSection::Kind::Terminals) {
+                const DeviceType* best = nullptr;
+                for (const DeviceType* t : candidates(DeviceType::Plate::Din, s.height, room))
+                    if (t->width + 1e-6 >= s.capacity * kModule && (!best || t->width < best->width))
+                        best = t;
+                if (best) {
+                    s.plate = best->block;
+                    reference = std::max(reference, best->width);
+                    ++done;
+                }
+            }
+            for (const int i : s.devices)
+                if (L.devices[static_cast<std::size_t>(i)].plate)
+                    reference = std::max(reference, L.devices[static_cast<std::size_t>(i)].width);
+        }
+        // Riserve: la piastra cieca della stessa larghezza delle altre (la più vicina), altrimenti la più larga.
+        for (BoardSection& s : c.sections) {
+            if (s.kind != BoardSection::Kind::Reserve)
+                continue;
+            const DeviceType* best = nullptr;
+            for (const DeviceType* t : candidates(DeviceType::Plate::Blank, s.height, room)) {
+                const auto worse = [&](const DeviceType* a, const DeviceType* b) {   // a peggio di b?
+                    return reference > 0.0 ? std::abs(a->width - reference) > std::abs(b->width - reference) + 1e-6
+                                           : a->width < b->width - 1e-6;
+                };
+                if (!best || worse(best, t))
+                    best = t;
+            }
+            if (best) {
+                s.plate = best->block;
+                ++done;
+            }
+        }
+    }
+    return done;
 }
 
 // ------------------------------------------------------------------ disegno
@@ -1127,6 +1397,10 @@ std::vector<std::string> boardBlocks(const BoardLayout& L)
     for (const BoardColumn& c : L.columns)
         if (c.enclosureFound && !c.enclosure.block.empty())
             names.insert(c.enclosure.block);
+    for (const BoardColumn& c : L.columns)
+        for (const BoardSection& s : c.sections)
+            if (!s.plate.empty())
+                names.insert(s.plate);
     return {names.begin(), names.end()};
 }
 
@@ -1137,6 +1411,7 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
               ensureLayer(doc, "FQ-TESTI", 7), ensureLayer(doc, "FQ-QUOTE", 3)};
     const int blocks = ensureLayer(doc, "FQ-BLOCCHI", 7);
     const int risers = ensureLayer(doc, "FQ-RISALITE", 30);
+    const int bars = ensureLayer(doc, "FQ-SBARRE", 1);
     // Blocco centrato (nel suo ingombro) in un riquadro; falso se il blocco non c'è.
     const auto insertBlock = [&](const std::string& name, double x, double y, double w, double h, bool bottomLeft) {
         BBox b;
@@ -1171,29 +1446,56 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
         const bool frameBlock = c.enclosureFound && insertBlock(c.enclosure.block, cx, origin.y, c.total(), height + plinth, true);
         if (!frameBlock)
             p.rect(p.frame, cx, y0, c.total(), height);
-        if (c.kind == BoardColumn::Kind::Riser) {
+        if (c.kind == BoardColumn::Kind::Cable) {
             p.rect(risers, cx + 25.0, y0 + 25.0, c.width - 50.0, height - 50.0);
-            p.text(p.texts, {cx + c.width / 2.0, y0 + height / 2.0}, 40.0, "colonna risalita cavi", kPi / 2.0, true);
-            p.text(p.texts, {cx + c.width / 2.0 + 60.0, y0 + height / 2.0}, 25.0,
-                   "cavi " + number(c.cableArea / 100.0) + " cm²", kPi / 2.0, true);
+            const double mid = cx + c.width / 2.0;
+            p.text(p.texts, {mid - 30.0, y0 + height / 2.0}, 30.0, "vano risalita cavi " + number(c.width) + " mm",
+                   kPi / 2.0, true);
+            p.text(p.texts, {mid + 30.0, y0 + height / 2.0}, 20.0,
+                   "cavi " + number(c.cableArea / 100.0) + " cm² - riempimento " + number(c.cableFill * 100.0)
+                       + "% (max 35%) - cavo max " + number(c.cableSection) + " mm²",
+                   kPi / 2.0, true);
             cx += c.total();
             continue;
         }
-        if (c.busbarWidth > 0.0) {
-            p.rect(p.frame, cx, y0, c.busbarWidth, height);
-            p.text(p.texts, {cx + c.busbarWidth / 2.0, y0 + height / 2.0}, 30.0, "sbarre verticali", kPi / 2.0, true);
-            cx += c.busbarWidth;
+        if (c.kind == BoardColumn::Kind::Busbar) {
+            // Poli visti dal fronte (pacchi di barre, schematici) e barra PE in basso.
+            const BusbarSpec& b = c.busbar;
+            const double inner = c.width - 100.0;
+            const double pack = std::max(10.0, b.bars * b.barThickness * 2.0);
+            const double top = y0 + height - 150.0, bottom = y0 + 150.0;
+            const char* poles[] = {"L1", "L2", "L3", "N"};
+            for (int k = 0; k < 4; ++k) {
+                const double px = cx + 50.0 + inner * (k + 0.5) / 4.0 - pack / 2.0;
+                p.rect(bars, px, bottom + 60.0, pack, top - bottom - 60.0);
+                p.text(p.texts, {px + pack / 2.0, top + 30.0}, 18.0, poles[k], 0.0, true);
+            }
+            p.rect(bars, cx + 50.0, bottom, inner, 25.0);
+            p.text(p.texts, {cx + c.width / 2.0, bottom - 30.0}, 18.0, "PE", 0.0, true);
+            const double tx = cx + c.width / 2.0;
+            p.text(p.texts, {tx - 75.0, y0 + height / 2.0}, 24.0, "sbarre verticali " + busbarText(b), kPi / 2.0, true);
+            p.text(p.texts, {tx + 75.0, y0 + height / 2.0}, 20.0,
+                   "I colonna " + number(b.current) + " A - portata " + number(b.rating) + " A ("
+                       + number(b.tableRating) + " A x " + number(b.factor, 2) + ")",
+                   kPi / 2.0, true);
+            cx += c.total();
+            continue;
         }
-        p.rect(p.frame, cx, y0, c.width, height);
         double y = y0 + height - topMargin;
         for (const BoardSection& s : c.sections) {
             const double top = y, bottom = y - s.height;
             const double left = cx + kSideMargin, inner = c.width - 2.0 * kSideMargin;
-            p.rect(p.frame, left, bottom, inner, s.height);
+            // Piastra del costruttore (file DIN e riserve) o apparecchio che ha già la sua piastra: niente riquadro.
+            const bool platedDevice = s.devices.size() == 1 && L.devices[static_cast<std::size_t>(s.devices[0])].plate
+                                      && doc.findBlock(L.devices[static_cast<std::size_t>(s.devices[0])].block) != nullptr;
+            const bool plate = !s.plate.empty() && insertBlock(s.plate, left, bottom, inner, s.height, false);
+            if (!plate && !platedDevice)
+                p.rect(p.frame, left, bottom, inner, s.height);
             const double mid = (top + bottom) / 2.0;
             if (s.kind == BoardSection::Kind::Modular || s.kind == BoardSection::Kind::Terminals) {
                 const double railLeft = left + (inner - s.capacity * kModule) / 2.0;
-                p.line(p.frame, {railLeft, mid}, {railLeft + s.capacity * kModule, mid});
+                if (!plate)
+                    p.line(p.frame, {railLeft, mid}, {railLeft + s.capacity * kModule, mid});
                 if (s.kind == BoardSection::Kind::Terminals) {
                     const double w = s.usedModules * kModule;
                     p.rect(p.devices, railLeft, mid - 30.0, w, 60.0);
@@ -1238,13 +1540,10 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
             y = bottom;
         }
         cx += c.width;
-        if (c.cableWidth > 0.0) {
-            p.rect(risers, cx, y0, c.cableWidth, height);
-            p.text(p.texts, {cx + c.cableWidth / 2.0, y0 + height / 2.0}, 25.0,
-                   "risalita cavi " + number(c.cableArea / 100.0) + " cm²", kPi / 2.0, true);
-            cx += c.cableWidth;
-        }
     }
+    // Sbarre principali orizzontali, in alto sul retro di tutte le colonne.
+    if (floor && L.mainBusbar.bars > 0)
+        p.rect(bars, x0 + 10.0, y0 + height - 80.0, totalWidth - 20.0, 30.0);
 
     const double dimText = 40.0;
     p.dimension({x0, origin.y}, {x0 + totalWidth, origin.y}, {0.0, -150.0}, dimText);
@@ -1268,6 +1567,13 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
     lines.push_back("Ingombro: " + number(totalWidth) + " x " + number(height + plinth) + " x " + number(L.depth)
                     + " mm (L x H x P)" + (floor ? ", zoccolo 100 mm" : ""));
     lines.push_back("IP" + std::to_string(L.ip) + " - Forma " + L.form + " - In arrivo " + number(L.incomer) + " A");
+    if (floor && L.incomer > 0.0)
+        lines.push_back("Sbarre principali " + busbarText(L.mainBusbar)
+                        + (L.mainBusbar.bars > 0 ? " - portata " + number(L.mainBusbar.rating) + " A ("
+                                                       + number(L.mainBusbar.tableRating) + " A x "
+                                                       + number(L.mainBusbar.factor, 2) + ", DIN 43671, aria interna "
+                                                       + (L.ip <= 31 ? "45" : "50") + " °C)"
+                                                 : std::string(": sistema del costruttore")));
     lines.push_back("Moduli DIN occupati " + number(L.modules, 1) + " su " + number(L.modulesInstalled, 1)
                     + (L.terminals > 0 ? " - morsetti " + std::to_string(L.terminals) : std::string()));
     for (auto it = lines.rbegin(); it != lines.rend(); ++it) {
@@ -1331,7 +1637,8 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
         // Carpenterie: una riga per tipo (le colonne a pavimento possono essere diverse).
         std::map<std::string, std::pair<int, const BoardColumn*>> frames;
         for (const BoardColumn& c : L.columns) {
-            const std::string key = c.enclosureFound ? c.enclosure.id : "?" + number(c.total());
+            const std::string key = std::to_string(static_cast<int>(c.kind))
+                                  + (c.enclosureFound ? c.enclosure.id : "?" + number(c.total()));
             auto& f = frames[key];
             ++f.first;
             f.second = &c;
@@ -1341,7 +1648,9 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
             const EnclosureType& e = c.enclosureFound ? c.enclosure : L.enclosure;
             const double w = c.enclosureFound ? e.width : c.total();
             const double h = L.mounting == BoardMounting::Floor ? kFloorHeight : e.height;
-            row({L.board, c.kind == BoardColumn::Kind::Riser ? "Carpenteria colonna risalita cavi" : "Carpenteria",
+            row({L.board, c.kind == BoardColumn::Kind::Cable    ? "Carpenteria vano risalita cavi"
+                          : c.kind == BoardColumn::Kind::Busbar ? "Carpenteria vano sbarre verticali"
+                                                                : "Carpenteria",
                  std::to_string(f.first),
                  std::string(kind) + " " + number(w) + "x" + number(h) + "x" + number(L.depth) + " mm IP"
                      + std::to_string(L.ip) + " forma " + L.form,
@@ -1352,16 +1661,24 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
             row({L.board, "Zoccolo", std::to_string(L.enclosureCount), "h 100 mm", "", ""});
         int din = 0, terminals = 0, reserveRows = 0;
         std::map<double, int> plates;
+        const auto rating = [](const BusbarSpec& b) {
+            return b.bars > 0 ? "I " + number(b.current) + " A, portata " + number(b.rating) + " A (DIN 43671 "
+                                    + number(b.tableRating) + " A x " + decimal(b.factor, 2)
+                                    + "); verificare con il sistema sbarre del costruttore e la tenuta al cortocircuito"
+                              : "I " + number(b.current) + " A oltre la tabella: sistema sbarre del costruttore";
+        };
+        if (L.mounting == BoardMounting::Floor && L.incomer > 0.0)
+            row({L.board, "Sbarre principali orizzontali", "1", busbarText(L.mainBusbar), "", rating(L.mainBusbar)});
+        int busColumn = 0;
         for (const BoardColumn& c : L.columns) {
-            if (c.busbarWidth > 0.0)
-                row({L.board, "Vano sbarre verticali", "1", "larghezza " + number(c.busbarWidth) + " mm", "",
-                     "sbarre da dimensionare sulla corrente della colonna"});
-            if (c.cableWidth > 0.0)
-                row({L.board, "Vano risalita cavi", "1", "larghezza " + number(c.cableWidth) + " mm",
-                     "cavi " + decimal(c.cableArea / 100.0, 0) + " cm²", "riempimento massimo 35%"});
-            if (c.kind == BoardColumn::Kind::Riser)
-                row({L.board, "Colonna risalita cavi", "1", "larghezza " + number(c.width) + " mm",
-                     "cavi " + decimal(c.cableArea / 100.0, 0) + " cm²", "cavi da 95 mm² in su, riempimento massimo 35%"});
+            if (c.kind == BoardColumn::Kind::Busbar)
+                row({L.board, "Sbarre verticali colonna " + std::to_string(++busColumn), "1", busbarText(c.busbar),
+                     "", rating(c.busbar)});
+            if (c.kind == BoardColumn::Kind::Cable)
+                row({L.board, "Vano risalita cavi", "1", "larghezza " + number(c.width) + " mm",
+                     "cavi " + decimal(c.cableArea / 100.0, 0) + " cm²",
+                     "riempimento " + decimal(c.cableFill * 100.0, 0) + "% (massimo 35%), cavo più grande "
+                         + number(c.cableSection) + " mm²"});
             for (const BoardSection& s : c.sections) {
                 if (s.kind == BoardSection::Kind::Modular)
                     ++din;

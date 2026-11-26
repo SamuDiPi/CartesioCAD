@@ -35,6 +35,8 @@ struct BoardDevice {
     // Dal catalogo degli apparecchi (applyDeviceCatalog): blocco da inserire nel disegno, riferimento e fonte.
     std::string block, reference, source;
     std::string model;         // modello scritto nello schema (per il catalogo degli apparecchi)
+    bool plate = false;        // il blocco comprende la piastra di colonna: la fila è alta quanto la piastra
+    std::string family;        // famiglia di blocchi riconosciuta nello schema (assignFamilies)
 };
 
 const char* boardDeviceKindName(BoardDevice::Kind kind);
@@ -59,15 +61,16 @@ std::vector<BoardInput> boardsFromCircuits(const std::vector<Circuit>& circuits)
 
 enum class BoardEnvironment { TechnicalRoom, Ordinary, Outdoor, Washdown };
 enum class BoardMounting { Auto, Wall, Floor, Box };
-// Risalita dei cavi nei quadri a pavimento: automatica (vano laterale e, per i cavi grandi, colonna dedicata),
-// nessuna, solo vani laterali, solo colonna dedicata.
+// Risalita dei cavi nei quadri a pavimento, sempre in colonne proprie: automatica (un vano cavi in mezzo a due
+// colonne apparecchi vicine quando i loro cavi ci stanno, altrimenti uno per colonna), nessuna, un vano per ogni
+// colonna apparecchi, una sola colonna cavi per tutto il quadro.
 enum class RiserMode { Auto, None, Side, Column };
 
 struct BoardOptions {
     double reserve = 0.25;          // spazio di riserva (0.25 = 25 %)
     bool terminals = true;          // morsettiera nelle file in basso
     RiserMode risers = RiserMode::Auto;  // risalita dei cavi (quadri a pavimento)
-    bool busbars = true;            // vano delle sbarre verticali nelle colonne (forme 2a e oltre)
+    bool busbars = true;            // colonna delle sbarre verticali accanto agli apparecchi (forme 2a e oltre)
     BoardEnvironment environment = BoardEnvironment::TechnicalRoom;
     BoardMounting mounting = BoardMounting::Auto;
     int ip = 0;                     // 0 = proposto dall'ambiente
@@ -110,13 +113,34 @@ struct DeviceType {
     std::string blockFile, blockName, reference, source;
     std::string model;                // testo da cercare nel modello dello schema (vuoto = qualsiasi)
     std::string block;                // nome del blocco nel documento (lo assegna chi carica i file)
+    // Piastre: Device = il blocco dell'apparecchio comprende la sua piastra di colonna; Din e Blank = piastre senza
+    // apparecchio (file DIN e riserve), scelte da applyPlates per altezza e larghezza della colonna.
+    enum class Plate { None, Device, Din, Blank };
+    Plate plate = Plate::None;
+    std::string family;               // famiglia di blocchi (vuota = valida per tutte)
 };
-// CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello]
-// tipo = modulare | differenziale | sezionatore | fusibile | spd | scatolato | sezionatore-scatolato | aperto;
-// poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente.
+// CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello[;piastra
+//      [;famiglia]]]
+// tipo = modulare | differenziale | sezionatore | fusibile | spd | strumento | scatolato | scatolato-differenziale |
+//        sezionatore-scatolato | aperto | piastra-modulare | piastra-cieca;
+// poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente; piastra = "si" quando il blocco
+// dell'apparecchio comprende la piastra (la fila prende l'altezza del blocco, senza margini).
 std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped = nullptr);
+
+// Famiglie di blocchi (una per libreria): righe del catalogo con tipo "famiglia", codice = nome della famiglia,
+// modello = parole che la riconoscono nello schema separate da "|". La prima dichiarata è la predefinita.
+struct DeviceFamily {
+    std::string name;
+    std::vector<std::string> keywords;
+};
+std::vector<DeviceFamily> parseDeviceFamilies(const std::string& csv);
+// Famiglia di ogni apparecchio: la prima le cui parole compaiono (senza distinguere maiuscole) nel modello o nella
+// descrizione; gli apparecchi senza riscontro prendono la famiglia più frequente del quadro, altrimenti la
+// predefinita. Restituisce la famiglia del quadro (vuota se non ci sono famiglie).
+std::string assignFamilies(std::vector<BoardDevice>& devices, const std::vector<DeviceFamily>& families);
 // A ogni apparecchio la voce più specifica del catalogo (prima quelle con il modello trovato nello schema, poi
-// l'intervallo di corrente più stretto): misure, blocco, riferimento. Restituisce gli apparecchi trovati.
+// l'intervallo di corrente più stretto): misure, blocco, riferimento. Con le famiglie si cercano prima le voci
+// della famiglia dell'apparecchio (o senza famiglia), poi tutte. Restituisce gli apparecchi trovati.
 int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<DeviceType>& catalog);
 
 // Una zona del fronte, dall'alto in basso dentro una colonna.
@@ -127,19 +151,47 @@ struct BoardSection {
     std::vector<int> devices;            // indici in BoardLayout::devices (in ordine da sinistra)
     double usedModules = 0.0;            // file DIN: moduli occupati
     double capacity = 0.0;               // file DIN: moduli disponibili
+    std::string plate;                   // blocco della piastra (file DIN e riserve, da applyPlates)
 };
 
+// Sbarre in rame nudo di un sistema 3F+N (neutro pieno) con la barra PE. Portata dalla tabella DIN 43671
+// (corrente alternata, aria a 35 °C, sbarra a 65 °C) ridotta per l'aria dentro il quadro:
+// k = sqrt((65 - Ti) / 30), Ti = 45 °C fino a IP31, 50 °C oltre. Valori prudenziali e indicativi: il sistema
+// sbarre certificato del costruttore (prove IEC 61439) e la tenuta al cortocircuito vanno verificati.
+struct BusbarSpec {
+    double current = 0.0;     // A da portare (dimensionamento)
+    int bars = 0;             // barre per fase (0 = non dimensionate)
+    double barWidth = 0.0, barThickness = 0.0;   // mm
+    double tableRating = 0.0; // A, DIN 43671 a 35 °C
+    double factor = 1.0;      // riduzione per la temperatura interna
+    double rating = 0.0;      // A, portata nel quadro = tableRating * factor
+    double peWidth = 0.0, peThickness = 0.0;     // barra PE (IEC 61439-1 tab. 5)
+    double section() const { return bars * barWidth * barThickness; }   // mm² per fase
+    bool ok() const { return bars > 0 && rating + 1e-6 >= current; }
+};
+// La configurazione più piccola (sezione, poi numero di barre) con la portata nel quadro che basta per `current`;
+// bars = 0 se nessuna basta (oltre circa 4000 A a 35 °C).
+BusbarSpec chooseBusbar(double current, int ip);
+// "3F+N Cu 2x(80x10) + PE 50x10"
+std::string busbarText(const BusbarSpec& b);
+// Fattore di contemporaneità nominale delle partenze (IEC 61439-2): 2-3 circuiti 0,9; 4-5 0,8; 6-9 0,7; da 10 0,6.
+double diversityFactor(int circuits);
+
 struct BoardColumn {
-    enum class Kind { Devices, Riser };  // Riser = colonna dedicata alla risalita dei cavi
+    // Devices = apparecchi; Busbar = vano sbarre verticali (colonna propria, forme 2a e oltre); Cable = vano
+    // risalita cavi (colonna propria accanto agli apparecchi, o unica per il quadro).
+    enum class Kind { Devices, Busbar, Cable };
     Kind kind = Kind::Devices;
-    double width = 0.0;                  // mm (vano apparecchi, o l'intera colonna di risalita)
-    double busbarWidth = 0.0;            // vano sbarre verticali, a sinistra (0 = nessuno)
-    double cableWidth = 0.0;             // vano risalita cavi, a destra (0 = nessuno)
-    double cableArea = 0.0;              // mm² di cavi che salgono nel vano o nella colonna
+    double width = 0.0;                  // mm (dalla carpenteria scelta)
+    double required = 0.0;               // mm, larghezza minima calcolata
+    double cableArea = 0.0;              // Cable: mm² di cavi che salgono
+    double cableSection = 0.0;           // Cable: sezione del cavo più grande (raggio di curvatura)
+    double cableFill = 0.0;              // Cable: riempimento della sezione utile (0..1)
+    BusbarSpec busbar;                   // Busbar: sbarre verticali della colonna apparecchi accanto
     std::vector<BoardSection> sections;
     EnclosureType enclosure;             // carpenteria della colonna (quadri a pavimento)
     bool enclosureFound = false;
-    double total() const { return busbarWidth + width + cableWidth; }
+    double total() const { return width; }
 };
 
 struct BoardLayout {
@@ -153,7 +205,9 @@ struct BoardLayout {
     bool enclosureFound = false;
     int ip = 0;
     std::string form;
+    std::string family;                  // famiglia di blocchi del quadro (per le piastre)
     double incomer = 0.0;
+    BusbarSpec mainBusbar;               // sbarre principali orizzontali (a pavimento), sulla corrente di arrivo
     double modules = 0.0;                // moduli DIN occupati
     double modulesInstalled = 0.0;       // moduli DIN disponibili nelle file previste
     int terminals = 0;
@@ -161,6 +215,11 @@ struct BoardLayout {
 };
 
 BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, const std::vector<EnclosureType>& catalog);
+
+// Piastre del catalogo (piastra-modulare, piastra-cieca) per le file DIN, le morsettiere e le riserve delle colonne
+// apparecchi: quella alta come la fila (tolleranza 1 mm) e più larga fra quelle che stanno nella colonna (larghezza
+// - 100 mm). Solo voci con il blocco caricato. Restituisce le file con la piastra.
+int applyPlates(BoardLayout& layout, const std::vector<DeviceType>& catalog);
 
 // Disegno del fronte nel documento, con l'angolo in basso a sinistra in `origin` (mm, scala 1:1): carpenteria,
 // colonne, file, apparecchi con sigla e corrente, quote e dati (carpenteria, IP, forma, riserva).

@@ -11,6 +11,7 @@
 #include "core/Switchboard.h"
 
 #include <QAction>
+#include <algorithm>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -25,12 +26,21 @@ namespace {
 QSettings frontSettings() { return QSettings(QStringLiteral("CartesioCAD"), QStringLiteral("CartesioCAD")); }
 
 // Blocchi dei cataloghi: ogni file (DWG/DXF, relativo alla cartella del catalogo) diventa un blocco "FQ_codice"
-// di `library` (in mm); le misure mancanti si prendono dall'ingombro del blocco. Restituisce i file non letti.
+// di `library` (in mm); le misure mancanti si prendono dall'ingombro del blocco. Le voci con il file del blocco
+// assente si tolgono dal catalogo (vale la voce successiva) e si contano in `missing`. Restituisce i file non letti.
 template <typename T>
-QStringList loadCatalogBlocks(std::vector<T>& items, const QString& catalogPath, Document& library)
+QStringList loadCatalogBlocks(std::vector<T>& items, const QString& catalogPath, Document& library, int* missing = nullptr)
 {
     QStringList failed;
     const QDir dir = QFileInfo(catalogPath).dir();
+    const auto absent = [&dir](const T& item) {
+        return !item.blockFile.empty()
+               && !QFileInfo::exists(QDir::cleanPath(dir.absoluteFilePath(QString::fromStdString(item.blockFile))));
+    };
+    const auto removed = std::remove_if(items.begin(), items.end(), absent);
+    if (missing)
+        *missing = static_cast<int>(std::distance(removed, items.end()));
+    items.erase(removed, items.end());
     std::map<QString, std::shared_ptr<Document>> files;   // un file letto una volta sola
     for (T& item : items) {
         if (item.blockFile.empty())
@@ -116,6 +126,7 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     Document library;   // blocchi dei costruttori (mm)
     library.setInsUnits(4);
     QStringList failedBlocks;
+    int missingBlocks = 0;
     std::vector<EnclosureType> catalog = builtinEnclosures();
     if (!r.catalog.isEmpty()) {
         QFile file(r.catalog);
@@ -123,7 +134,9 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
             return tr("Impossibile leggere il catalogo %1.").arg(QDir::toNativeSeparators(r.catalog));
         int skipped = 0;
         auto own = parseEnclosureCatalog(file.readAll().toStdString(), &skipped);
-        failedBlocks << loadCatalogBlocks(own, r.catalog, library);
+        int absent = 0;
+        failedBlocks << loadCatalogBlocks(own, r.catalog, library, &absent);
+        missingBlocks += absent;
         catalog.insert(catalog.end(), own.begin(), own.end());
         print(tr("Fronte quadro: %1 carpenterie dal catalogo %2%3.")
                   .arg(own.size())
@@ -132,13 +145,18 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     }
 
     std::vector<DeviceType> deviceCatalog;
+    std::vector<DeviceFamily> families;
     if (!r.devices.isEmpty()) {
         QFile file(r.devices);
         if (!file.open(QIODevice::ReadOnly))
             return tr("Impossibile leggere il catalogo %1.").arg(QDir::toNativeSeparators(r.devices));
         int skipped = 0;
-        deviceCatalog = parseDeviceCatalog(file.readAll().toStdString(), &skipped);
-        failedBlocks << loadCatalogBlocks(deviceCatalog, r.devices, library);
+        const std::string text = file.readAll().toStdString();
+        deviceCatalog = parseDeviceCatalog(text, &skipped);
+        families = parseDeviceFamilies(text);
+        int absent = 0;
+        failedBlocks << loadCatalogBlocks(deviceCatalog, r.devices, library, &absent);
+        missingBlocks += absent;
         int withBlock = 0;
         for (const DeviceType& t : deviceCatalog)
             withBlock += t.block.empty() ? 0 : 1;
@@ -150,6 +168,9 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     }
     for (const QString& f : failedBlocks)
         print(tr("   blocco non caricato: %1").arg(f));
+    if (missingBlocks > 0)
+        print(tr("   %1 voci dei cataloghi saltate: il file del blocco non c'è (vale la voce successiva).")
+                  .arg(missingBlocks));
 
     QStringList wanted;
     for (const QString& b : r.boards.split(QRegularExpression(QStringLiteral("[,;\\s]+")), Qt::SkipEmptyParts))
@@ -159,8 +180,11 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     for (BoardInput in : boardsFromCircuits(circuits)) {
         if (!wanted.isEmpty() && !wanted.contains(QString::fromStdString(in.board).toUpper()))
             continue;
+        const std::string family = assignFamilies(in.devices, families);
         const int matched = deviceCatalog.empty() ? 0 : applyDeviceCatalog(in.devices, deviceCatalog);
         BoardLayout L = layoutBoard(in, r.options, catalog);
+        L.family = family;
+        applyPlates(L, deviceCatalog);
         if (!deviceCatalog.empty() && matched < static_cast<int>(in.devices.size()))
             L.warnings.push_back(tr("%1 apparecchi su %2 senza voce nel catalogo: ingombri tipici")
                                      .arg(in.devices.size() - matched)
@@ -183,6 +207,8 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
                   .arg(L.modules, 0, 'f', 0)
                   .arg(L.modulesInstalled, 0, 'f', 0)
                   .arg(L.enclosureCount > 1 ? tr(", %1 colonne").arg(L.enclosureCount) : QString()));
+        if (!L.family.empty())
+            print(tr("   famiglia di blocchi: %1").arg(QString::fromStdString(L.family)));
         for (const std::string& w : L.warnings)
             print(tr("   attenzione: %1").arg(QString::fromStdString(w)));
         layouts.push_back(std::move(L));
@@ -298,10 +324,10 @@ void MainWindow::showSwitchboardFront()
     dialog.integer(tr("Spazio di riserva:"), 0, 100, reserve, QStringLiteral(" %"));
     dialog.check(tr("Morsettiera nelle file in basso"), terminals);
     dialog.choice(tr("Risalita cavi (a pavimento):"),
-                  {{tr("Automatica (vano laterale, colonna per i cavi grandi)"), 0}, {tr("Nessuna"), 1},
-                   {tr("Vano laterale in ogni colonna"), 2}, {tr("Colonna dedicata"), 3}},
+                  {{tr("Automatica (un vano cavi ogni due colonne quando basta)"), 0}, {tr("Nessuna"), 1},
+                   {tr("Un vano cavi per ogni colonna"), 2}, {tr("Una sola colonna cavi"), 3}},
                   risers, [&risers](const QVariant& v) { risers = v.toInt(); });
-    dialog.check(tr("Vano sbarre verticali (forme 2a e oltre)"), busbars);
+    dialog.check(tr("Colonna sbarre verticali con la portata (forme 2a e oltre)"), busbars);
     dialog.path(tr("Catalogo carpenterie (CSV, facoltativo):"), r.catalog, FormDialog::OpenFile,
                 tr("vuoto = tipi generici"), tr("CSV (*.csv)"));
     dialog.path(tr("Catalogo apparecchi con i blocchi (CSV):"), r.devices, FormDialog::OpenFile,

@@ -6883,6 +6883,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>   block not loaded: %1</translation>
     </message>
     <message>
+        <source>   %1 voci dei cataloghi saltate: il file del blocco non c&apos;è (vale la voce successiva).</source>
+        <translation>   %1 catalog entries skipped: the block file is missing (the next entry applies).</translation>
+    </message>
+    <message>
         <source>%1 apparecchi su %2 senza voce nel catalogo: ingombri tipici</source>
         <translation>%1 of %2 devices not in the catalog: typical dimensions</translation>
     </message>
@@ -7019,24 +7023,8 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>Cable risers (floor-standing):</translation>
     </message>
     <message>
-        <source>Automatica (vano laterale, colonna per i cavi grandi)</source>
-        <translation>Automatic (side compartment, column for large cables)</translation>
-    </message>
-    <message>
         <source>Nessuna</source>
         <translation>None</translation>
-    </message>
-    <message>
-        <source>Vano laterale in ogni colonna</source>
-        <translation>Side compartment in each column</translation>
-    </message>
-    <message>
-        <source>Colonna dedicata</source>
-        <translation>Dedicated column</translation>
-    </message>
-    <message>
-        <source>Vano sbarre verticali (forme 2a e oltre)</source>
-        <translation>Vertical busbar compartment (forms 2a and above)</translation>
     </message>
     <message>
         <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo delle carpenterie ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte;blocco;nome_blocco, quello degli apparecchi codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte (blocchi DWG o DXF in mm, accanto al CSV).</source>
@@ -7045,6 +7033,22 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Catalogo carpenterie (CSV, facoltativo):</source>
         <translation>Enclosure catalog (CSV, optional):</translation>
+    </message>
+    <message>
+        <source>Automatica (un vano cavi ogni due colonne quando basta)</source>
+        <translation>Automatic (one cable column every two columns when enough)</translation>
+    </message>
+    <message>
+        <source>Un vano cavi per ogni colonna</source>
+        <translation>One cable column for each column</translation>
+    </message>
+    <message>
+        <source>Una sola colonna cavi</source>
+        <translation>A single cable column</translation>
+    </message>
+    <message>
+        <source>Colonna sbarre verticali con la portata (forme 2a e oltre)</source>
+        <translation>Vertical busbar column with its rating (forms 2a and above)</translation>
     </message>
     <message>
         <source>vuoto = tipi generici</source>

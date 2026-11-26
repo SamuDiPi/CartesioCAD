@@ -2983,32 +2983,63 @@ void testSwitchboard()
     CHECK(std::abs(qd[3].cableArea - kPi * std::pow(1.7 * std::sqrt(30.0) + 5.0, 2) / 4.0) < 1e-6);
     CHECK(qd[4].cableSection == 50.0 && qd[4].cableArea > 5 * 80.0);
 
-    // Salite: sbarre verticali nella forma 4b (2500 A: 200 mm) fuori dalle colonne degli aperti, vano di risalita
-    // per i cavi delle partenze; con la colonna dedicata tutti i cavi vanno lì.
-    CHECK(big.columns[0].busbarWidth == 0.0);   // colonna dell'aperto
-    bool busbars = false, side = false;
+    // Salite in colonne proprie: sbarre verticali (forma 4b) accanto alle colonne apparecchi ma non agli aperti,
+    // vani cavi; con la colonna dedicata un solo vano cavi in fondo; sbarre principali sulla corrente di arrivo.
+    CHECK(big.columns[0].kind == BoardColumn::Kind::Devices);   // colonna dell'aperto, senza sbarre verticali
+    int busCols = 0, cableCols = 0;
     for (const BoardColumn& c : big.columns) {
-        busbars = busbars || c.busbarWidth == 200.0;
-        side = side || c.cableWidth >= 150.0;
+        if (c.kind == BoardColumn::Kind::Busbar) {
+            ++busCols;
+            CHECK(c.busbar.ok() && c.width >= 300.0);
+        }
+        if (c.kind == BoardColumn::Kind::Cable) {
+            ++cableCols;
+            CHECK(c.width >= 300.0 && c.cableFill > 0.0 && c.cableFill <= 0.35 + 1e-9);
+        }
     }
-    CHECK(busbars && side);
+    CHECK(busCols > 0 && cableCols > 0);
+    CHECK(big.mainBusbar.ok() && big.mainBusbar.rating >= big.incomer);
     BoardOptions col = o;
     col.risers = RiserMode::Column;
     const BoardLayout dedicated = layoutBoard(boards[1], col, builtinEnclosures());
-    CHECK(dedicated.columns.back().kind == BoardColumn::Kind::Riser && dedicated.columns.back().width >= 400.0);
+    CHECK(dedicated.columns.back().kind == BoardColumn::Kind::Cable && dedicated.columns.back().width >= 300.0);
+    int dedicatedCables = 0;
     for (const BoardColumn& c : dedicated.columns)
-        CHECK(c.cableWidth == 0.0);
+        dedicatedCables += c.kind == BoardColumn::Kind::Cable ? 1 : 0;
+    CHECK(dedicatedCables == 1);
     BoardOptions none = o;
     none.risers = RiserMode::None;
     none.busbars = false;
     const BoardLayout plain = layoutBoard(boards[1], none, builtinEnclosures());
     for (const BoardColumn& c : plain.columns)
-        CHECK(c.cableWidth == 0.0 && c.busbarWidth == 0.0 && c.kind == BoardColumn::Kind::Devices);
+        CHECK(c.kind == BoardColumn::Kind::Devices);
     CHECK(plain.width < big.width);
     BoardOptions form1 = o;
     form1.form = "1";
     for (const BoardColumn& c : layoutBoard(boards[1], form1, builtinEnclosures()).columns)
-        CHECK(c.busbarWidth == 0.0);
+        CHECK(c.kind != BoardColumn::Kind::Busbar);
+    const std::string bigBom = boardBillOfMaterials({big});
+    CHECK(bigBom.find("Sbarre principali orizzontali") != std::string::npos
+          && bigBom.find("Sbarre verticali colonna 1") != std::string::npos
+          && bigBom.find("Vano risalita cavi") != std::string::npos);
+    Document busDoc;
+    bool barsLayer = false;
+    auto busEnts = drawBoardFront(busDoc, big, {0.0, 0.0});
+    for (const Layer& l : busDoc.layers())
+        barsLayer = barsLayer || l.name == "FQ-SBARRE";
+    CHECK(barsLayer && !busEnts.empty());
+
+    // Sbarre: tabella DIN 43671 ridotta per l'aria interna (45 °C fino a IP31: k = sqrt(20/30)).
+    const BusbarSpec b630 = chooseBusbar(630.0, 31);
+    CHECK(std::abs(b630.factor - std::sqrt(20.0 / 30.0)) < 1e-9);
+    CHECK(b630.ok() && b630.rating >= 630.0 && b630.section() <= 600.0);
+    const BusbarSpec b2500 = chooseBusbar(2500.0, 31);
+    CHECK(b2500.ok() && b2500.bars >= 2 && b2500.barThickness == 10.0);
+    CHECK(b2500.peWidth * b2500.peThickness + 1e-9 >= b2500.section() / 4.0);
+    CHECK(chooseBusbar(2500.0, 55).rating < chooseBusbar(2500.0, 31).rating + 1e-9);
+    CHECK(!chooseBusbar(5000.0, 31).ok());
+    CHECK(busbarText(chooseBusbar(400.0, 31)).rfind("3F+N Cu ", 0) == 0);
+    CHECK(diversityFactor(1) == 1.0 && diversityFactor(3) == 0.9 && diversityFactor(12) == 0.6);
 
     // Catalogo degli apparecchi: la voce più specifica (differenziale per il circuito con differenziale), misure e
     // blocco; gli accessori in più restano.
@@ -3045,6 +3076,89 @@ void testSwitchboard()
     CHECK(mdevs[2].block == "FQ_X" && mdevs[4].block == "FQ_M2");
     CHECK(parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello\n"
                              "A;modulare;2;;;2;;;;;;;iC\n")[0].model == "iC");
+    // Scatolato con differenziale (solo per gli scatolati con differenziale) e strumento.
+    const auto kinds = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco\n"
+                                          "SD;scatolato-differenziale;4;0;250;;140;300;sd.dxf\n"
+                                          "S;scatolato;4;0;250;;140;200;s.dxf\n"
+                                          "ST;strumento;;;;4;;;st.dxf\n");
+    CHECK(kinds.size() == 3 && kinds[0].kind == BoardDevice::Kind::MouldedCase && kinds[0].residual
+          && kinds[2].kind == BoardDevice::Kind::Meter);
+    {
+        std::vector<BoardDevice> md(2);
+        for (BoardDevice& d : md) {
+            d.kind = BoardDevice::Kind::MouldedCase;
+            d.poles = 4;
+            d.rated = 160.0;
+            d.width = 140.0;
+            d.height = 200.0;
+        }
+        md[1].residual = true;
+        applyDeviceCatalog(md, kinds);
+        CHECK(md[0].block.empty() && md[1].height == 300.0);   // i blocchi non sono caricati: misure sì
+        CHECK(md[0].height == 200.0);
+    }
+    // Piastre: lo scatolato con la sua piastra fa una fila alta quanto la piastra; le file DIN prendono la piastra
+    // modulare alta 150 mm più larga che sta nella colonna, le riserve quella cieca della stessa altezza.
+    {
+        auto plates = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra\n"
+                                         "P;scatolato;1-4;0;250;;500;150;p.dxf;;;;;si\n"
+                                         "DIN5;piastra-modulare;;;;;500;150;d5.dxf\n"
+                                         "DIN6;piastra-modulare;;;;;665;150;d6.dxf\n"
+                                         "DIN4;piastra-modulare;;;;;500;200;d4.dxf\n"
+                                         "C3;piastra-cieca;;;;;500;150;c3.dxf\n");
+        CHECK(plates.size() == 5 && plates[0].plate == DeviceType::Plate::Device
+              && plates[1].plate == DeviceType::Plate::Din && plates[4].plate == DeviceType::Plate::Blank);
+        for (DeviceType& t : plates)
+            t.block = "B_" + t.id;
+        BoardInput pin;
+        pin.board = "QP";
+        pin.incomer = 400.0;
+        for (int k = 0; k < 4; ++k) {
+            BoardDevice d;
+            d.kind = BoardDevice::Kind::MouldedCase;
+            d.circuit = "QP C-" + std::to_string(k + 1);
+            d.poles = 4;
+            d.rated = 160.0;
+            d.width = 140.0;
+            d.height = 161.0;
+            pin.devices.push_back(d);
+        }
+        for (int k = 0; k < 10; ++k) {
+            BoardDevice d;
+            d.circuit = "QP M-" + std::to_string(k + 1);
+            d.poles = 2;
+            d.rated = 16.0;
+            d.modules = 2.0;
+            pin.devices.push_back(d);
+        }
+        CHECK(applyDeviceCatalog(pin.devices, plates) == 4 && pin.devices[0].plate && pin.devices[0].width == 500.0);
+        BoardOptions po;
+        po.mounting = BoardMounting::Floor;
+        po.form = "1";
+        BoardLayout pl = layoutBoard(pin, po, builtinEnclosures());
+        int plateRows = 0, reserves = 0;
+        for (const BoardColumn& c : pl.columns)
+            for (const BoardSection& s : c.sections)
+                if (s.kind == BoardSection::Kind::MouldedCase) {
+                    ++plateRows;
+                    CHECK(s.height == 150.0 && s.devices.size() == 1);
+                } else if (s.kind == BoardSection::Kind::Reserve) {
+                    ++reserves;
+                }
+        CHECK(plateRows == 4 && reserves == 1);
+        CHECK(applyPlates(pl, plates) > 0);
+        bool din = false, blank = false;
+        for (const BoardColumn& c : pl.columns)
+            for (const BoardSection& s : c.sections) {
+                if (s.kind == BoardSection::Kind::Modular)
+                    din = din || s.plate == (c.width >= 765.0 ? "B_DIN6" : "B_DIN5");
+                if (s.kind == BoardSection::Kind::Reserve)
+                    blank = blank || s.plate == "B_C3";
+            }
+        CHECK(din && blank);
+        const auto names = boardBlocks(pl);
+        CHECK(std::find(names.begin(), names.end(), "B_C3") != names.end());
+    }
     std::vector<BoardDevice> gdevs = boards[1].devices;
     CHECK(applyDeviceCatalog(gdevs, withBlocks) == 1 && gdevs[1].width == 185.0 && gdevs[1].block == "FRONTE");
 

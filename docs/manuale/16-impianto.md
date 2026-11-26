@@ -109,7 +109,7 @@ Conta i materiali delle tratte disegnate nel disegno corrente: tubi (con curve, 
 
 **Dove:** Impianto > Impianti elettrici > *Fronte quadro*.
 
-Dallo schema unifilare in PDF (lo stesso dei *Circuiti*) prepara il fronte di ogni quadro: ingombro, carpenteria, grado IP e forma di segregazione, disegnati in scala 1:1 in millimetri con le quote e i dati sopra il fronte (layer `FQ-CARPENTERIA`, `FQ-APPARECCHI`, `FQ-BLOCCHI`, `FQ-RISALITE`, `FQ-TESTI`, `FQ-QUOTE`). Insieme si salvano, accanto al PDF, la **distinta** in CSV per Excel (carpenterie, zoccoli, vani sbarre e risalite, file DIN, coprimoduli di riserva, morsetti, apparecchi con il riferimento) e il file **IFC4** per il BIM: un `IfcElectricDistributionBoard` per quadro con il suo ingombro e le proprietà (grado IP, forma, carpenteria, riferimento, corrente d'arrivo, moduli occupati e disponibili).
+Dallo schema unifilare in PDF (lo stesso dei *Circuiti*) prepara il fronte di ogni quadro: ingombro, carpenteria, grado IP e forma di segregazione, disegnati in scala 1:1 in millimetri con le quote e i dati sopra il fronte (layer `FQ-CARPENTERIA`, `FQ-APPARECCHI`, `FQ-BLOCCHI`, `FQ-SBARRE`, `FQ-RISALITE`, `FQ-TESTI`, `FQ-QUOTE`). Insieme si salvano, accanto al PDF, la **distinta** in CSV per Excel (carpenterie, zoccoli, colonne sbarre e cavi, sbarre con la portata, file DIN, coprimoduli di riserva, morsetti, apparecchi con il riferimento) e il file **IFC4** per il BIM: un `IfcElectricDistributionBoard` per quadro con il suo ingombro e le proprietà (grado IP, forma, carpenteria, riferimento, corrente d'arrivo, moduli occupati e disponibili).
 
 Gli apparecchi si riconoscono da quanto è scritto nello schema, mai dal nome del prodotto:
 - l'**esecuzione** (modulare, scatolato, aperto, anche con un accessorio modulare come `SCATOLATO/MODULARE`), i **poli** e la **corrente nominale**;
@@ -130,11 +130,15 @@ Nella finestra si scelgono:
 
 ### Salite: sbarre verticali e risalita dei cavi
 
-Nei quadri a pavimento ogni colonna apparecchi ha:
-- a sinistra il **vano delle sbarre verticali** quando la forma di segregazione è 2a o superiore (nella forma 1 le sbarre stanno sul fondo): 150 mm fino a 1600 A d'arrivo, 200 mm fino a 3200 A, 300 mm oltre. Le colonne degli interruttori aperti hanno le sbarre orizzontali e non lo prevedono;
-- a destra il **vano di risalita dei cavi**, largo quanto serve ai cavi delle partenze di quella colonna: l'area di ogni cavo si stima dalla formazione dello schema (diametro tipico 1,35·√S + 4,5 mm per gli unipolari, 1,7·√(n·S) + 5 mm per i multipolari) e il vano si riempie al massimo al **35%** della sezione larghezza × (profondità − 100 mm). Larghezze 150, 200, 250, 300 o 400 mm.
+Nei quadri a pavimento sbarre e cavi hanno **colonne proprie**, ognuna con la sua carpenteria del catalogo (layer `FQ-SBARRE` e `FQ-RISALITE`):
 
-Con *Risalita cavi* **automatica**, se i cavi da 95 mm² in su non stanno in un vano da 300 mm vanno in una **colonna di risalita dedicata** (400, 600, 800, 1000 o 1200 mm, in fondo al quadro, layer `FQ-RISALITE`) e il resto nei vani laterali. Si può anche scegliere solo i vani laterali, solo la colonna dedicata (tutti i cavi) o nessuna risalita. La carpenteria di ogni colonna si sceglie sulla larghezza complessiva (sbarre + apparecchi + risalita); le colonne possono quindi essere di larghezze diverse e la distinta le elenca per tipo.
+- **Sbarre principali orizzontali**, in alto sul retro di tutte le colonne, dimensionate sulla corrente di arrivo.
+- **Colonna delle sbarre verticali** a sinistra di ogni colonna apparecchi quando la forma di segregazione è 2a o superiore (nella forma 1 le sbarre stanno sul fondo della colonna; le colonne degli interruttori aperti si collegano direttamente alle sbarre principali). La corrente della colonna è la somma delle correnti nominali delle sue partenze per il **fattore di contemporaneità** della IEC 61439-2 (2–3 circuiti 0,9; 4–5 0,8; 6–9 0,7; da 10 in su 0,6), almeno quella della partenza più grande e al più quella di arrivo. La larghezza è la barra più 100 mm per lato (almeno 300 mm); la profondità deve contenere i 4 poli affiancati (pacco di barre + 50 mm ciascuno, più 100 mm davanti e dietro), altrimenti il quadro passa a 600 o 800 mm.
+- **Colonna di risalita dei cavi** a destra: l'area di ogni cavo si stima dalla formazione dello schema (diametro tipico 1,35·√S + 4,5 mm per gli unipolari, 1,7·√(n·S) + 5 mm per i multipolari) e la colonna si riempie al massimo al **35%** della sezione larghezza × (profondità − 100 mm). La larghezza minima segue il raggio di curvatura del cavo più grande: 300 mm fino a 95 mm², 400 mm fino a 185 mm², 600 mm oltre; poi 800, 1000 o 1200 mm se serve per il riempimento.
+
+**Portata delle sbarre.** Rame nudo 3F+N con il neutro pieno, dalla tabella **DIN 43671** (corrente alternata, aria a 35 °C, sbarra a 65 °C) per 1, 2 o 3 barre per fase da 20×5 a 120×10 mm, ridotta per l'aria dentro il quadro con k = √((65 − Ti)/30): Ti = 45 °C fino a IP31 (k 0,82), 50 °C oltre (k 0,71). Si sceglie la configurazione con la sezione più piccola che basta; la barra PE segue la tabella 5 della IEC 61439-1 (S/2 fino a 400 mm², 200 mm² fino a 800 mm², S/4 oltre). Nel disegno ogni colonna sbarre mostra i poli L1, L2, L3, N e la barra PE, la configurazione e la scritta «I colonna … A – portata … A (tabella × k)»; i dati del quadro riportano le sbarre principali con la loro portata. Sono valori **prudenziali e indicativi**: il sistema sbarre certificato del costruttore (prove IEC 61439) e la tenuta al cortocircuito vanno sempre verificati. Oltre 3 barre 120×10 il programma avvisa di usare un condotto sbarre o il sistema del costruttore.
+
+Con *Risalita cavi* **automatica**, due colonne apparecchi vicine condividono la colonna cavi in mezzo (sbarre – apparecchi – cavi – apparecchi – sbarre) quando i loro cavi stanno in 600 mm; altrimenti ogni colonna apparecchi ha la sua. Si può anche scegliere una colonna cavi per ogni colonna apparecchi, una sola colonna cavi in fondo al quadro per tutti i cavi, o nessuna risalita. Le colonne possono quindi essere di larghezze diverse e la distinta elenca le carpenterie per tipo (apparecchi, sbarre verticali, risalita cavi), le sbarre principali e quelle di ogni colonna con corrente e portata, e i vani cavi con riempimento e cavo più grande.
 
 ### Catalogo delle carpenterie
 
@@ -154,16 +158,23 @@ Due colonne facoltative in fondo, `blocco;nome_blocco`, indicano il disegno del 
 Per disegnare il fronte con i **blocchi veri** degli apparecchi (le viste frontali 2D che i costruttori pubblicano nei loro siti) si indica un CSV, una riga per tipo di apparecchio:
 
 ```
-codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello
-SC630-4P;scatolato;4;251;630;;;;costruttore/scatolato630-4p-fronte.dxf;;Serie e codice;sito del costruttore;SERIE6
-MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;sito del costruttore;
+codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra
+SC630-4P;scatolato;4;251;630;;;;costruttore/scatolato630-4p-piastra.dxf;;Serie e codice;sito del costruttore;;si
+MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;sito del costruttore;;
+PM-3;piastra-modulare;;;;;;;costruttore/piastra-modulare-3-moduli.dxf;;;;;
+PC-3;piastra-cieca;;;;;;;costruttore/piastra-cieca-3-moduli.dxf;;;;;
 ```
 
-- `tipo`: `modulare`, `differenziale` (modulare con il differenziale, moduli compresi), `sezionatore`, `fusibile`, `spd`, `scatolato`, `sezionatore-scatolato`, `aperto`;
+- `tipo`: `modulare`, `differenziale` (modulare con il differenziale, moduli compresi), `sezionatore`, `fusibile`, `spd`, `strumento`, `scatolato`, `scatolato-differenziale` (solo per gli scatolati con differenziale), `sezionatore-scatolato`, `aperto`; inoltre `piastra-modulare` e `piastra-cieca` (vedi sotto);
 - `poli`: `4`, un intervallo come `3-4`, o vuoto per tutti; `in_min` e `in_max` in A (vuoti = qualsiasi corrente);
 - `moduli`, `larghezza`, `altezza`: vuoti = presi dall'ingombro del blocco (in mm; i moduli dalla larghezza a passo di 18 mm);
 - `blocco`: file DWG o DXF del fronte, relativo alla cartella del CSV; `nome_blocco` se il file contiene più blocchi.
 - `modello` (facoltativo): testo cercato, senza distinguere maiuscole, nel modello scritto nello schema (per esempio la sigla della serie): la voce che lo trova vince su quelle senza modello.
+- `piastra` (facoltativo): `si` quando il blocco dell'apparecchio comprende la sua **piastra di colonna** (il fronte com'è nel quadro, piastra e apparecchio): la fila è alta quanto la piastra, a passo di 50 mm, una piastra per fila, senza margini; le riserve sono piastre della stessa altezza.
+
+Le voci `piastra-modulare` e `piastra-cieca` sono piastre senza apparecchio: alle file DIN e alle morsettiere va la piastra modulare alta come la fila (150 mm), alle riserve quella cieca della stessa altezza, scegliendo la più larga che sta nella colonna (larghezza − 100 mm). Così il fronte è fatto di piastre impilate come nel quadro vero.
+
+Una voce il cui file del blocco **non c'è** viene saltata (vale la voce successiva) e il programma dice quante sono: si può quindi tenere nel catalogo anche ciò che si scaricherà più avanti.
 
 A ogni apparecchio dello schema va la voce più specifica (prima quelle con il modello trovato nello schema, poi il tipo `differenziale` per i circuiti con differenziale, poi l'intervallo di corrente più stretto); le sue misure sostituiscono quelle tipiche e servono a impaginare il quadro, e il blocco si inserisce centrato al suo posto (layer `FQ-BLOCCHI`), con la sigla del circuito sotto. Gli accessori in più (blocchi differenziali, strumenti) restano. Gli apparecchi senza voce mantengono gli ingombri tipici e il disegno generico; il programma dice quanti sono. Riferimento e fonte vanno nella distinta.
 
@@ -171,4 +182,4 @@ Se i due campi dei cataloghi sono vuoti, la finestra propone i file `CartesioCAD
 
 I blocchi dei costruttori sono protetti dal loro diritto d'autore: CartesioCAD non ne contiene, si scaricano dai siti dei costruttori e si usano secondo le loro condizioni, tenendoli in una cartella propria.
 
-Negli script: `-FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file.ifc] [CSV file.csv] [CATALOGO file.csv] [APPARECCHI file.csv] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]` (`RISALITA`: 0 automatica, 1 nessuna, 2 vani laterali, 3 colonna dedicata; `QUI` disegna nel disegno aperto invece che in uno nuovo).
+Negli script: `-FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file.ifc] [CSV file.csv] [CATALOGO file.csv] [APPARECCHI file.csv] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]` (`RISALITA`: 0 automatica, 1 nessuna, 2 una colonna cavi per colonna apparecchi, 3 una sola colonna cavi; `QUI` disegna nel disegno aperto invece che in uno nuovo).
