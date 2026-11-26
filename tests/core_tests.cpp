@@ -2978,6 +2978,83 @@ void testSwitchboard()
     CHECK(ifc.rfind("ISO-10303-21;", 0) == 0 && ifc.find("FILE_SCHEMA(('IFC4'))") != std::string::npos);
     CHECK(ifc.find(".SWITCHBOARD.") != std::string::npos && ifc.find("'IP65'") != std::string::npos);
     CHECK(ifc == boardsToIfc({small, big}, "Prova"));   // identificativi stabili
+
+    // Ingombro dei cavi: 5G6 multipolare (diametro 1,7*sqrt(30)+5 = 14,3 mm), 4(1x50)+(1PE25) unipolari.
+    CHECK(std::abs(qd[3].cableArea - kPi * std::pow(1.7 * std::sqrt(30.0) + 5.0, 2) / 4.0) < 1e-6);
+    CHECK(qd[4].cableSection == 50.0 && qd[4].cableArea > 5 * 80.0);
+
+    // Salite: sbarre verticali nella forma 4b (2500 A: 200 mm) fuori dalle colonne degli aperti, vano di risalita
+    // per i cavi delle partenze; con la colonna dedicata tutti i cavi vanno lì.
+    CHECK(big.columns[0].busbarWidth == 0.0);   // colonna dell'aperto
+    bool busbars = false, side = false;
+    for (const BoardColumn& c : big.columns) {
+        busbars = busbars || c.busbarWidth == 200.0;
+        side = side || c.cableWidth >= 150.0;
+    }
+    CHECK(busbars && side);
+    BoardOptions col = o;
+    col.risers = RiserMode::Column;
+    const BoardLayout dedicated = layoutBoard(boards[1], col, builtinEnclosures());
+    CHECK(dedicated.columns.back().kind == BoardColumn::Kind::Riser && dedicated.columns.back().width >= 400.0);
+    for (const BoardColumn& c : dedicated.columns)
+        CHECK(c.cableWidth == 0.0);
+    BoardOptions none = o;
+    none.risers = RiserMode::None;
+    none.busbars = false;
+    const BoardLayout plain = layoutBoard(boards[1], none, builtinEnclosures());
+    for (const BoardColumn& c : plain.columns)
+        CHECK(c.cableWidth == 0.0 && c.busbarWidth == 0.0 && c.kind == BoardColumn::Kind::Devices);
+    CHECK(plain.width < big.width);
+    BoardOptions form1 = o;
+    form1.form = "1";
+    for (const BoardColumn& c : layoutBoard(boards[1], form1, builtinEnclosures()).columns)
+        CHECK(c.busbarWidth == 0.0);
+
+    // Catalogo degli apparecchi: la voce più specifica (differenziale per il circuito con differenziale), misure e
+    // blocco; gli accessori in più restano.
+    int bad = 0;
+    const auto types = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte\n"
+                                          "M2;modulare;1-4;0;63;;;;mcb.dxf;;Serie A;sito\n"
+                                          "M2D;differenziale;2;;;4,5;;;rcbo.dxf;;Serie A diff.;sito\n"
+                                          "S400;scatolato;4;251;630;;185;255;scatolato.dwg;FRONTE;Scatolato 630;sito\n"
+                                          "X;boh;1;;;1;;;;;;\n"
+                                          "Y;scatolato;4;;;;;;;;;\n",
+                                          &bad);
+    CHECK(types.size() == 3 && bad == 2 && types[0].polesMin == 1 && types[0].polesMax == 4 && types[1].residual);
+    CHECK(types[2].blockFile == "scatolato.dwg" && types[2].blockName == "FRONTE" && types[2].width == 185.0);
+    auto withBlocks = types;
+    withBlocks[0].modules = 1.0;   // misure prese dal blocco (le assegna chi carica il file)
+    withBlocks[0].block = "FQ_M2";
+    withBlocks[1].block = "FQ_M2D";
+    withBlocks[2].block = "FRONTE";
+    std::vector<BoardDevice> devs = boards[0].devices;
+    CHECK(applyDeviceCatalog(devs, withBlocks) == 3);   // C-1 (differenziale), C-2 e C-4; sezionatore e SPD tipici
+    CHECK(devs[1].block == "FQ_M2D" && devs[1].modules == 4.5 && devs[1].reference == "Serie A diff.");
+    CHECK(devs[2].block == "FQ_M2" && devs[2].modules == 1.0);
+    CHECK(devs[0].block.empty() && devs[3].block.empty());
+    std::vector<BoardDevice> gdevs = boards[1].devices;
+    CHECK(applyDeviceCatalog(gdevs, withBlocks) == 1 && gdevs[1].width == 185.0 && gdevs[1].block == "FRONTE");
+
+    // Disegno con i blocchi: l'apparecchio con il blocco presente nel documento diventa un inserimento, centrato nel
+    // suo posto; gli altri restano disegnati.
+    BoardInput withDevs = boards[0];
+    withDevs.devices = devs;
+    const BoardLayout blocked = layoutBoard(withDevs, BoardOptions{}, builtinEnclosures());
+    const auto names = boardBlocks(blocked);
+    CHECK(names.size() == 2 && names[0] == "FQ_M2" && names[1] == "FQ_M2D");
+    Document bdoc;
+    auto mcb = std::make_shared<BlockDef>();
+    mcb->name = "FQ_M2";
+    mcb->entities.push_back(std::make_unique<LineEntity>(Vec2{100.0, 100.0}, Vec2{118.0, 190.0}));
+    bdoc.addBlock(mcb);
+    int inserts = 0;
+    for (const auto& e : drawBoardFront(bdoc, blocked, {0.0, 0.0}))
+        if (const auto* ins = dynamic_cast<const InsertEntity*>(e.get())) {
+            ++inserts;
+            const BBox b = ins->bounds();
+            CHECK(std::abs((b.max.x - b.min.x) - 18.0) < 1e-6 && std::abs((b.max.y - b.min.y) - 90.0) < 1e-6);
+        }
+    CHECK(inserts == 2);   // C-2 e C-4; FQ_M2D non è nel documento: disegno generico
 }
 
 // ESTRAIDATI: blocchi con attributi, conteggio per distinta, oggetti con misure; separatori, virgolette e formule.

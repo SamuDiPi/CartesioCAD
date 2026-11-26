@@ -67,6 +67,7 @@ struct SwitchboardRequest {
     QString pdf;            // schema unifilare
     QString boards;         // sigle dei quadri separate da virgola (vuoto = tutti)
     QString catalog;        // catalogo CSV delle carpenterie (vuoto = solo i tipi generici)
+    QString devices;        // catalogo CSV degli apparecchi con i blocchi dei costruttori (vuoto = ingombri tipici)
     BoardOptions options;
     bool draw = true;
     bool newDrawing = true; // altrimenti nel disegno aperto, scalato sulle sue unità

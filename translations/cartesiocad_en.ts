@@ -6871,6 +6871,22 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation> (%1 invalid rows skipped)</translation>
     </message>
     <message>
+        <source>Fronte quadro: %1 apparecchi dal catalogo %2 (%3 con il blocco)%4.</source>
+        <translation>Switchboard front: %1 devices from the catalog %2 (%3 with a block)%4.</translation>
+    </message>
+    <message>
+        <source>, %1 righe non valide saltate</source>
+        <translation>, %1 invalid rows skipped</translation>
+    </message>
+    <message>
+        <source>   blocco non caricato: %1</source>
+        <translation>   block not loaded: %1</translation>
+    </message>
+    <message>
+        <source>%1 apparecchi su %2 senza voce nel catalogo: ingombri tipici</source>
+        <translation>%1 of %2 devices not in the catalog: typical dimensions</translation>
+    </message>
+    <message>
         <source>Fronte quadro %1: %2, %3 x %4 x %5 mm, IP%6, forma %7, moduli %8 su %9%10.</source>
         <translation>Switchboard front %1: %2, %3 x %4 x %5 mm, IP%6, form %7, modules %8 of %9%10.</translation>
     </message>
@@ -6999,8 +7015,32 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>Terminal block in the bottom rows</translation>
     </message>
     <message>
-        <source>Vano cavi laterale nei quadri a pavimento</source>
-        <translation>Side cable compartment in floor-standing switchboards</translation>
+        <source>Risalita cavi (a pavimento):</source>
+        <translation>Cable risers (floor-standing):</translation>
+    </message>
+    <message>
+        <source>Automatica (vano laterale, colonna per i cavi grandi)</source>
+        <translation>Automatic (side compartment, column for large cables)</translation>
+    </message>
+    <message>
+        <source>Nessuna</source>
+        <translation>None</translation>
+    </message>
+    <message>
+        <source>Vano laterale in ogni colonna</source>
+        <translation>Side compartment in each column</translation>
+    </message>
+    <message>
+        <source>Colonna dedicata</source>
+        <translation>Dedicated column</translation>
+    </message>
+    <message>
+        <source>Vano sbarre verticali (forme 2a e oltre)</source>
+        <translation>Vertical busbar compartment (forms 2a and above)</translation>
+    </message>
+    <message>
+        <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo delle carpenterie ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte;blocco;nome_blocco, quello degli apparecchi codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte (blocchi DWG o DXF in mm, accanto al CSV).</source>
+        <translation>Devices are recognized from the type, poles and current written in the diagram; dimensions are typical values and the enclosure must be confirmed in the catalog before ordering. The enclosure catalog has the columns codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte;blocco;nome_blocco, the device catalog codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte (DWG or DXF blocks in mm, next to the CSV).</translation>
     </message>
     <message>
         <source>Catalogo carpenterie (CSV, facoltativo):</source>
@@ -7015,6 +7055,14 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>CSV (*.csv)</translation>
     </message>
     <message>
+        <source>Catalogo apparecchi con i blocchi (CSV):</source>
+        <translation>Device catalog with blocks (CSV):</translation>
+    </message>
+    <message>
+        <source>vuoto = ingombri tipici</source>
+        <translation>empty = typical dimensions</translation>
+    </message>
+    <message>
         <source>Disegno in un nuovo disegno (altrimenti in quello aperto)</source>
         <translation>Draw in a new drawing (otherwise in the open one)</translation>
     </message>
@@ -7025,10 +7073,6 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Distinta CSV</source>
         <translation>CSV bill of materials</translation>
-    </message>
-    <message>
-        <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo CSV ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte.</source>
-        <translation>Devices are recognized from the type, poles and current written in the diagram; dimensions are typical values and the enclosure must be confirmed in the catalog before ordering. The CSV catalog has the columns codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte.</translation>
     </message>
     <message>
         <source>Fronte quadro: scegliere lo schema in PDF.</source>

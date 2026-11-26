@@ -1363,7 +1363,8 @@ bool MainWindow::runScript(const QString& path)
                 continue;
             }
             // Fronte quadro negli script: -FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file] [CSV file] [CATALOGO file]
-            // [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [SENZAMORSETTI] [VANOCAVI] [QUI] [NODISEGNO]
+            // [APPARECCHI file] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3]
+            // [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]
             if (word == QLatin1String("-FRONTEQUADRO")) {
                 SwitchboardRequest r;
                 r.pdf = resolve(nextToken());
@@ -1375,7 +1376,8 @@ bool MainWindow::runScript(const QString& path)
                     const bool valued = QStringList{QStringLiteral("QUADRI"), QStringLiteral("IFC"), QStringLiteral("CSV"),
                                                     QStringLiteral("CATALOGO"), QStringLiteral("IP"), QStringLiteral("FORMA"),
                                                     QStringLiteral("RISERVA"), QStringLiteral("AMBIENTE"),
-                                                    QStringLiteral("MONTAGGIO")}.contains(key);
+                                                    QStringLiteral("MONTAGGIO"), QStringLiteral("RISALITA"),
+                                                    QStringLiteral("APPARECCHI")}.contains(key);
                     const QString value = valued ? nextToken() : QString();
                     if (key == QLatin1String("QUADRI"))
                         r.boards = value;
@@ -1397,8 +1399,12 @@ bool MainWindow::runScript(const QString& path)
                         r.options.mounting = static_cast<BoardMounting>(std::clamp(value.toInt(), 0, 3));
                     else if (key == QLatin1String("SENZAMORSETTI"))
                         r.options.terminals = false;
-                    else if (key == QLatin1String("VANOCAVI"))
-                        r.options.cableCompartment = true;
+                    else if (key == QLatin1String("RISALITA"))
+                        r.options.risers = static_cast<RiserMode>(std::clamp(value.toInt(), 0, 3));
+                    else if (key == QLatin1String("SENZASBARRE"))
+                        r.options.busbars = false;
+                    else if (key == QLatin1String("APPARECCHI"))
+                        r.devices = resolve(value);
                     else if (key == QLatin1String("QUI"))
                         r.newDrawing = false;
                     else if (key == QLatin1String("NODISEGNO"))

@@ -6,6 +6,7 @@
 #include "app/DrawingWidget.h"
 #include "app/FormDialog.h"
 #include "app/PdfWords.h"
+#include "core/Import.h"
 #include "core/SingleLine.h"
 #include "core/Switchboard.h"
 
@@ -22,6 +23,73 @@ namespace cartesio {
 namespace {
 
 QSettings frontSettings() { return QSettings(QStringLiteral("CartesioCAD"), QStringLiteral("CartesioCAD")); }
+
+// Blocchi dei cataloghi: ogni file (DWG/DXF, relativo alla cartella del catalogo) diventa un blocco "FQ_codice"
+// di `library` (in mm); le misure mancanti si prendono dall'ingombro del blocco. Restituisce i file non letti.
+template <typename T>
+QStringList loadCatalogBlocks(std::vector<T>& items, const QString& catalogPath, Document& library)
+{
+    QStringList failed;
+    const QDir dir = QFileInfo(catalogPath).dir();
+    std::map<QString, std::shared_ptr<Document>> files;   // un file letto una volta sola
+    for (T& item : items) {
+        if (item.blockFile.empty())
+            continue;
+        const QString path = QDir::cleanPath(dir.absoluteFilePath(QString::fromStdString(item.blockFile)));
+        auto& source = files[path];
+        if (!source) {
+            source = std::make_shared<Document>();
+            QString error;
+            if (!DrawingWidget::readFile(path, *source, &error)) {
+                failed << QStringLiteral("%1 (%2)").arg(QDir::toNativeSeparators(path), error);
+                source = std::make_shared<Document>();
+                continue;
+            }
+        }
+        if (source->entities().empty() && source->blocks().empty())
+            continue;
+        std::string name = "FQ_" + item.id;
+        for (char& c : name)
+            if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '-')
+                c = '_';
+        const double scale = unitsFactor(source->insUnits() > 0 ? source->insUnits() : 4, 4);
+        if (item.blockName.empty()) {
+            importDrawingAsBlock(library, *source, name, scale);
+        } else {
+            if (!importBlock(library, *source, item.blockName, scale)) {
+                failed << QStringLiteral("%1: blocco %2 assente").arg(QDir::toNativeSeparators(path),
+                                                                     QString::fromStdString(item.blockName));
+                continue;
+            }
+            name = item.blockName;
+        }
+        const auto block = library.findBlock(name);
+        if (!block)
+            continue;
+        BBox box;
+        for (const auto& e : block->entities) {
+            const BBox b = e->bounds();
+            if (b.isValid()) {
+                box.expand(b.min);
+                box.expand(b.max);
+            }
+        }
+        if (!box.isValid())
+            continue;
+        item.block = name;
+        if constexpr (std::is_same_v<T, DeviceType>) {
+            const bool frame = item.kind == BoardDevice::Kind::MouldedCase || item.kind == BoardDevice::Kind::AirCircuit
+                               || (item.kind == BoardDevice::Kind::Switch && item.modules <= 0.0);
+            if (item.width <= 0.0)
+                item.width = box.max.x - box.min.x;
+            if (item.height <= 0.0)
+                item.height = box.max.y - box.min.y;
+            if (!frame && item.modules <= 0.0)
+                item.modules = std::round(item.width / 18.0 * 2.0) / 2.0;
+        }
+    }
+    return failed;
+}
 
 bool writeText(const QString& path, const std::string& text, bool bom)
 {
@@ -45,13 +113,17 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     if (circuits.empty())
         return tr("Nel PDF non ci sono schemi unifilari riconoscibili (manca la riga \"Sigla utenza\").");
 
+    Document library;   // blocchi dei costruttori (mm)
+    library.setInsUnits(4);
+    QStringList failedBlocks;
     std::vector<EnclosureType> catalog = builtinEnclosures();
     if (!r.catalog.isEmpty()) {
         QFile file(r.catalog);
         if (!file.open(QIODevice::ReadOnly))
             return tr("Impossibile leggere il catalogo %1.").arg(QDir::toNativeSeparators(r.catalog));
         int skipped = 0;
-        const auto own = parseEnclosureCatalog(file.readAll().toStdString(), &skipped);
+        auto own = parseEnclosureCatalog(file.readAll().toStdString(), &skipped);
+        failedBlocks << loadCatalogBlocks(own, r.catalog, library);
         catalog.insert(catalog.end(), own.begin(), own.end());
         print(tr("Fronte quadro: %1 carpenterie dal catalogo %2%3.")
                   .arg(own.size())
@@ -59,15 +131,41 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
                        skipped ? tr(" (%1 righe non valide saltate)").arg(skipped) : QString()));
     }
 
+    std::vector<DeviceType> deviceCatalog;
+    if (!r.devices.isEmpty()) {
+        QFile file(r.devices);
+        if (!file.open(QIODevice::ReadOnly))
+            return tr("Impossibile leggere il catalogo %1.").arg(QDir::toNativeSeparators(r.devices));
+        int skipped = 0;
+        deviceCatalog = parseDeviceCatalog(file.readAll().toStdString(), &skipped);
+        failedBlocks << loadCatalogBlocks(deviceCatalog, r.devices, library);
+        int withBlock = 0;
+        for (const DeviceType& t : deviceCatalog)
+            withBlock += t.block.empty() ? 0 : 1;
+        print(tr("Fronte quadro: %1 apparecchi dal catalogo %2 (%3 con il blocco)%4.")
+                  .arg(deviceCatalog.size())
+                  .arg(QFileInfo(r.devices).fileName())
+                  .arg(withBlock)
+                  .arg(skipped ? tr(", %1 righe non valide saltate").arg(skipped) : QString()));
+    }
+    for (const QString& f : failedBlocks)
+        print(tr("   blocco non caricato: %1").arg(f));
+
     QStringList wanted;
     for (const QString& b : r.boards.split(QRegularExpression(QStringLiteral("[,;\\s]+")), Qt::SkipEmptyParts))
         wanted << b.trimmed().toUpper();
     std::vector<BoardLayout> layouts;
     QStringList skipped;
-    for (const BoardInput& in : boardsFromCircuits(circuits)) {
+    for (BoardInput in : boardsFromCircuits(circuits)) {
         if (!wanted.isEmpty() && !wanted.contains(QString::fromStdString(in.board).toUpper()))
             continue;
+        const int matched = deviceCatalog.empty() ? 0 : applyDeviceCatalog(in.devices, deviceCatalog);
         BoardLayout L = layoutBoard(in, r.options, catalog);
+        if (!deviceCatalog.empty() && matched < static_cast<int>(in.devices.size()))
+            L.warnings.push_back(tr("%1 apparecchi su %2 senza voce nel catalogo: ingombri tipici")
+                                     .arg(in.devices.size() - matched)
+                                     .arg(in.devices.size())
+                                     .toStdString());
         if (L.devices.empty()) {
             skipped << QString::fromStdString(in.board);
             continue;
@@ -107,6 +205,10 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
         double x = ext.isValid() ? ext.max.x / scale + 2000.0 : 0.0;
         const double y = ext.isValid() ? ext.min.y / scale : 0.0;
         std::vector<std::unique_ptr<Entity>> all;
+        for (const BoardLayout& L : layouts)
+            for (const std::string& name : boardBlocks(L))
+                if (!doc.findBlock(name))
+                    importBlock(doc, library, name, 1.0);
         for (const BoardLayout& L : layouts) {
             BBox box;
             for (auto& e : drawBoardFront(doc, L, {x, y}, &box)) {
@@ -151,7 +253,9 @@ void MainWindow::showSwitchboardFront()
     QString form = s.value(QStringLiteral("FronteQuadro/form")).toString();
     int reserve = s.value(QStringLiteral("FronteQuadro/reserve"), 25).toInt();
     bool terminals = s.value(QStringLiteral("FronteQuadro/terminals"), true).toBool();
-    bool cable = s.value(QStringLiteral("FronteQuadro/cable"), false).toBool();
+    int risers = s.value(QStringLiteral("FronteQuadro/risers"), 0).toInt();
+    bool busbars = s.value(QStringLiteral("FronteQuadro/busbars"), true).toBool();
+    r.devices = s.value(QStringLiteral("FronteQuadro/devices")).toString();
     bool newDrawing = s.value(QStringLiteral("FronteQuadro/newDrawing"), true).toBool();
     bool ifc = s.value(QStringLiteral("FronteQuadro/ifc"), true).toBool();
     bool csv = s.value(QStringLiteral("FronteQuadro/csv"), true).toBool();
@@ -177,17 +281,25 @@ void MainWindow::showSwitchboardFront()
                   [&mounting](const QVariant& v) { mounting = v.toInt(); });
     dialog.integer(tr("Spazio di riserva:"), 0, 100, reserve, QStringLiteral(" %"));
     dialog.check(tr("Morsettiera nelle file in basso"), terminals);
-    dialog.check(tr("Vano cavi laterale nei quadri a pavimento"), cable);
+    dialog.choice(tr("Risalita cavi (a pavimento):"),
+                  {{tr("Automatica (vano laterale, colonna per i cavi grandi)"), 0}, {tr("Nessuna"), 1},
+                   {tr("Vano laterale in ogni colonna"), 2}, {tr("Colonna dedicata"), 3}},
+                  risers, [&risers](const QVariant& v) { risers = v.toInt(); });
+    dialog.check(tr("Vano sbarre verticali (forme 2a e oltre)"), busbars);
     dialog.path(tr("Catalogo carpenterie (CSV, facoltativo):"), r.catalog, FormDialog::OpenFile,
                 tr("vuoto = tipi generici"), tr("CSV (*.csv)"));
+    dialog.path(tr("Catalogo apparecchi con i blocchi (CSV):"), r.devices, FormDialog::OpenFile,
+                tr("vuoto = ingombri tipici"), tr("CSV (*.csv)"));
     dialog.group(tr("Risultato"));
     dialog.check(tr("Disegno in un nuovo disegno (altrimenti in quello aperto)"), newDrawing);
     dialog.check(tr("File IFC per il BIM"), ifc);
     dialog.check(tr("Distinta CSV"), csv);
     dialog.note(tr("Gli apparecchi si riconoscono dall'esecuzione, dai poli e dalla corrente scritti nello schema; gli "
                    "ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell'ordine. Il "
-                   "catalogo CSV ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte."));
-    dialog.setSize(660, 700);
+                   "catalogo delle carpenterie ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;"
+                   "riferimento;fonte;blocco;nome_blocco, quello degli apparecchi codice;tipo;poli;in_min;in_max;moduli;"
+                   "larghezza;altezza;blocco;nome_blocco;riferimento;fonte (blocchi DWG o DXF in mm, accanto al CSV)."));
+    dialog.setSize(700, 800);
     if (dialog.exec() != QDialog::Accepted)
         return;
     if (r.pdf.isEmpty()) {
@@ -202,7 +314,9 @@ void MainWindow::showSwitchboardFront()
     s.setValue(QStringLiteral("FronteQuadro/form"), form);
     s.setValue(QStringLiteral("FronteQuadro/reserve"), reserve);
     s.setValue(QStringLiteral("FronteQuadro/terminals"), terminals);
-    s.setValue(QStringLiteral("FronteQuadro/cable"), cable);
+    s.setValue(QStringLiteral("FronteQuadro/risers"), risers);
+    s.setValue(QStringLiteral("FronteQuadro/busbars"), busbars);
+    s.setValue(QStringLiteral("FronteQuadro/devices"), r.devices);
     s.setValue(QStringLiteral("FronteQuadro/newDrawing"), newDrawing);
     s.setValue(QStringLiteral("FronteQuadro/ifc"), ifc);
     s.setValue(QStringLiteral("FronteQuadro/csv"), csv);
@@ -213,7 +327,8 @@ void MainWindow::showSwitchboardFront()
     r.options.form = form.toStdString();
     r.options.reserve = reserve / 100.0;
     r.options.terminals = terminals;
-    r.options.cableCompartment = cable;
+    r.options.risers = static_cast<RiserMode>(std::clamp(risers, 0, 3));
+    r.options.busbars = busbars;
     r.newDrawing = newDrawing;
     const QFileInfo info(r.pdf);
     const QString base = info.dir().filePath(info.completeBaseName() + tr(" - fronti quadri"));

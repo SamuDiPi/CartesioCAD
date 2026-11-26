@@ -1,5 +1,7 @@
 #include "core/Switchboard.h"
 
+#include "core/Entity.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -7,6 +9,7 @@
 #include <cstdio>
 #include <functional>
 #include <map>
+#include <numeric>
 #include <random>
 #include <regex>
 #include <set>
@@ -166,6 +169,47 @@ void addTerminals(const std::string& cable, BoardTerminals& t)
     }
 }
 
+// Ingombro dei cavi di una partenza: area esterna (mm²) e sezione più grande, dalla formazione. Diametri tipici
+// dei cavi in gomma o PVC: unipolare 1,35*sqrt(S) + 4,5 mm, multipolare 1,7*sqrt(n*S) + 5 mm.
+void cableBundle(const std::string& cable, double* area, double* maxSection)
+{
+    static const std::regex group(R"((\d*)\(([^)]*)\))");
+    const auto add = [&](double count, double cores, double section, bool multipolar) {
+        if (section <= 0.0 || count <= 0.0)
+            return;
+        const double d = multipolar ? 1.7 * std::sqrt(cores * section) + 5.0 : 1.35 * std::sqrt(section) + 4.5;
+        *area += count * kPi * d * d / 4.0;
+        *maxSection = std::max(*maxSection, section);
+    };
+    for (auto it = std::sregex_iterator(cable.begin(), cable.end(), group); it != std::sregex_iterator(); ++it) {
+        const std::string multiplierText = (*it)[1];
+        const double multiplier = multiplierText.empty() ? 1.0 : std::max(1, std::atoi(multiplierText.c_str()));
+        const std::string inner = (*it)[2];
+        if (const auto g = inner.find_first_of("Gg"); g != std::string::npos) {
+            add(multiplier, std::max(1.0, toNumber(inner.substr(0, g))), toNumber(inner.substr(g + 1)), true);
+            continue;
+        }
+        if (const auto pe = inner.find("PE"); pe != std::string::npos) {
+            add(multiplier * std::max(1.0, toNumber(inner.substr(0, pe))), 1.0, toNumber(inner.substr(pe + 2)), false);
+            continue;
+        }
+        std::vector<double> parts;
+        std::stringstream ss(inner);
+        std::string part;
+        while (std::getline(ss, part, 'x'))
+            parts.push_back(toNumber(part));
+        if (parts.empty())
+            continue;
+        const double section = parts.back();
+        if (parts.size() == 1)
+            add(multiplier, 1.0, section, false);
+        else if (parts.size() == 2)   // "1x95" unipolare, "4x16" multipolare
+            add(multiplier, parts[0], section, parts[0] > 1.0);
+        else                          // "2x1x240": 2 cavi in parallelo (unipolari se il secondo numero è 1)
+            add(multiplier * std::max(1.0, parts[0]), parts[1], section, parts[1] > 1.0);
+    }
+}
+
 std::string number(double v, int decimals = 0)
 {
     char buffer[64];
@@ -221,6 +265,8 @@ std::vector<BoardInput> boardsFromCircuits(const std::vector<Circuit>& circuits)
         BoardDevice d;
         d.circuit = c.code;
         d.description = c.description;
+        if (c.number != 0 && !contains(lower(c.cable), "nessuna linea"))
+            cableBundle(c.cable, &d.cableArea, &d.cableSection);
         const std::string exec = lower(c.breakerExecution);
         const std::string descr = lower(c.description);
         const bool hasDevice = polesAndRated(c.breakerPoles, &d.poles, &d.rated);
@@ -341,7 +387,7 @@ std::vector<EnclosureType> builtinEnclosures()
                 for (const double d : {200.0, 250.0})
                     add(BoardMounting::Wall, w, h, d, ip, modules);
         if (ip <= 55)
-            for (const double w : {600.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0})
+            for (const double w : {300.0, 400.0, 600.0, 800.0, 900.0, 1000.0, 1100.0, 1200.0})
                 for (const double d : {400.0, 600.0, 800.0})
                     add(BoardMounting::Floor, w, kFloorHeight, d, ip, w >= 800.0 ? 36 : 24);
     }
@@ -355,10 +401,39 @@ std::vector<EnclosureType> builtinEnclosures()
     return out;
 }
 
-std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* skipped)
+namespace {
+
+// Riga CSV (";" se c'è, altrimenti ","), con le virgolette; celle senza spazi ai lati.
+std::vector<std::string> splitCsvLine(const std::string& line)
 {
-    std::vector<EnclosureType> out;
-    int bad = 0;
+    const char sep = line.find(';') != std::string::npos ? ';' : ',';
+    std::vector<std::string> f;
+    std::string cell;
+    bool quoted = false;
+    for (std::size_t i = 0; i < line.size(); ++i) {
+        const char ch = line[i];
+        if (ch == '"') {
+            if (quoted && i + 1 < line.size() && line[i + 1] == '"') {
+                cell += '"';
+                ++i;
+            } else {
+                quoted = !quoted;
+            }
+        } else if (ch == sep && !quoted) {
+            f.push_back(trim(cell));
+            cell.clear();
+        } else {
+            cell += ch;
+        }
+    }
+    f.push_back(trim(cell));
+    return f;
+}
+
+// Righe utili di un catalogo: senza BOM, commenti (#), righe vuote e intestazione (prima riga con "codice").
+std::vector<std::string> catalogLines(const std::string& csv)
+{
+    std::vector<std::string> out;
     std::stringstream in(csv);
     std::string line;
     bool header = true;
@@ -374,27 +449,19 @@ std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* sk
             if (lower(line).find("codice") != std::string::npos)
                 continue;
         }
-        const char sep = line.find(';') != std::string::npos ? ';' : ',';
-        std::vector<std::string> f;
-        std::string cell;
-        bool quoted = false;
-        for (std::size_t i = 0; i < line.size(); ++i) {
-            const char ch = line[i];
-            if (ch == '"') {
-                if (quoted && i + 1 < line.size() && line[i + 1] == '"') {
-                    cell += '"';
-                    ++i;
-                } else {
-                    quoted = !quoted;
-                }
-            } else if (ch == sep && !quoted) {
-                f.push_back(trim(cell));
-                cell.clear();
-            } else {
-                cell += ch;
-            }
-        }
-        f.push_back(trim(cell));
+        out.push_back(line);
+    }
+    return out;
+}
+
+} // namespace
+
+std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* skipped)
+{
+    std::vector<EnclosureType> out;
+    int bad = 0;
+    for (const std::string& line : catalogLines(csv)) {
+        const std::vector<std::string> f = splitCsvLine(line);
         if (f.size() < 6) {
             ++bad;
             continue;
@@ -418,6 +485,8 @@ std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* sk
             e.modulesPerRow = e.width >= 800.0 ? 36 : 24;
         e.reference = f.size() > 7 ? f[7] : std::string();
         e.source = f.size() > 8 ? f[8] : std::string();
+        e.blockFile = f.size() > 9 ? f[9] : std::string();
+        e.blockName = f.size() > 10 ? f[10] : std::string();
         if (e.id.empty() || e.mounting == BoardMounting::Auto || e.width <= 0.0 || e.height <= 0.0 || e.depth <= 0.0
             || e.ip <= 0 || e.modulesPerRow <= 0) {
             ++bad;
@@ -428,6 +497,124 @@ std::vector<EnclosureType> parseEnclosureCatalog(const std::string& csv, int* sk
     if (skipped)
         *skipped = bad;
     return out;
+}
+
+std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
+{
+    std::vector<DeviceType> out;
+    int bad = 0;
+    for (const std::string& line : catalogLines(csv)) {
+        const std::vector<std::string> f = splitCsvLine(line);
+        if (f.size() < 2) {
+            ++bad;
+            continue;
+        }
+        const auto cell = [&f](std::size_t i) { return i < f.size() ? f[i] : std::string(); };
+        DeviceType t;
+        t.id = f[0];
+        const std::string kind = lower(f[1]);
+        using K = BoardDevice::Kind;
+        bool known = true;
+        if (kind == "modulare")
+            t.kind = K::Modular;
+        else if (kind == "differenziale") {
+            t.kind = K::Modular;
+            t.residual = true;
+        } else if (kind == "sezionatore" || kind == "sezionatore-scatolato")
+            t.kind = K::Switch;
+        else if (kind == "fusibile")
+            t.kind = K::Fuse;
+        else if (kind == "spd")
+            t.kind = K::Spd;
+        else if (kind == "scatolato")
+            t.kind = K::MouldedCase;
+        else if (kind == "aperto")
+            t.kind = K::AirCircuit;
+        else
+            known = false;
+        const bool frame = t.kind == K::MouldedCase || t.kind == K::AirCircuit || kind == "sezionatore-scatolato";
+        if (const std::string poles = cell(2); !poles.empty()) {
+            const auto dash = poles.find('-');
+            t.polesMin = std::atoi(poles.substr(0, dash).c_str());
+            t.polesMax = dash == std::string::npos ? t.polesMin : std::atoi(poles.substr(dash + 1).c_str());
+        }
+        if (!cell(3).empty())
+            t.ratedMin = toNumber(cell(3));
+        if (!cell(4).empty())
+            t.ratedMax = toNumber(cell(4));
+        t.modules = toNumber(cell(5));
+        t.width = toNumber(cell(6));
+        t.height = toNumber(cell(7));
+        t.blockFile = cell(8);
+        t.blockName = cell(9);
+        t.reference = cell(10);
+        t.source = cell(11);
+        // Scatolati e aperti hanno larghezza (o il blocco); i modulari moduli, larghezza o blocco.
+        if (t.id.empty() || !known || t.polesMin < 0 || t.polesMax < t.polesMin || t.ratedMax < t.ratedMin
+            || (t.width <= 0.0 && t.modules <= 0.0 && t.blockFile.empty()) || (frame && t.modules > 0.0 && t.width <= 0.0
+                                                                               && t.blockFile.empty())) {
+            ++bad;
+            continue;
+        }
+        if (kind == "sezionatore-scatolato")
+            t.modules = 0.0;
+        else if (!frame && t.modules <= 0.0 && t.width > 0.0)
+            t.modules = std::round(t.width / kModule * 2.0) / 2.0;
+        out.push_back(t);
+    }
+    if (skipped)
+        *skipped = bad;
+    return out;
+}
+
+int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<DeviceType>& catalog)
+{
+    using K = BoardDevice::Kind;
+    int found = 0;
+    for (BoardDevice& d : devices) {
+        const bool frameDevice = d.width > 0.0;   // scatolato, sezionatore scatolato o aperto
+        const DeviceType* best = nullptr;
+        for (const DeviceType& t : catalog) {
+            if (t.kind != d.kind || d.poles < t.polesMin || d.poles > t.polesMax || d.rated < t.ratedMin - 1e-9
+                || d.rated > t.ratedMax + 1e-9)
+                continue;
+            const bool frameType = t.kind == K::MouldedCase || t.kind == K::AirCircuit || (t.kind == K::Switch
+                                                                                          && t.modules <= 0.0);
+            if (frameType != frameDevice)
+                continue;
+            if (t.residual && !d.residual)
+                continue;
+            // Più specifica: differenziale per un apparecchio con differenziale, poi l'intervallo più stretto.
+            const auto rank = [&d](const DeviceType& x) {
+                return std::pair{x.residual == d.residual ? 0 : 1, (x.ratedMax - x.ratedMin) + (x.polesMax - x.polesMin)};
+            };
+            if (!best || rank(t) < rank(*best))
+                best = &t;
+        }
+        if (!best)
+            continue;
+        ++found;
+        if (frameDevice) {
+            if (best->width > 0.0)
+                d.width = best->width;
+            if (best->height > 0.0)
+                d.height = best->height;
+        } else if (best->modules > 0.0) {
+            // Gli accessori in più restano: si sostituisce solo l'apparecchio (con il blocco differenziale, se il
+            // tipo del catalogo è "differenziale").
+            const double base = d.poles * modularPerPole(d.rated);
+            double extra = std::max(0.0, d.modules - base);
+            if (best->residual && d.residual)
+                extra = std::max(0.0, extra - base);
+            if (d.kind == K::Fuse || d.kind == K::Spd)
+                extra = 0.0;
+            d.modules = best->modules + extra;
+        }
+        d.block = best->block;
+        d.reference = best->reference;
+        d.source = best->source;
+    }
+    return found;
 }
 
 namespace {
@@ -478,7 +665,7 @@ std::vector<BoardSection> mouldedRows(const std::vector<BoardDevice>& devices, c
     std::map<double, std::pair<int, double>> perFrame;   // altezza fila -> (apparecchi, larghezza massima)
     for (const int i : order) {
         const BoardDevice& d = devices[static_cast<std::size_t>(i)];
-        const double rowHeight = mouldedFrame(d.rated).row;
+        const double rowHeight = std::max(mouldedFrame(d.rated).row, std::ceil((d.height + 100.0) / 50.0) * 50.0);
         double used = 0.0;
         if (!rows.empty() && rows.back().height == rowHeight)
             for (const int j : rows.back().devices)
@@ -496,6 +683,8 @@ std::vector<BoardSection> mouldedRows(const std::vector<BoardDevice>& devices, c
     }
     // Riserva: posti liberi della stessa taglia (in file aggiunte se quelle esistenti sono piene).
     for (const auto& [rowHeight, pf] : perFrame) {
+        if (rowHeight <= 0.0)
+            continue;
         int spare = static_cast<int>(std::ceil(pf.first * reserve - 1e-9));
         const int perRow = std::max(1, static_cast<int>(usableWidth / (pf.second + 40.0)));
         for (BoardSection& r : rows)
@@ -627,6 +816,8 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
             const double d = moulded.empty() ? (m == BoardMounting::Box ? 120.0 : 200.0) : 250.0;
             if (const EnclosureType* e = chooseEnclosure(catalog, m, width, h, d, L.ip)) {
                 L.mounting = m;
+                col.enclosure = *e;
+                col.enclosureFound = true;
                 L.columns = {col};
                 L.width = width;
                 L.height = h;
@@ -650,12 +841,13 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     if (options.mounting == BoardMounting::Wall || options.mounting == BoardMounting::Box)
         L.warnings.push_back("il contenuto non entra in una carpenteria a parete del catalogo: proposta a pavimento");
 
-    // A pavimento: colonne dello stesso tipo (la più larga richiesta), apparecchi aperti in colonne proprie.
+    // A pavimento: colonne apparecchi (la larghezza più grande richiesta), apparecchi aperti in colonne proprie;
+    // a sinistra il vano delle sbarre verticali (forme 2a e oltre), a destra il vano di risalita dei cavi; i cavi
+    // grandi in una colonna di risalita dedicata.
     L.mounting = BoardMounting::Floor;
     double columnWidth = bigFrame ? 800.0 : 600.0;
     for (const int i : air)
         columnWidth = std::max(columnWidth, airColumnWidth(L.devices[static_cast<std::size_t>(i)].width));
-    const double cable = options.cableCompartment ? 300.0 : 0.0;
     const int perRow = columnWidth >= 800.0 ? 36 : 24;
     const double usable = columnWidth - 2.0 * kSideMargin;
     for (const int i : air) {
@@ -663,7 +855,7 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         c.width = columnWidth;
         BoardSection s;
         s.kind = BoardSection::Kind::Air;
-        s.height = 800.0;
+        s.height = std::max(800.0, std::ceil((L.devices[static_cast<std::size_t>(i)].height + 300.0) / 100.0) * 100.0);
         s.devices = {i};
         c.sections.push_back(s);
         L.columns.push_back(c);
@@ -676,7 +868,6 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         rest.push_back(s);
     BoardColumn current;
     current.width = columnWidth;
-    current.cableWidth = cable;
     for (const BoardSection& s : rest) {
         if (sectionsHeight(current.sections) + s.height > kFloorUsable + 1e-6 && !current.sections.empty()) {
             L.columns.push_back(current);
@@ -686,27 +877,125 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     }
     if (!current.sections.empty())
         L.columns.push_back(current);
-    for (BoardColumn& c : L.columns)
-        c.cableWidth = cable;
     L.modules = used;
     L.modulesInstalled = installed;
     L.depth = (!air.empty() || input.incomer > 630.0) ? 600.0 : 400.0;
     L.height = kFloorHeight;
-    if (const EnclosureType* e = chooseEnclosure(catalog, BoardMounting::Floor, columnWidth + cable, kFloorHeight,
-                                                 L.depth, L.ip)) {
-        L.enclosure = *e;
-        L.enclosureFound = true;
-        for (BoardColumn& c : L.columns)
-            c.width = e->width - cable;
-        L.depth = e->depth;
-    } else {
-        L.warnings.push_back("nessuna carpenteria a pavimento del catalogo per colonne da " + number(columnWidth + cable)
-                             + " mm, IP" + std::to_string(L.ip));
+
+    // Sbarre verticali: nelle forme 2a e oltre in un vano proprio accanto agli apparecchi (nella forma 1 stanno sul
+    // fondo). Le colonne degli aperti hanno le sbarre orizzontali.
+    const double busbar = !options.busbars || L.form.empty() || L.form[0] == '1' ? 0.0
+                        : input.incomer <= 1600.0                               ? 150.0
+                        : input.incomer <= 3200.0                               ? 200.0
+                                                                                : 300.0;
+    for (BoardColumn& c : L.columns)
+        if (c.sections.empty() || c.sections[0].kind != BoardSection::Kind::Air)
+            c.busbarWidth = busbar;
+
+    // Risalita dei cavi. Riempimento massimo del vano 35% (cavi in fascio su scala o passerella verticale), sezione
+    // utile del vano = larghezza x (profondità - 100 mm). Gli aperti (arrivi) hanno i cavi o il condotto in colonna.
+    constexpr double kRiserFill = 0.35;
+    const double riserDepth = L.depth - 100.0;
+    const auto riserWidth = [&](double area, std::initializer_list<double> steps) {
+        for (const double w : steps)
+            if (area <= w * riserDepth * kRiserFill + 1e-6)
+                return w;
+        return -1.0;   // non basta il vano più grande
+    };
+    std::vector<double> columnArea(L.columns.size(), 0.0);
+    double bigArea = 0.0;
+    std::vector<std::pair<std::size_t, double>> big;   // (colonna, area) dei cavi da 95 mm² in su
+    for (std::size_t ci = 0; ci < L.columns.size(); ++ci)
+        for (const BoardSection& s : L.columns[ci].sections)
+            for (const int i : s.devices) {
+                const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
+                if (d.kind == BoardDevice::Kind::AirCircuit || d.cableArea <= 0.0)
+                    continue;
+                columnArea[ci] += d.cableArea;
+                if (d.cableSection >= 95.0) {
+                    bigArea += d.cableArea;
+                    big.push_back({ci, d.cableArea});
+                }
+            }
+    RiserMode risers = options.risers;
+    if (risers == RiserMode::Auto) {
+        // Colonna dedicata quando i cavi grandi non stanno in un vano laterale da 300 mm.
+        risers = bigArea > 300.0 * riserDepth * kRiserFill ? RiserMode::Column : RiserMode::Side;
+        if (risers == RiserMode::Column && options.risers == RiserMode::Auto) {
+            for (const auto& [ci, a] : big)
+                columnArea[ci] -= a;   // i cavi grandi vanno nella colonna, il resto nei vani laterali
+        }
     }
+    double dedicated = 0.0;
+    if (risers == RiserMode::Column) {
+        dedicated = options.risers == RiserMode::Column
+                        ? std::accumulate(columnArea.begin(), columnArea.end(), 0.0)
+                        : bigArea;
+        if (options.risers == RiserMode::Column)
+            std::fill(columnArea.begin(), columnArea.end(), 0.0);
+    }
+    if (risers != RiserMode::None) {
+        for (std::size_t ci = 0; ci < L.columns.size(); ++ci) {
+            BoardColumn& c = L.columns[ci];
+            if (columnArea[ci] <= 0.0 || (!c.sections.empty() && c.sections[0].kind == BoardSection::Kind::Air))
+                continue;
+            double w = riserWidth(columnArea[ci], {150.0, 200.0, 250.0, 300.0, 400.0});
+            if (w < 0.0) {
+                w = 400.0;
+                L.warnings.push_back("risalita cavi della colonna " + std::to_string(ci + 1)
+                                     + " oltre il 35% anche con un vano da 400 mm: prevedere una colonna di risalita");
+            }
+            c.cableWidth = w;
+            c.cableArea = columnArea[ci];
+        }
+        if (dedicated > 0.0) {
+            BoardColumn r;
+            r.kind = BoardColumn::Kind::Riser;
+            r.cableArea = dedicated;
+            double w = riserWidth(dedicated, {400.0, 600.0, 800.0, 1000.0, 1200.0});
+            if (w < 0.0) {
+                w = 1200.0;
+                L.warnings.push_back("cavi oltre la capacità di una colonna di risalita da 1200 mm: dividerli in più colonne");
+            }
+            r.width = w;
+            L.columns.push_back(r);
+        }
+    }
+
+    // Carpenteria di ogni colonna: la più piccola del catalogo che contiene sbarre, apparecchi e risalita; il vano
+    // apparecchi prende lo spazio in più.
+    std::map<std::string, int> count;
+    bool allFound = true;
+    double depth = 0.0;
+    for (BoardColumn& c : L.columns) {
+        const double needed = c.total();
+        if (const EnclosureType* e = chooseEnclosure(catalog, BoardMounting::Floor, needed, kFloorHeight, L.depth, L.ip)) {
+            c.enclosure = *e;
+            c.enclosureFound = true;
+            c.width = e->width - c.busbarWidth - c.cableWidth;
+            depth = std::max(depth, e->depth);
+            if (c.kind == BoardColumn::Kind::Devices)
+                ++count[e->id];
+        } else {
+            allFound = false;
+            L.warnings.push_back("nessuna carpenteria a pavimento del catalogo per una colonna da " + number(needed)
+                                 + " mm, IP" + std::to_string(L.ip));
+        }
+    }
+    if (depth > 0.0)
+        L.depth = depth;
+    // Carpenteria "tipo" del quadro: quella delle colonne apparecchi più frequente.
+    int most = 0;
+    for (const BoardColumn& c : L.columns)
+        if (c.enclosureFound && c.kind == BoardColumn::Kind::Devices && count[c.enclosure.id] > most) {
+            most = count[c.enclosure.id];
+            L.enclosure = c.enclosure;
+        }
+    L.enclosureFound = allFound && most > 0;
     L.enclosureCount = static_cast<int>(L.columns.size());
     L.width = 0.0;
     for (const BoardColumn& c : L.columns)
-        L.width += c.width + c.cableWidth;
+        L.width += c.total();
     if (input.incomer > 4000.0)
         L.warnings.push_back("corrente di arrivo oltre 4000 A: verificare sbarre e colonne con il costruttore");
     return L;
@@ -785,19 +1074,70 @@ std::string deviceLabel(const BoardDevice& d)
     return s;
 }
 
+// Ingombro di un blocco nelle sue coordinate (falso se il blocco non c'è o è vuoto).
+bool blockExtent(const Document& doc, const std::string& name, BBox* box)
+{
+    if (name.empty())
+        return false;
+    const auto block = doc.findBlock(name);
+    if (!block)
+        return false;
+    BBox b;
+    for (const auto& e : block->entities) {
+        const BBox eb = e->bounds();
+        if (eb.isValid()) {
+            b.expand(eb.min);
+            b.expand(eb.max);
+        }
+    }
+    if (!b.isValid())
+        return false;
+    *box = b;
+    return true;
+}
+
 } // namespace
+
+std::vector<std::string> boardBlocks(const BoardLayout& L)
+{
+    std::set<std::string> names;
+    for (const BoardDevice& d : L.devices)
+        if (!d.block.empty())
+            names.insert(d.block);
+    for (const BoardColumn& c : L.columns)
+        if (c.enclosureFound && !c.enclosure.block.empty())
+            names.insert(c.enclosure.block);
+    return {names.begin(), names.end()};
+}
 
 std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLayout& L, Vec2 origin, BBox* extent)
 {
     std::vector<std::unique_ptr<Entity>> out;
     Painter p{out, ensureLayer(doc, "FQ-CARPENTERIA", 7), ensureLayer(doc, "FQ-APPARECCHI", 4),
               ensureLayer(doc, "FQ-TESTI", 7), ensureLayer(doc, "FQ-QUOTE", 3)};
+    const int blocks = ensureLayer(doc, "FQ-BLOCCHI", 7);
+    const int risers = ensureLayer(doc, "FQ-RISALITE", 30);
+    // Blocco centrato (nel suo ingombro) in un riquadro; falso se il blocco non c'è.
+    const auto insertBlock = [&](const std::string& name, double x, double y, double w, double h, bool bottomLeft) {
+        BBox b;
+        if (!blockExtent(doc, name, &b))
+            return false;
+        const auto block = doc.findBlock(name);
+        const Vec2 anchor = bottomLeft ? Vec2{x, y} - b.min : Vec2{x + w / 2.0, y + h / 2.0} - (b.min + b.max) * 0.5;
+        auto insert = std::make_unique<InsertEntity>(name, anchor + block->base);
+        insert->block = block;
+        insert->setLayer(blocks);
+        insert->setColor(kColorByLayer);
+        out.push_back(std::move(insert));
+        return true;
+    };
+
     const bool floor = L.mounting == BoardMounting::Floor;
     const double plinth = floor ? 100.0 : 0.0;
     const double x0 = origin.x, y0 = origin.y + plinth;
     double totalWidth = 0.0;
     for (const BoardColumn& c : L.columns)
-        totalWidth += c.width + c.cableWidth;
+        totalWidth += c.total();
     const double height = floor ? kFloorHeight : std::max(L.height, L.enclosureFound ? L.enclosure.height : L.height);
     const double topMargin = floor ? 100.0 : (height - sectionsHeight(L.columns.empty() ? std::vector<BoardSection>{}
                                                                                         : L.columns[0].sections)) / 2.0;
@@ -807,6 +1147,23 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
 
     double cx = x0;
     for (const BoardColumn& c : L.columns) {
+        // Carpenteria del costruttore (blocco del fronte), dall'angolo in basso a sinistra (zoccolo compreso).
+        const bool frameBlock = c.enclosureFound && insertBlock(c.enclosure.block, cx, origin.y, c.total(), height + plinth, true);
+        if (!frameBlock)
+            p.rect(p.frame, cx, y0, c.total(), height);
+        if (c.kind == BoardColumn::Kind::Riser) {
+            p.rect(risers, cx + 25.0, y0 + 25.0, c.width - 50.0, height - 50.0);
+            p.text(p.texts, {cx + c.width / 2.0, y0 + height / 2.0}, 40.0, "colonna risalita cavi", kPi / 2.0, true);
+            p.text(p.texts, {cx + c.width / 2.0 + 60.0, y0 + height / 2.0}, 25.0,
+                   "cavi " + number(c.cableArea / 100.0) + " cm²", kPi / 2.0, true);
+            cx += c.total();
+            continue;
+        }
+        if (c.busbarWidth > 0.0) {
+            p.rect(p.frame, cx, y0, c.busbarWidth, height);
+            p.text(p.texts, {cx + c.busbarWidth / 2.0, y0 + height / 2.0}, 30.0, "sbarre verticali", kPi / 2.0, true);
+            cx += c.busbarWidth;
+        }
         p.rect(p.frame, cx, y0, c.width, height);
         double y = y0 + height - topMargin;
         for (const BoardSection& s : c.sections) {
@@ -826,8 +1183,14 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
                     for (const int i : s.devices) {
                         const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
                         const double w = d.modules * kModule;
-                        p.rect(p.devices, x, mid - 45.0, w, 90.0);
-                        p.text(p.texts, {x + w / 2.0, mid}, std::min(10.0, w * 0.55), deviceLabel(d), kPi / 2.0, true);
+                        // Il blocco è quello dell'apparecchio: per uno scatolato qui c'è solo l'accessorio su guida.
+                        if (d.width <= 0.0 && insertBlock(d.block, x, mid - 45.0, w, 90.0, false))
+                            p.text(p.texts, {x + w / 2.0, bottom + 12.0}, std::min(7.0, w * 0.3), shortCode(d.circuit),
+                                   kPi / 2.0, true);
+                        else {
+                            p.rect(p.devices, x, mid - 45.0, w, 90.0);
+                            p.text(p.texts, {x + w / 2.0, mid}, std::min(10.0, w * 0.55), deviceLabel(d), kPi / 2.0, true);
+                        }
                         x += w;
                     }
                     const double free = s.capacity * kModule - (x - railLeft);
@@ -841,8 +1204,12 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
                 double x = left + (inner - (used - 40.0)) / 2.0;
                 for (const int i : s.devices) {
                     const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
-                    p.rect(p.devices, x, mid - d.height / 2.0, d.width, d.height);
-                    p.text(p.texts, {x + d.width / 2.0, mid}, 16.0, deviceLabel(d), kPi / 2.0, true);
+                    if (insertBlock(d.block, x, mid - d.height / 2.0, d.width, d.height, false))
+                        p.text(p.texts, {x + d.width / 2.0, bottom + 20.0}, 14.0, deviceLabel(d), 0.0, true);
+                    else {
+                        p.rect(p.devices, x, mid - d.height / 2.0, d.width, d.height);
+                        p.text(p.texts, {x + d.width / 2.0, mid}, 16.0, deviceLabel(d), kPi / 2.0, true);
+                    }
                     x += d.width + 40.0;
                 }
             } else if (s.kind == BoardSection::Kind::Reserve) {
@@ -852,8 +1219,9 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
         }
         cx += c.width;
         if (c.cableWidth > 0.0) {
-            p.rect(p.frame, cx, y0, c.cableWidth, height);
-            p.text(p.texts, {cx + c.cableWidth / 2.0, y0 + height / 2.0}, 30.0, "vano cavi", kPi / 2.0, true);
+            p.rect(risers, cx, y0, c.cableWidth, height);
+            p.text(p.texts, {cx + c.cableWidth / 2.0, y0 + height / 2.0}, 25.0,
+                   "risalita cavi " + number(c.cableArea / 100.0) + " cm²", kPi / 2.0, true);
             cx += c.cableWidth;
         }
     }
@@ -861,12 +1229,20 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
     const double dimText = 40.0;
     p.dimension({x0, origin.y}, {x0 + totalWidth, origin.y}, {0.0, -150.0}, dimText);
     p.dimension({x0, y0 + height}, {x0, origin.y}, {-150.0, 0.0}, dimText);
+    // Larghezze delle colonne (quando sono più di una).
+    if (L.columns.size() > 1) {
+        double qx = x0;
+        for (const BoardColumn& c : L.columns) {
+            p.dimension({qx, y0 + height}, {qx + c.total(), y0 + height}, {0.0, 60.0}, 30.0);
+            qx += c.total();
+        }
+    }
 
     // Dati del quadro sopra il fronte.
-    double ty = y0 + height + 80.0;
+    double ty = y0 + height + (L.columns.size() > 1 ? 200.0 : 80.0);
     std::vector<std::string> lines;
     lines.push_back("Carpenteria: " + (L.enclosureFound ? L.enclosure.id : std::string("da scegliere"))
-                    + (L.enclosureCount > 1 ? " x " + std::to_string(L.enclosureCount) + " colonne" : std::string()));
+                    + (L.enclosureCount > 1 ? " - " + std::to_string(L.enclosureCount) + " colonne" : std::string()));
     if (L.enclosureFound && !L.enclosure.reference.empty())
         lines.push_back("Riferimento: " + L.enclosure.reference);
     lines.push_back("Ingombro: " + number(totalWidth) + " x " + number(height + plinth) + " x " + number(L.depth)
@@ -932,18 +1308,40 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
         const char* kind = L.mounting == BoardMounting::Floor ? "a pavimento"
                          : L.mounting == BoardMounting::Wall  ? "a parete"
                                                               : "cassetta";
-        row({L.board, "Carpenteria", std::to_string(L.enclosureCount),
-             std::string(kind) + " " + number(L.enclosure.width) + "x" + number(L.enclosure.height) + "x"
-                 + number(L.enclosure.depth) + " mm IP" + std::to_string(L.enclosure.ip) + " forma " + L.form,
-             L.enclosureFound ? (L.enclosure.reference.empty() ? L.enclosure.id : L.enclosure.reference) : "da scegliere",
-             L.enclosure.source});
+        // Carpenterie: una riga per tipo (le colonne a pavimento possono essere diverse).
+        std::map<std::string, std::pair<int, const BoardColumn*>> frames;
+        for (const BoardColumn& c : L.columns) {
+            const std::string key = c.enclosureFound ? c.enclosure.id : "?" + number(c.total());
+            auto& f = frames[key];
+            ++f.first;
+            f.second = &c;
+        }
+        for (const auto& [key, f] : frames) {
+            const BoardColumn& c = *f.second;
+            const EnclosureType& e = c.enclosureFound ? c.enclosure : L.enclosure;
+            const double w = c.enclosureFound ? e.width : c.total();
+            const double h = L.mounting == BoardMounting::Floor ? kFloorHeight : e.height;
+            row({L.board, c.kind == BoardColumn::Kind::Riser ? "Carpenteria colonna risalita cavi" : "Carpenteria",
+                 std::to_string(f.first),
+                 std::string(kind) + " " + number(w) + "x" + number(h) + "x" + number(L.depth) + " mm IP"
+                     + std::to_string(L.ip) + " forma " + L.form,
+                 c.enclosureFound || L.enclosureFound ? (e.reference.empty() ? e.id : e.reference) : "da scegliere",
+                 c.enclosureFound || L.enclosureFound ? e.source : std::string()});
+        }
         if (L.mounting == BoardMounting::Floor)
             row({L.board, "Zoccolo", std::to_string(L.enclosureCount), "h 100 mm", "", ""});
         int din = 0, terminals = 0, reserveRows = 0;
         std::map<double, int> plates;
         for (const BoardColumn& c : L.columns) {
+            if (c.busbarWidth > 0.0)
+                row({L.board, "Vano sbarre verticali", "1", "larghezza " + number(c.busbarWidth) + " mm", "",
+                     "sbarre da dimensionare sulla corrente della colonna"});
             if (c.cableWidth > 0.0)
-                row({L.board, "Vano cavi", "1", "larghezza " + number(c.cableWidth) + " mm", "", ""});
+                row({L.board, "Vano risalita cavi", "1", "larghezza " + number(c.cableWidth) + " mm",
+                     "cavi " + decimal(c.cableArea / 100.0, 0) + " cm²", "riempimento massimo 35%"});
+            if (c.kind == BoardColumn::Kind::Riser)
+                row({L.board, "Colonna risalita cavi", "1", "larghezza " + number(c.width) + " mm",
+                     "cavi " + decimal(c.cableArea / 100.0, 0) + " cm²", "cavi da 95 mm² in su, riempimento massimo 35%"});
             for (const BoardSection& s : c.sections) {
                 if (s.kind == BoardSection::Kind::Modular)
                     ++din;
@@ -976,7 +1374,9 @@ std::string boardBillOfMaterials(const std::vector<BoardLayout>& layouts)
                 what += ", " + decimal(d.modules) + " moduli";
             if (d.width > 0.0)
                 what += ", " + number(d.width) + "x" + number(d.height) + " mm";
-            row({L.board, "Apparecchio " + shortCode(d.circuit), "1", what, d.description, d.note});
+            row({L.board, "Apparecchio " + shortCode(d.circuit), "1", what,
+                 d.reference.empty() ? d.description : d.reference + " - " + d.description,
+                 d.note.empty() ? d.source : d.source.empty() ? d.note : d.note + " - " + d.source});
         }
         for (const std::string& w : L.warnings)
             row({L.board, "Avviso", "", w, "", ""});
@@ -1102,7 +1502,7 @@ std::string boardsToIfc(const std::vector<BoardLayout>& layouts, const std::stri
         std::string solids;
         double cx = 0.0;
         for (const BoardColumn& c : L.columns) {
-            const double w = c.width + c.cableWidth;
+            const double w = c.total();
             const int center = add("IFCCARTESIANPOINT((" + real(cx + w / 2.0) + "," + real(L.depth / 2.0) + "))");
             const int a2 = add("IFCAXIS2PLACEMENT2D(" + ref(center) + ",$)");
             const int profile = add("IFCRECTANGLEPROFILEDEF(.AREA.,$," + ref(a2) + "," + real(w) + "," + real(L.depth) + ")");
