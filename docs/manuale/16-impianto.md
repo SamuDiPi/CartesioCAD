@@ -191,6 +191,23 @@ A ogni apparecchio dello schema va la voce più specifica (prima quelle con il m
 
 Se i due campi dei cataloghi sono vuoti, la finestra propone i file `CartesioCAD-cataloghi/carpenterie.csv` e `CartesioCAD-blocchi/apparecchi.csv` nella cartella Documenti (anche quella locale del profilo, se Documenti è sincronizzata altrove), quando esistono.
 
-I blocchi dei costruttori sono protetti dal loro diritto d'autore: CartesioCAD non ne contiene, si scaricano dai siti dei costruttori e si usano secondo le loro condizioni, tenendoli in una cartella propria.
+I blocchi dei costruttori sono protetti dal loro diritto d'autore: CartesioCAD non ne contiene, si scaricano dai siti dei costruttori o vengono dalle librerie installate sul proprio PC e si usano secondo le loro condizioni, tenendoli in una cartella propria.
+
+### Blocchi generici di CartesioCAD
+
+Ogni tipo ha anche un **blocco generico** disegnato da CartesioCAD (nessun materiale di terzi): magnetotermici, differenziali, sezionatori, portafusibili, limitatori di sovratensione, strumenti e alimentatori modulari, scatolati e sezionatori scatolati su piastra (fino a 3200 A, con e senza differenziale), aperti estraibili (fino a 6300 A), relè differenziale e accessorio su guida, morsettiera, piastre modulari e cieche per colonne da 600 e 800 mm, sistemi di sbarre verticali, carpenterie con porta di ogni misura del catalogo interno. Valgono quando il catalogo dell'utente non ha una voce esatta (prima della voce più vicina del costruttore): così anche senza nessun catalogo il fronte ha un blocco per ogni simbolo dello schema. Le misure sono tipiche, da confermare sul catalogo del costruttore scelto.
+
+### Importa libreria del costruttore
+
+**Impianto > Importa libreria** (comando `IMPORTALIBRERIA`) prepara per il fronte quadro una libreria di blocchi del costruttore **già installata su questo PC** (CartesioCAD non ne contiene e non ne distribuisce nulla). La cartella si trova da sola se la libreria è in cima a un disco locale con i suoi menu (`*/Menu/*/*.mns`); i dischi di rete non si guardano. Per ogni disegno della libreria:
+
+- si legge e si converte in DXF in **mm** (unità *Automatica*: centimetri se la libreria è riconosciuta, altrimenti millimetri; si può scegliere);
+- si tolgono **loghi** (blocchi con "logo" nel nome), attributi, quote, punti, il layer Defpoints e i **testi che non sono scritte tecniche generiche** (restano numeri, misure e parole come ON, OFF, TRIP, Ue, Ir…): via marchi, sigle e codici articolo;
+- i blocchi annidati prendono nomi univoci;
+- i disegni **riconosciuti** (per impronta del file, non per nome) vanno in `libreria/<famiglia>/fronte-quadro/` con il codice della loro voce, gli altri in `libreria/<famiglia>/altri/`.
+
+Accanto: `indice.csv` (file, categoria e voce del menu della libreria, origine), `registro-pulizia.csv` (ogni testo o logo tolto) e `LEGGIMI.txt`. Con *Aggiorna i cataloghi* le voci riconosciute entrano nel catalogo degli apparecchi e in quello delle carpenterie **sostituendo solo le righe della famiglia indicata** (le altre famiglie restano, nello stesso ordine) e con una copia di sicurezza `.bak` accanto; le parole della famiglia per riconoscerla nello schema sono quelle tolte più spesso dai blocchi (sigle e nomi di gamma).
+
+Il risultato è **per uso personale** di chi ha installato la libreria e non va ridistribuito. Le condizioni d'uso restano quelle della libreria: se vietano modifiche o adattamenti, non importarla; i suoi file originali si possono collegare a mano nel catalogo, così come sono. Negli script: `-IMPORTALIBRERIA cartella [FAMIGLIA nome] [DESTINAZIONE cartella] [UNITA cm|mm] [APPARECCHI file.csv] [CATALOGO file.csv] [SENZACATALOGHI]`.
 
 Negli script: `-FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file.ifc] [CSV file.csv] [CATALOGO file.csv] [APPARECCHI file.csv] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [VANOCAVI 300] [FAMIGLIA nome] [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]` (`RISALITA`: 0 automatica, 1 nessuna, 2 una colonna cavi per colonna apparecchi, 3 una sola colonna cavi; `VANOCAVI`: larghezza del vano cavi in mm, 0 calcolata; `QUI` disegna nel disegno aperto invece che in uno nuovo).

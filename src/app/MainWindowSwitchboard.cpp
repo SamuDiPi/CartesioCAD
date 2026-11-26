@@ -9,6 +9,7 @@
 #include "core/Import.h"
 #include "core/SingleLine.h"
 #include "core/Switchboard.h"
+#include "core/SwitchboardBlocks.h"
 
 #include <QAction>
 #include <algorithm>
@@ -167,6 +168,11 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
                   .arg(withBlock)
                   .arg(skipped ? tr(", %1 righe non valide saltate").arg(skipped) : QString()));
     }
+    // Blocchi generici di CartesioCAD in coda: valgono dove il catalogo dell'utente non ha una voce adatta.
+    {
+        const std::vector<DeviceType> generic = genericDeviceTypes();
+        deviceCatalog.insert(deviceCatalog.end(), generic.begin(), generic.end());
+    }
     for (const QString& f : failedBlocks)
         print(tr("   blocco non caricato: %1").arg(f));
     if (!r.family.isEmpty()
@@ -263,7 +269,7 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
         std::vector<std::unique_ptr<Entity>> all;
         for (const BoardLayout& L : layouts)
             for (const std::string& name : boardBlocks(L))
-                if (!doc.findBlock(name))
+                if (!doc.findBlock(name) && !addGenericBlock(doc, name))
                     importBlock(doc, library, name, 1.0);
         for (const BoardLayout& L : layouts) {
             BBox box;
@@ -294,6 +300,7 @@ QString MainWindow::runSwitchboardFront(const SwitchboardRequest& r)
     }
     print(tr("Fronte quadro: %1 quadri. Ingombri tipici: confermarli sul catalogo della carpenteria e degli apparecchi.")
               .arg(layouts.size()));
+    guideCommandFinished(QStringLiteral("FRONTEQUADRO"), false);   // passo della Guida
     return QString();
 }
 

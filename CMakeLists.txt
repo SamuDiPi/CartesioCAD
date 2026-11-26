@@ -49,6 +49,8 @@ add_library(cartesio_core STATIC
     src/core/QuickSelect.cpp
     src/core/DataExport.cpp
     src/core/Switchboard.cpp
+    src/core/SwitchboardBlocks.cpp
+    src/core/LibraryImport.cpp
     src/core/InputParser.cpp
     src/core/commands/CommandManager.cpp
     src/core/commands/Selection.cpp
@@ -129,6 +131,7 @@ if(CARTESIO_BUILD_APP)
         src/app/MainWindowQuickSelect.cpp
         src/app/CommandLineTool.cpp
         src/app/MainWindowSwitchboard.cpp
+        src/app/MainWindowLibraryImport.cpp
         src/app/ConvertFile.h
         src/app/MainWindowDiag.cpp
         src/app/MainWindowConvert.cpp

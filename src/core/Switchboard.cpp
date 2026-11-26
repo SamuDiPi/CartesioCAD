@@ -1,6 +1,7 @@
 #include "core/Switchboard.h"
 
 #include "core/Entity.h"
+#include "core/SwitchboardBlocks.h"
 
 #include <algorithm>
 #include <cctype>
@@ -381,6 +382,7 @@ std::vector<EnclosureType> builtinEnclosures()
         e.ip = ip;
         e.modulesPerRow = modules;
         e.source = "tipo generico CartesioCAD (misure tipiche da confermare)";
+        e.block = genericEnclosureBlock(w, h);
         out.push_back(e);
     };
     for (const int ip : {31, 43, 55, 65}) {
@@ -672,7 +674,9 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
         // differenziale come l'apparecchio), con i suoi moduli.
         if (frameDevice && d.modules > 0.0) {
             const DeviceType* acc = nullptr;
-            const auto score = [&d](const DeviceType& t) { return (t.residual == d.residual ? 0 : 2) + (t.family == d.family ? 0 : 1); };
+            const auto score = [&d](const DeviceType& t) {
+                return (t.generic ? 4 : 0) + (t.residual == d.residual ? 0 : 2) + (t.family == d.family ? 0 : 1);
+            };
             for (const DeviceType& t : catalog)
                 if (t.plate == DeviceType::Plate::Accessory && !t.block.empty() && (!acc || score(t) < score(*acc)))
                     acc = &t;
@@ -693,17 +697,21 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
         };
         // Prima le voci della famiglia dell'apparecchio (o senza famiglia), poi tutte; se nessuna ha poli e corrente
         // adatti, la più vicina dello stesso tipo (prima nella famiglia, poi in tutte).
-        for (int pass = 0; pass < 4 && !best; ++pass)
+        // Passi: 0 voce esatta della famiglia, 1 voce esatta di qualsiasi famiglia, 2 blocco generico esatto,
+        // 3 voce più vicina della famiglia, 4 voce più vicina di qualsiasi famiglia.
+        for (int pass = 0; pass < 5 && !best; ++pass)
         for (const DeviceType& t : catalog) {
             if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
                 || t.plate == DeviceType::Plate::Busbar || t.plate == DeviceType::Plate::Accessory
                 || t.plate == DeviceType::Plate::Terminal)
                 continue;
-            if ((pass == 0 || pass == 2) && !t.family.empty() && !d.family.empty() && t.family != d.family)
+            if ((pass == 0 || pass == 3) && !t.family.empty() && !d.family.empty() && t.family != d.family)
+                continue;
+            if (pass <= 2 && (pass == 2) != t.generic)
                 continue;
             if (t.kind != d.kind)
                 continue;
-            const bool nearest = pass >= 2;
+            const bool nearest = pass >= 3;
             if (!nearest && (d.poles < t.polesMin || d.poles > t.polesMax || d.rated < t.ratedMin - 1e-9
                              || d.rated > t.ratedMax + 1e-9))
                 continue;
@@ -1182,7 +1190,7 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
     for (std::size_t i = 0; i < devices.size(); ++i) {
         const double load = columnLoad(devices[i], &area[i], &section[i]);
         devices[i].required = devices[i].width;
-        if (!vertical || isAir(devices[i]))
+        if (!vertical || isAir(devices[i]) || load <= 0.0)   // senza partenze (solo morsetti): niente sbarre
             continue;
         BoardColumn& b = bus[i];
         b.kind = BoardColumn::Kind::Busbar;
@@ -1331,31 +1339,31 @@ int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
 {
     int done = 0;
     // Morsettiera: prima quella della famiglia del quadro, poi qualsiasi.
-    for (int pass = 0; pass < 2 && L.terminalBlock.empty(); ++pass)
+    for (int pass = 0; pass < 3 && L.terminalBlock.empty(); ++pass)
         for (const DeviceType& t : catalog)
             if (t.plate == DeviceType::Plate::Terminal && !t.block.empty()
-                && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family)) {
+                && (pass == 2) == t.generic && (pass != 0 || t.family.empty() || L.family.empty() || t.family == L.family)) {
                 L.terminalBlock = t.block;
                 break;
             }
     // Voci di un tipo di piastra alte come la fila, che stanno nella colonna (prima quelle della famiglia del quadro).
     const auto candidates = [&](DeviceType::Plate want, double height, double room) {
         std::vector<const DeviceType*> out;
-        for (int pass = 0; pass < 2 && out.empty(); ++pass)
+        for (int pass = 0; pass < 3 && out.empty(); ++pass)
             for (const DeviceType& t : catalog)
                 if (t.plate == want && !t.block.empty() && std::abs(t.height - height) <= 1.0 && t.width <= room + 1e-6
-                    && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family))
+                    && (pass == 2) == t.generic && (pass != 0 || t.family.empty() || L.family.empty() || t.family == L.family))
                     out.push_back(&t);
         return out;
     };
     for (BoardColumn& c : L.columns) {
         if (c.kind == BoardColumn::Kind::Busbar && c.busbar.current > 0.0) {
             const DeviceType* best = nullptr;
-            for (int pass = 0; pass < 2 && !best; ++pass)
+            for (int pass = 0; pass < 3 && !best; ++pass)
                 for (const DeviceType& t : catalog)
                     if (t.plate == DeviceType::Plate::Busbar && !t.block.empty() && t.width <= c.width + 1e-6
                         && c.busbar.current >= t.ratedMin - 1e-6 && c.busbar.current <= t.ratedMax + 1e-6
-                        && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family)
+                        && (pass == 2) == t.generic && (pass != 0 || t.family.empty() || L.family.empty() || t.family == L.family)
                         && (!best || t.ratedMax - t.ratedMin < best->ratedMax - best->ratedMin))
                         best = &t;
             if (best) {
@@ -1387,10 +1395,10 @@ int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
         // Riserve: piastre cieche della larghezza delle altre piastre della colonna (o la più larga che sta),
         // impilate fino all'altezza della riserva, dalle più alte; se non si riesce, la cieca singola più vicina.
         std::vector<const DeviceType*> blanks;
-        for (int pass = 0; pass < 2 && blanks.empty(); ++pass)
+        for (int pass = 0; pass < 3 && blanks.empty(); ++pass)
             for (const DeviceType& t : catalog)
                 if (t.plate == DeviceType::Plate::Blank && !t.block.empty() && t.width <= room + 1e-6 && t.height > 0.0
-                    && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family))
+                    && (pass == 2) == t.generic && (pass != 0 || t.family.empty() || L.family.empty() || t.family == L.family))
                     blanks.push_back(&t);
         double stackWidth = 0.0;
         for (const DeviceType* t : blanks)

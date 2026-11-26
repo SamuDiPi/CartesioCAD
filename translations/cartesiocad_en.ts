@@ -3376,8 +3376,8 @@ It is advisable to save a copy.</translation>
         <translation>          ESTRAIDATI (data to CSV)  DWGCONVERT (batch conversion)</translation>
     </message>
     <message>
-        <source>Impianto: CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, fronte quadri dallo schema)</source>
-        <translation>Systems:  CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, switchboard fronts from the diagram)</translation>
+        <source>Impianto: CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, fronte quadri dallo schema)  IMPORTALIBRERIA (libreria del costruttore installata)</source>
+        <translation>Plant: CIRCUITI  IMPIANTO  TRATTA  VERIFICAIMPIANTO  FRONTEQUADRO (FQ, switchboard fronts from the diagram)  IMPORTALIBRERIA (installed manufacturer library)</translation>
     </message>
     <message>
         <source>Selezione: Maiusc+Spazio oggetto sovrapposto successivo  trascinando = lazo  SELECTPREVIOUS</source>
@@ -3820,6 +3820,16 @@ Command: VERIFICAIMPIANTO</translation>
 Comando: FRONTEQUADRO</source>
         <translation>From the PDF single-line diagram, the front of the switchboards with dimensions, enclosure, IP rating and form, plus the CSV bill of materials and the IFC file for BIM
 Command: FRONTEQUADRO</translation>
+    </message>
+    <message>
+        <source>Importa libreria</source>
+        <translation>Import library</translation>
+    </message>
+    <message>
+        <source>Dalla libreria di blocchi del costruttore installata su questo PC i blocchi per il fronte quadro, in mm e senza marchi, nella tua cartella, con i cataloghi aggiornati
+Comando: IMPORTALIBRERIA</source>
+        <translation>From the manufacturer block library installed on this PC, the blocks for the switchboard front, in mm and without trademarks, in your folder, with the catalogs updated
+Command: IMPORTALIBRERIA</translation>
     </message>
     <message>
         <source>Canalo.html non trovato: manca la copia in plugins\CanaloCAD accanto a CartesioCAD.exe. Indicarne il percorso nelle Opzioni (scheda Plugin).</source>
@@ -5195,6 +5205,14 @@ comparison</translation>
     <message>
         <source>-ESTRAIDATI: opzione sconosciuta %1</source>
         <translation>-ESTRAIDATI: unknown option %1</translation>
+    </message>
+    <message>
+        <source>-IMPORTALIBRERIA: opzione sconosciuta %1</source>
+        <translation>-IMPORTALIBRERIA: unknown option %1</translation>
+    </message>
+    <message>
+        <source>-IMPORTALIBRERIA: %1</source>
+        <translation>-IMPORTALIBRERIA: %1</translation>
     </message>
     <message>
         <source>-FRONTEQUADRO: opzione sconosciuta %1</source>
@@ -7011,8 +7029,130 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>Installation:</translation>
     </message>
     <message>
+        <source>Cartella della libreria non trovata: %1.</source>
+        <translation>Library folder not found: %1.</translation>
+    </message>
+    <message>
+        <source>La cartella di destinazione non può stare dentro la libreria installata.</source>
+        <translation>The destination folder cannot be inside the installed library.</translation>
+    </message>
+    <message>
+        <source>Nella cartella %1 non ci sono disegni DWG o DXF.</source>
+        <translation>There are no DWG or DXF drawings in the folder %1.</translation>
+    </message>
+    <message>
+        <source>Importazione della libreria...</source>
+        <translation>Importing the library...</translation>
+    </message>
+    <message>
+        <source>Importa libreria del costruttore</source>
+        <translation>Import manufacturer library</translation>
+    </message>
+    <message>
+        <source>Importa libreria: %1 di %2...</source>
+        <translation>Import library: %1 of %2...</translation>
+    </message>
+    <message>
+        <source>fronte quadro</source>
+        <translation>switchboard front</translation>
+    </message>
+    <message>
+        <source>Blocchi ricavati dalla libreria installata in %1 per uso personale di chi l&apos;ha installata: non ridistribuirli. Origine di ogni file in indice.csv, testi e loghi tolti in registro-pulizia.csv. Le condizioni d&apos;uso restano quelle della libreria.<byte value="xd"/>
+</source>
+        <translation>Blocks derived from the library installed in %1 for the personal use of whoever installed it: do not redistribute them. Origin of each file in indice.csv, removed texts and logos in registro-pulizia.csv. The library&apos;s terms of use still apply.<byte value="xd"/>
+</translation>
+    </message>
+    <message>
+        <source>Importa libreria: %1 disegni scritti in %2, %3 riconosciuti per il fronte quadro, %4 non letti, %5 oggetti tolti (registro-pulizia.csv), %6 s%7.</source>
+        <translation>Import library: %1 drawings written in %2, %3 recognized for the switchboard front, %4 not read, %5 objects removed (registro-pulizia.csv), %6 s%7.</translation>
+    </message>
+    <message>
+        <source>, annullata</source>
+        <translation>, cancelled</translation>
+    </message>
+    <message>
+        <source>   catalogo apparecchi aggiornato: %1 (famiglia %2%3)</source>
+        <translation>   device catalog updated: %1 (family %2%3)</translation>
+    </message>
+    <message>
+        <source>, copia %1</source>
+        <translation>, copy %1</translation>
+    </message>
+    <message>
+        <source>   catalogo apparecchi: %1</source>
+        <translation>   device catalog: %1</translation>
+    </message>
+    <message>
+        <source>   catalogo carpenterie aggiornato: %1%2</source>
+        <translation>   enclosure catalog updated: %1%2</translation>
+    </message>
+    <message>
+        <source> (copia %1)</source>
+        <translation> (copy %1)</translation>
+    </message>
+    <message>
+        <source>   catalogo carpenterie: %1</source>
+        <translation>   enclosure catalog: %1</translation>
+    </message>
+    <message>
+        <source>   nessun blocco riconosciuto: cataloghi non cambiati (i blocchi si collegano a mano nel catalogo)</source>
+        <translation>   no block recognized: catalogs unchanged (link the blocks by hand in the catalog)</translation>
+    </message>
+    <message>
+        <source>Libreria installata</source>
+        <translation>Installed library</translation>
+    </message>
+    <message>
+        <source>Cartella della libreria:</source>
+        <translation>Library folder:</translation>
+    </message>
+    <message>
+        <source>trovata da sola se installata</source>
+        <translation>found automatically if installed</translation>
+    </message>
+    <message>
+        <source>Nome nei cataloghi (famiglia):</source>
+        <translation>Name in the catalogs (family):</translation>
+    </message>
+    <message>
+        <source>vuoto = nome della cartella</source>
+        <translation>empty = folder name</translation>
+    </message>
+    <message>
+        <source>Unità dei disegni:</source>
+        <translation>Drawing units:</translation>
+    </message>
+    <message>
         <source>Automatica</source>
         <translation>Automatic</translation>
+    </message>
+    <message>
+        <source>Centimetri</source>
+        <translation>Centimeters</translation>
+    </message>
+    <message>
+        <source>Millimetri</source>
+        <translation>Millimeters</translation>
+    </message>
+    <message>
+        <source>Cartella dei blocchi:</source>
+        <translation>Blocks folder:</translation>
+    </message>
+    <message>
+        <source>Aggiorna i cataloghi del fronte quadro (solo le righe di questa famiglia)</source>
+        <translation>Update the switchboard front catalogs (only the rows of this family)</translation>
+    </message>
+    <message>
+        <source>Catalogo apparecchi:</source>
+        <translation>Device catalog:</translation>
+    </message>
+    <message>
+        <source>Catalogo carpenterie:</source>
+        <translation>Enclosure catalog:</translation>
+    </message>
+    <message>
+        <source>Si usa solo la libreria già installata su questo PC: CartesioCAD non ne contiene nulla. I blocchi vengono convertiti in mm, ripuliti da loghi, sigle e codici e salvati nella cartella scelta, per uso personale: non vanno ridistribuiti. Controlla le condizioni d&apos;uso della libreria: se vietano di modificarla, non importarla (collega i file originali a mano nel catalogo). Dei cataloghi si aggiornano solo le righe di questa famiglia, con una copia di sicurezza accanto. Ci vogliono alcuni minuti per qualche migliaio di disegni.</source>
+        <translation>Only the library already installed on this PC is used: CartesioCAD contains nothing of it. The blocks are converted to mm, cleaned of logos, product names and codes and saved in the chosen folder, for personal use: do not redistribute them. Check the library&apos;s terms of use: if they forbid modifying it, do not import it (link the original files by hand in the catalog). Only the rows of this family are updated in the catalogs, with a backup copy next to them. A few thousand drawings take a few minutes.</translation>
     </message>
     <message>
         <source>A parete</source>
@@ -11094,6 +11234,18 @@ Exit code: 0 success, 1 error, 2 invalid arguments, 3 converted but with differe
     <message>
         <source>disponibile solo su Windows</source>
         <translation>available only on Windows</translation>
+    </message>
+    <message>
+        <source>impossibile leggere %1</source>
+        <translation>cannot read %1</translation>
+    </message>
+    <message>
+        <source>impossibile salvare la copia di %1</source>
+        <translation>cannot save the copy of %1</translation>
+    </message>
+    <message>
+        <source>impossibile scrivere %1</source>
+        <translation>cannot write %1</translation>
     </message>
 </context>
 <context>

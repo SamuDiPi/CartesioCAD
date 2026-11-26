@@ -121,6 +121,12 @@ void MainWindow::setupCanalo(Ribbon* ribbon)
                                    "forma, più la distinta CSV e il file IFC per il BIM\nComando: FRONTEQUADRO"));
     connect(frontAct, &QAction::triggered, this, [this] { showSwitchboardFront(); });
     electric->addLargeButton(frontAct);
+    auto* libraryAct = makeAction(tr("Importa libreria"), glyphIcon(QStringLiteral("⭳")), {},
+                                  tr("Dalla libreria di blocchi del costruttore installata su questo PC i blocchi per il "
+                                     "fronte quadro, in mm e senza marchi, nella tua cartella, con i cataloghi aggiornati\n"
+                                     "Comando: IMPORTALIBRERIA"));
+    connect(libraryAct, &QAction::triggered, this, [this] { showLibraryImport(); });
+    electric->addLargeButton(libraryAct);
 }
 
 void MainWindow::canaloOpen()

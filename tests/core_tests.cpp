@@ -21,6 +21,8 @@
 #include "core/Ampacity.h"
 #include "core/DataExport.h"
 #include "core/Switchboard.h"
+#include "core/SwitchboardBlocks.h"
+#include "core/LibraryImport.h"
 #include "core/commands/CommandManager.h"
 #include "core/io/Dxf.h"
 
@@ -2889,6 +2891,79 @@ void testQuickSelect()
 }
 
 // FRONTEQUADRO: riconoscimento degli apparecchi, scelta della carpenteria, catalogo CSV, disegno, distinta, IFC.
+void testLibraryImport()
+{
+    // Menu: categorie annidate, voce, file senza la cartella della libreria.
+    const auto menu = parseLibraryMenu("***POP1\n[->Gruppo]\n[->Sotto]\n[Voce A]^C^C_-INSERT C:/LIB/BT/X/a1 \;;;\n"
+                                       "[<-Voce B]^C^C_-INSERT D:/LIB/BT/X/b2 \;;;\n[Voce C]^C^C_-INSERT C:/LIB/c3\n");
+    CHECK(menu.size() == 3 && menu[0].path.size() == 2 && menu[0].label == "Voce A" && menu[0].file == "BT/X/a1");
+    CHECK(menu[1].file == "BT/X/b2" && menu[2].path.size() == 1 && menu[2].path[0] == "Gruppo" && menu[2].file == "c3");
+
+    // Testi: tenuti i numeri e le parole tecniche, tolti nomi e sigle.
+    for (const char* ok : {"ON", "OFF", "250", "Ir (A)", "50/60 Hz", "IEC / EN 60947-2", ">30A", "3x3200A", "ESEC.FISSO", ""})
+        CHECK(libraryTextAllowed(ok));
+    for (const char* no : {"Gamma", "XYZ250", "Serie 3x250A", "Ditta Spa", "Ab12Cd"})
+        CHECK(!libraryTextAllowed(no));
+
+    // Pulizia: logo, testi e attributi tolti, quote e punti via, blocchi rinominati, scala x10.
+    Document doc;
+    auto logo = std::make_shared<BlockDef>();
+    logo->name = "un_logo-dwg";
+    logo->entities.push_back(std::make_unique<CircleEntity>(Vec2{0.0, 0.0}, 1.0));
+    doc.addBlock(logo);
+    auto part = std::make_shared<BlockDef>();
+    part->name = "pezzo";
+    part->entities.push_back(std::make_unique<LineEntity>(Vec2{0.0, 0.0}, Vec2{1.0, 0.0}));
+    part->entities.push_back(std::make_unique<TextEntity>(Vec2{0.0, 0.0}, 1.0, "Gamma"));
+    part->entities.push_back(std::make_unique<TextEntity>(Vec2{0.0, 0.0}, 1.0, "OFF"));
+    doc.addBlock(part);
+    std::vector<std::unique_ptr<Entity>> ents;
+    ents.push_back(std::make_unique<LineEntity>(Vec2{0.0, 0.0}, Vec2{5.0, 0.0}));
+    ents.push_back(std::make_unique<InsertEntity>("un_logo-dwg", Vec2{1.0, 1.0}));
+    ents.push_back(std::make_unique<InsertEntity>("pezzo", Vec2{2.0, 2.0}));
+    ents.push_back(std::make_unique<TextEntity>(Vec2{0.0, 0.0}, 1.0, "Ditta Spa"));
+    ents.push_back(std::make_unique<PointEntity>(Vec2{9.0, 9.0}));
+    doc.commit(std::move(ents));
+    LibraryCleanReport rep;
+    cleanLibraryDrawing(doc, "B1", 10.0, rep);
+    CHECK(!doc.findBlock("un_logo-dwg") && doc.findBlock("LIB_B1_1") && !doc.findBlock("pezzo"));
+    CHECK(doc.findBlock("LIB_B1_1")->entities.size() == 2);   // linea e "OFF"
+    CHECK(doc.entities().size() == 2 && rep.removed >= 4 && rep.words.count("gamma") && rep.words.count("ditta"));
+    bool scaled = false, linked = false;
+    for (const auto& e : doc.entities()) {
+        if (e->type() == EntityType::Line)
+            scaled = std::abs(static_cast<const LineEntity&>(*e).end.x - 50.0) < 1e-9;
+        if (e->type() == EntityType::Insert)
+            linked = static_cast<const InsertEntity&>(*e).block != nullptr
+                     && static_cast<const InsertEntity&>(*e).blockName == "LIB_B1_1";
+    }
+    CHECK(scaled && linked && doc.insUnits() == 4);
+    // Parole della famiglia: solo sigle (lettere e cifre) ripetute, non le parole comuni né le misure.
+    const auto kws = libraryKeywords({{"moduli", 500}, {"abc250", 40}, {"xy12", 25}, {"rara9", 3}, {"250a", 90}}, 5);
+    CHECK(kws.size() == 2 && kws[0] == "abc250" && kws[1] == "xy12");
+
+    // Blocchi riconosciuti per impronta e righe dei cataloghi.
+    const KnownLibraryBlock* k = knownLibraryBlock("B350CEC9DA562D7F5DAB77B2C1827AECD91899C6B175648EFA1A988A642382F0");
+    CHECK(k && std::string(k->code) == "SC-250-3P" && k->plate && !knownLibraryBlock("00"));
+    const std::string rows = libraryDeviceRows({{"lib/a.dxf", k}, {"lib/b.dxf", nullptr}}, "FAM", {"alfa", "beta"});
+    CHECK(rows.rfind("FAM;famiglia;", 0) == 0 && rows.find("alfa|beta") != std::string::npos);
+    const auto parsed = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra;famiglia\n" + rows);
+    CHECK(parsed.size() == 1 && parsed[0].family == "FAM" && parsed[0].plate == DeviceType::Plate::Device
+          && parsed[0].ratedMax == 250.0 && parsed[0].polesMax == 3);
+    CHECK(parseDeviceFamilies("x;y\n" + rows).size() == 1);
+
+    // Unione: le righe della famiglia si sostituiscono, le altre restano, l'ordine delle famiglie non cambia.
+    const std::string existing = "# nota\nh1;h2\nFAM;famiglia;;;;;;;;;;;vecchie;;\nALTRA;famiglia;;;;;;;;;;;x;;\n"
+                                 "V1;modulare;1;;;;;;v.dxf;;;;;;FAM\nW1;modulare;1;;;;;;w.dxf;;;;;;ALTRA\n";
+    const std::string merged = mergeLibraryCatalog(existing, "h1;h2;nuova", rows, "FAM", 14);
+    CHECK(merged.rfind("# nota\nh1;h2;nuova\nFAM;famiglia;", 0) == 0);
+    CHECK(merged.find("V1;") == std::string::npos);
+    CHECK(merged.find("W1;") != std::string::npos && merged.find("ALTRA;famiglia") > merged.find("FAM;famiglia"));
+    CHECK(merged.find("FAM-SC-250-3P") != std::string::npos);
+    // Le parole che la famiglia aveva già restano in testa, le nuove si aggiungono.
+    CHECK(merged.find("vecchie|alfa|beta") != std::string::npos);
+}
+
 void testSwitchboard()
 {
     const auto circuit = [](const char* board, int number, const char* poles, const char* exec, const char* model = "",
@@ -3144,6 +3219,41 @@ void testSwitchboard()
         CHECK(assignFamilies(none, fams) == "FA" && none[0].family == "FA");   // nessun riscontro: la predefinita
         CHECK(assignFamilies(none, {}).empty());
     }
+    // Blocchi generici di CartesioCAD: una voce per ogni tipo, ogni voce ha il suo blocco; un quadro disegnato solo
+    // con questi non ha riquadri generici (layer FQ-APPARECCHI vuoto).
+    {
+        const auto gen = genericDeviceTypes();
+        using K = BoardDevice::Kind;
+        for (const K k : {K::Modular, K::Fuse, K::Spd, K::Switch, K::MouldedCase, K::AirCircuit, K::Meter, K::Supply}) {
+            bool covered = false;
+            for (const DeviceType& t : gen)
+                covered = covered || (t.kind == k && t.plate != DeviceType::Plate::Din && t.plate != DeviceType::Plate::Blank);
+            CHECK(covered);
+        }
+        Document gdoc;
+        for (const DeviceType& t : gen) {
+            CHECK(t.generic && addGenericBlock(gdoc, t.block));
+            CHECK(gdoc.findBlock(t.block) && !gdoc.findBlock(t.block)->entities.empty());
+        }
+        CHECK(addGenericBlock(gdoc, genericEnclosureBlock(600.0, 2000.0)) && !addGenericBlock(gdoc, "FQ_ALTRO"));
+        for (const BoardInput& in : boards) {
+            BoardInput gin = in;
+            applyDeviceCatalog(gin.devices, gen);
+            BoardLayout gl = layoutBoard(gin, o, builtinEnclosures());
+            applyPlates(gl, gen);
+            Document dd;
+            for (const std::string& n : boardBlocks(gl))
+                CHECK(addGenericBlock(dd, n));
+            int generic = 0;
+            const int layer = [&dd] {
+                drawBoardFront(dd, BoardLayout{}, {0.0, 0.0});
+                return dd.findLayer("FQ-APPARECCHI");
+            }();
+            for (const auto& e : drawBoardFront(dd, gl, {0.0, 0.0}))
+                generic += e->layer() == layer ? 1 : 0;
+            CHECK(generic == 0);
+        }
+    }
     // Accessori su guida degli scatolati: relè differenziale per quelli con differenziale, accessorio per gli altri.
     {
         auto acc = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco\n"
@@ -3248,7 +3358,10 @@ void testSwitchboard()
     BoardInput withDevs = boards[0];
     withDevs.devices = devs;
     const BoardLayout blocked = layoutBoard(withDevs, BoardOptions{}, builtinEnclosures());
-    const auto names = boardBlocks(blocked);
+    std::vector<std::string> names;
+    for (const std::string& n : boardBlocks(blocked))
+        if (n.rfind("FQG_", 0) != 0)   // i blocchi generici delle carpenterie interne a parte
+            names.push_back(n);
     CHECK(names.size() == 2 && names[0] == "FQ_M2" && names[1] == "FQ_M2D");
     Document bdoc;
     auto mcb = std::make_shared<BlockDef>();
@@ -4460,6 +4573,7 @@ int main()
     testInputParser();
     testDataExport();
     testSwitchboard();
+    testLibraryImport();
     testUndoRedo();
     testPick();
     testLineCommand();

@@ -111,6 +111,17 @@
         { "testo": "Guarda il risultato nel disegno. Se non va bene, Ctrl+Z annulla tutte le modifiche di Claude in un colpo solo; poi puoi chiedere a Claude di riprovare. Premi Avanti quando il disegno è come vuoi.", "fatto": { "tipo": "next" } },
         { "testo": "Chiedi a Claude \"Salva una nuova versione\": CartesioCAD scrive pianta-v2.dwg (o .dxf) accanto al file aperto, lo ricontrolla e da lì in poi lavora sulla nuova versione. L'originale resta com'era.", "fatto": { "tipo": "claude", "stato": "versione" } }
       ]
+    },
+    {
+      "titolo": "Fronte quadro dallo schema unifilare",
+      "descrizione": "Il fronte dei quadri con carpenterie, piastre, apparecchi, sbarre con la portata e vani cavi, più la distinta e il file IFC.",
+      "minuti": 6,
+      "passi": [
+        { "testo": "Facoltativo: se su questo PC è installata una libreria di blocchi del costruttore, Impianto > Importa libreria (evidenziato) la prepara per il fronte quadro, in mm e senza marchi, nella tua cartella. Si usa solo la tua copia installata; se le sue condizioni vietano modifiche, non importarla. Senza libreria il fronte usa i blocchi generici di CartesioCAD. Premi Avanti per proseguire.", "pulsante": "Importa libreria", "fatto": { "tipo": "next" } },
+        { "testo": "Impianto > Fronte quadro (evidenziato): scegli lo schema unifilare in PDF, i quadri (vuoto = tutti), la marca dei blocchi (automatica dallo schema), la risalita e la larghezza dei vani cavi, poi OK.", "pulsante": "Fronte quadro", "fatto": { "tipo": "command", "name": "FRONTEQUADRO" } },
+        { "testo": "Guarda il fronte: ogni simbolo dello schema ha il suo blocco (del costruttore o generico), le colonne sbarre scrivono configurazione e portata, i vani cavi il riempimento. Nella riga di comando ci sono famiglia dei blocchi e avvisi di ogni quadro. Poi Avanti.", "fatto": { "tipo": "next" } },
+        { "testo": "Accanto al PDF trovi la distinta CSV (carpenterie, sbarre, vani cavi, apparecchi) e il file IFC per il BIM. Per cambiare marca, forma, larghezza dei vani o risalita rilancia Fronte quadro con le nuove scelte. Fine del percorso: premi Avanti.", "fatto": { "tipo": "next" } }
+      ]
     }
   ]
 }

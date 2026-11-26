@@ -54,6 +54,7 @@
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QDir>
+#include <QStandardPaths>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -1362,6 +1363,43 @@ bool MainWindow::runScript(const QString& path)
                 writeDataExport(d, path, o);
                 continue;
             }
+            // Importa libreria del costruttore: -IMPORTALIBRERIA cartella [FAMIGLIA nome] [DESTINAZIONE cartella]
+            // [UNITA cm|mm] [APPARECCHI file] [CATALOGO file] [SENZACATALOGHI]
+            if (word == QLatin1String("-IMPORTALIBRERIA")) {
+                LibraryImportRequest r;
+                r.source = resolve(nextToken());
+                r.destination = QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation))
+                                    .filePath(QStringLiteral("CartesioCAD-blocchi"));
+                while (i > 0 && i < n && text[i - 1] != QLatin1Char(10)) {
+                    const QString flag = nextToken();
+                    if (flag.isEmpty())
+                        break;
+                    const QString key = flag.toUpper();
+                    if (key == QLatin1String("SENZACATALOGHI")) {
+                        r.catalogs = false;
+                        continue;
+                    }
+                    const QString value = nextToken();
+                    if (key == QLatin1String("FAMIGLIA"))
+                        r.family = value;
+                    else if (key == QLatin1String("DESTINAZIONE"))
+                        r.destination = resolve(value);
+                    else if (key == QLatin1String("UNITA"))
+                        r.unit = value.compare(QLatin1String("cm"), Qt::CaseInsensitive) == 0   ? 1
+                                 : value.compare(QLatin1String("mm"), Qt::CaseInsensitive) == 0 ? 2
+                                                                                                 : 0;
+                    else if (key == QLatin1String("APPARECCHI"))
+                        r.devices = resolve(value);
+                    else if (key == QLatin1String("CATALOGO"))
+                        r.enclosures = resolve(value);
+                    else
+                        print(tr("-IMPORTALIBRERIA: opzione sconosciuta %1").arg(flag));
+                }
+                const QString error = runLibraryImport(r, false);
+                if (!error.isEmpty())
+                    print(tr("-IMPORTALIBRERIA: %1").arg(error));
+                continue;
+            }
             // Fronte quadro negli script: -FRONTEQUADRO schema.pdf [QUADRI a,b] [IFC file] [CSV file] [CATALOGO file]
             // [APPARECCHI file] [IP n] [FORMA 3b] [RISERVA 25] [AMBIENTE 0..3] [MONTAGGIO 0..3] [RISALITA 0..3] [VANOCAVI 300] [FAMIGLIA nome]
             // [SENZAMORSETTI] [SENZASBARRE] [QUI] [NODISEGNO]
@@ -2016,6 +2054,10 @@ bool MainWindow::runScript(const QString& path)
                 } else if (which == QLatin1String("FRONTEQUADRO")) {
                     FormDialog::grabNext(target);
                     showSwitchboardFront();
+                    continue;
+                } else if (which == QLatin1String("IMPORTALIBRERIA")) {
+                    FormDialog::grabNext(target);
+                    showLibraryImport();
                     continue;
                 } else if (which == QLatin1String("MOTIVI")) {
                     FormDialog::grabNext(target);

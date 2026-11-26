@@ -126,6 +126,7 @@ struct DeviceType {
     enum class Plate { None, Device, Din, Blank, Busbar, Accessory, Terminal };
     Plate plate = Plate::None;
     std::string family;               // famiglia di blocchi (vuota = valida per tutte)
+    bool generic = false;             // blocco generico di CartesioCAD: vale solo se il catalogo non ha una voce adatta
 };
 // CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello[;piastra
 //      [;famiglia]]]

@@ -75,6 +75,17 @@ struct SwitchboardRequest {
     QString ifc, csv;       // vuoti = non si scrivono
 };
 
+// IMPORTALIBRERIA: libreria del costruttore installata sul PC -> blocchi puliti e cataloghi dell'utente.
+struct LibraryImportRequest {
+    QString source;         // cartella della libreria installata
+    QString destination;    // cartella dei blocchi importati (dentro: libreria/<famiglia>/...)
+    QString family;         // nome della famiglia nei cataloghi (vuoto = nome della cartella della libreria)
+    int unit = 0;           // 0 automatica, 1 centimetri, 2 millimetri
+    bool catalogs = true;   // aggiorna i cataloghi (solo le righe della famiglia)
+    QString devices;        // catalogo degli apparecchi da aggiornare
+    QString enclosures;     // catalogo delle carpenterie da aggiornare
+};
+
 // Finestra principale: barra di accesso rapido, barra multifunzione,
 // schede dei disegni, riga di comando mobile, tavolozze e barra di stato.
 class MainWindow : public QMainWindow {
@@ -135,6 +146,8 @@ private:
     bool writeDataExport(DrawingWidget* d, const QString& path, const DataExportOptions& options);
     // FRONTEQUADRO: fronte dei quadri dallo schema unifilare in PDF. Restituisce l'errore (vuoto se riuscito).
     void showSwitchboardFront();
+    void showLibraryImport();
+    QString runLibraryImport(const LibraryImportRequest& request, bool interactive);
     QString runSwitchboardFront(const SwitchboardRequest& request);
     bool saveBlockEdit(DrawingWidget* editor);
     void closeBlockEditor();
