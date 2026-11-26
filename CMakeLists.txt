@@ -156,6 +156,7 @@ if(CARTESIO_BUILD_APP)
         src/app/WebView2Host.h
         src/app/WebView2Host.cpp
         src/app/MainWindowAbout.cpp
+        src/app/MainWindowReport.cpp
         src/app/PdfWords.h
         src/app/PdfWords.cpp
         src/app/CircuitsPanel.h

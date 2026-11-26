@@ -2118,6 +2118,10 @@ Double-click: list of the circuits</translation>
         <translation>CartesioCAD %1 - type a command, or F1 for the step-by-step guide.</translation>
     </message>
     <message>
+        <source>L&apos;ultima volta CartesioCAD si è chiuso in modo imprevisto. Se vuoi segnalarlo: menu dell&apos;applicazione &gt; Segnala un problema (comando SEGNALA).</source>
+        <translation>Last time CartesioCAD closed unexpectedly. To report it: application menu &gt; Report a problem (SEGNALA command).</translation>
+    </message>
+    <message>
         <source>attivato</source>
         <translation>on</translation>
     </message>
@@ -2610,6 +2614,10 @@ Command: LAYON</translation>
     <message>
         <source>Assistente IA...</source>
         <translation>AI Assistant...</translation>
+    </message>
+    <message>
+        <source>Segnala un problema...</source>
+        <translation>Report a problem...</translation>
     </message>
     <message>
         <source>Informazioni su CartesioCAD...</source>
@@ -5115,6 +5123,14 @@ comparison</translation>
         <translation>-QUADRO: %1</translation>
     </message>
     <message>
+        <source>Segnalazione di prova scritta in %1</source>
+        <translation>Test report written to %1</translation>
+    </message>
+    <message>
+        <source>Impossibile scrivere %1</source>
+        <translation>Cannot write %1</translation>
+    </message>
+    <message>
         <source>-CIRCUITI: %1</source>
         <translation>-CIRCUITI: %1</translation>
     </message>
@@ -6591,6 +6607,94 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Dettagli</source>
         <translation>Details</translation>
+    </message>
+    <message>
+        <source>Segnala un problema</source>
+        <translation>Report a problem</translation>
+    </message>
+    <message>
+        <source>Apri su GitHub</source>
+        <translation>Open on GitHub</translation>
+    </message>
+    <message>
+        <source>Scrivi in due righe cosa è successo: si apre la pagina di GitHub già compilata, la rileggi e la invii con il pulsante verde. Serve un account GitHub (gratuito).</source>
+        <translation>Describe what happened in a couple of lines: the GitHub page opens already filled in, you review it and send it with the green button. A (free) GitHub account is needed.</translation>
+    </message>
+    <message>
+        <source>Che cosa vuoi segnalare</source>
+        <translation>What do you want to report</translation>
+    </message>
+    <message>
+        <source>Qualcosa non funziona</source>
+        <translation>Something does not work</translation>
+    </message>
+    <message>
+        <source>Un suggerimento</source>
+        <translation>A suggestion</translation>
+    </message>
+    <message>
+        <source>Una domanda</source>
+        <translation>A question</translation>
+    </message>
+    <message>
+        <source>In breve</source>
+        <translation>In short</translation>
+    </message>
+    <message>
+        <source>es. aprendo il DWG i testi non si vedono</source>
+        <translation>e.g. texts are missing when opening the DWG</translation>
+    </message>
+    <message>
+        <source>Cosa è successo? Cosa ti aspettavi?</source>
+        <translation>What happened? What did you expect?</translation>
+    </message>
+    <message>
+        <source>Come si ripete, se lo sai</source>
+        <translation>How to reproduce it, if you know</translation>
+    </message>
+    <message>
+        <source>1. apro il disegno...  2. uso il comando...  3. ...</source>
+        <translation>1. open the drawing...  2. use the command...  3. ...</translation>
+    </message>
+    <message>
+        <source>(niente)</source>
+        <translation>(nothing)</translation>
+    </message>
+    <message>
+        <source>Aggiungi le informazioni tecniche (versione, sistema, grafica)</source>
+        <translation>Add technical information (version, system, graphics)</translation>
+    </message>
+    <message>
+        <source>Aggiungi le ultime righe della riga di comando (percorsi e nomi dei file tolti)</source>
+        <translation>Add the last command line lines (paths and file names removed)</translation>
+    </message>
+    <message>
+        <source>Cosa viene aggiunto (si può rileggere e modificare anche su GitHub prima di inviare)</source>
+        <translation>What is added (you can review and edit it on GitHub before sending)</translation>
+    </message>
+    <message>
+        <source>La segnalazione è &lt;b&gt;pubblica&lt;/b&gt;: non scrivere nomi di clienti, indirizzi o altri dati personali. Disegni, PDF e schermate si allegano nella pagina di GitHub trascinandoli, solo se si possono condividere.&lt;br&gt;Un problema di sicurezza? Usa la &lt;a href=&quot;%1&quot;&gt;segnalazione privata&lt;/a&gt;.</source>
+        <translation>The report is &lt;b&gt;public&lt;/b&gt;: do not write client names, addresses or other personal data. Drawings, PDFs and screenshots are attached on the GitHub page by dragging them, only if they can be shared.&lt;br&gt;A security problem? Use the &lt;a href=&quot;%1&quot;&gt;private report&lt;/a&gt;.</translation>
+    </message>
+    <message>
+        <source>Copia il testo</source>
+        <translation>Copy the text</translation>
+    </message>
+    <message>
+        <source>Testo della segnalazione copiato negli appunti.</source>
+        <translation>Report text copied to the clipboard.</translation>
+    </message>
+    <message>
+        <source>Segnalazione: il testo completo è negli appunti, incollalo nella pagina di GitHub con Ctrl+V.</source>
+        <translation>Report: the full text is in the clipboard, paste it into the GitHub page with Ctrl+V.</translation>
+    </message>
+    <message>
+        <source>Segnalazione: si apre la pagina di GitHub già compilata. Rileggila, allega i file se servono e premi il pulsante verde per inviarla.</source>
+        <translation>Report: the GitHub page opens already filled in. Review it, attach files if needed and press the green button to send it.</translation>
+    </message>
+    <message>
+        <source>Segnalazione: il browser non si è aperto. Indirizzo: %1</source>
+        <translation>Report: the browser did not open. Address: %1</translation>
     </message>
 </context>
 <context>

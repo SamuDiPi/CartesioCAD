@@ -137,7 +137,7 @@ const QStringList kUiCommands = {
     QStringLiteral("SALVACOME"), QStringLiteral("CLOSE"), QStringLiteral("CHIUDI"), QStringLiteral("QUIT"),
     QStringLiteral("EXIT"), QStringLiteral("ESCI"), QStringLiteral("LAYER"), QStringLiteral("LA"),
     QStringLiteral("PROPERTIES"), QStringLiteral("PR"), QStringLiteral("PROPRIETA"), QStringLiteral("HELP"),
-    QStringLiteral("AIUTO"), QStringLiteral("ABOUT"), QStringLiteral("INFORMAZIONI"), QStringLiteral("TEXTSCR"), QStringLiteral("SELECTALL"), QStringLiteral("LAYON"),
+    QStringLiteral("AIUTO"), QStringLiteral("ABOUT"), QStringLiteral("INFORMAZIONI"), QStringLiteral("SEGNALA"), QStringLiteral("SEGNALAPROBLEMA"), QStringLiteral("BUGREPORT"), QStringLiteral("TEXTSCR"), QStringLiteral("SELECTALL"), QStringLiteral("LAYON"),
     QStringLiteral("LAYMCUR"), QStringLiteral("SCRIPT"), QStringLiteral("SCR"), QStringLiteral("EXPORTPDF"),
     QStringLiteral("ESPORTAPDF"), QStringLiteral("PLOT"), QStringLiteral("STAMPA"), QStringLiteral("PAGESETUP"),
     QStringLiteral("CIRCUITI"), QStringLiteral("CIRCUITS"), QStringLiteral("BLOCKSPALETTE"), QStringLiteral("BLOCCHI"),
@@ -236,9 +236,16 @@ MainWindow::MainWindow(QWidget* parent)
     else
         restoreState(store.value("window/state").toByteArray());
 
+    // Chiusura imprevista: la sessione precedente non ha spento il suo segno. Solo una riga nella riga di comando.
+    previousCrash_ = store.value("sessione/aperta", false).toBool();
+    store.setValue("sessione/aperta", true);
+
     updateRecentMenus();
     print(tr("CartesioCAD %1 - digitare un comando, oppure F1 per la guida passo per passo.")
               .arg(QApplication::applicationVersion()));
+    if (previousCrash_)
+        print(tr("L'ultima volta CartesioCAD si è chiuso in modo imprevisto. Se vuoi segnalarlo: menu dell'applicazione > "
+                 "Segnala un problema (comando SEGNALA)."));
     // Si parte dalla pagina Inizia; con un file o uno script sulla riga di comando (e con
     // l'opzione spenta) c'è subito un disegno nuovo, che l'apertura del file sostituisce.
     if (!appOptions().startPageAtLaunch || QApplication::arguments().size() > 1)
@@ -488,6 +495,7 @@ QWidget* MainWindow::buildTopArea()
     });
     appMenu->addAction(tr("Torna alla versione precedente..."), this, [this] { rollbackUpdate(); });
     appMenu->addAction(tr("Assistente IA..."), this, [this] { showClaudeDialog(); });
+    appMenu->addAction(tr("Segnala un problema..."), this, [this] { showReportDialog(); });
     appMenu->addAction(tr("Informazioni su CartesioCAD..."), this, [this] { showAbout(); });
     appMenu->addSeparator();
     appMenu->addAction(closeAct_);
@@ -2182,6 +2190,8 @@ bool MainWindow::handleUiCommand(const QString& word)
         showPanel(MainView::Properties);
     } else if (is({"ABOUT", "INFORMAZIONI"})) {
         later([this] { showAbout(); });
+    } else if (is({"SEGNALA", "SEGNALAPROBLEMA", "BUGREPORT"})) {
+        later([this] { showReportDialog(); });
     } else if (is({"HELP", "AIUTO"}))
         showHelp();
     else if (is({"TEXTSCR"}))
@@ -3125,6 +3135,7 @@ void MainWindow::closeEvent(QCloseEvent* event)
     for (const QString& path : std::as_const(autosaved_))
         QFile::remove(path);
     autosaved_.clear();
+    store.setValue("sessione/aperta", false);   // chiusura regolare
     event->accept();
 }
 

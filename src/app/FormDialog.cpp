@@ -3,6 +3,7 @@
 #include "app/QmlUi.h"
 #include "app/Theme.h"
 
+#include <algorithm>
 #include <QColorDialog>
 #include <QDesktopServices>
 #include <QDir>
@@ -197,6 +198,19 @@ int FormDialog::path(const QString& label, QString& value, PathMode mode, const 
                [&value](const QVariant& v) { value = v.toString().trimmed(); });
 }
 
+int FormDialog::textArea(const QString& label, const QString& value, std::function<void(const QString&)> set, int lines,
+                         const QString& placeholder)
+{
+    const bool readOnly = !set;
+    return add({{QStringLiteral("kind"), QStringLiteral("textarea")},
+                {QStringLiteral("label"), label},
+                {QStringLiteral("value"), value},
+                {QStringLiteral("placeholder"), placeholder},
+                {QStringLiteral("lines"), std::clamp(lines, 2, 30)},
+                {QStringLiteral("readOnly"), readOnly}},
+               readOnly ? std::function<void(const QVariant&)>() : [set](const QVariant& v) { set(v.toString()); });
+}
+
 int FormDialog::note(const QString& text)
 {
     return add({{QStringLiteral("kind"), QStringLiteral("note")}, {QStringLiteral("label"), text}}, {});
@@ -329,13 +343,18 @@ QVariantList FormDialog::buttonList() const
     QVariantList out;
     const auto addButton = [&](int which, const QString& text) {
         if (buttons_ & which)
-            out << QVariantMap{{QStringLiteral("id"), which}, {QStringLiteral("text"), text}};
+            out << QVariantMap{{QStringLiteral("id"), which}, {QStringLiteral("text"), buttonTexts_.value(which, text)}};
     };
     addButton(Ok, tr("OK"));
     addButton(Cancel, tr("Annulla"));
     addButton(Apply, tr("Applica"));
     addButton(Close, tr("Chiudi"));
     return out;
+}
+
+void FormDialog::setButtonText(Button button, const QString& text)
+{
+    buttonTexts_.insert(button, text);
 }
 
 QVariantMap FormDialog::enabledFields() const

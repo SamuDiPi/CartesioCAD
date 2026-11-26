@@ -308,6 +308,73 @@ Rectangle {
         }
     }
 
+    // Testo su più righe: etichetta sopra, area che scorre; in sola lettura per le anteprime.
+    Component {
+        id: textAreaRow
+        Column {
+            id: ta
+            property var f
+            spacing: 4
+            Text {
+                visible: (ta.f.label || "").length > 0
+                width: parent.width
+                text: ta.f.label || ""
+                color: Theme.muted3
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+            }
+            Field {
+                width: parent.width
+                height: (ta.f.lines || 5) * 16 + 10
+                active: area.activeFocus
+                color: ta.f.readOnly ? Theme.window : Theme.field
+                Flickable {
+                    id: flick
+                    anchors.fill: parent
+                    anchors.margins: 5
+                    contentWidth: width
+                    contentHeight: area.contentHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    function ensureVisible(r) {
+                        if (contentY >= r.y)
+                            contentY = r.y
+                        else if (contentY + height <= r.y + r.height)
+                            contentY = r.y + r.height - height
+                    }
+                    TextEdit {
+                        id: area
+                        width: flick.width
+                        text: ta.f.value || ""
+                        readOnly: !!ta.f.readOnly
+                        wrapMode: TextEdit.Wrap
+                        color: ta.f.readOnly ? Theme.muted3 : Theme.text
+                        selectionColor: Theme.accent
+                        selectByMouse: true
+                        font.pixelSize: ta.f.readOnly ? 11 : 12
+                        onCursorRectangleChanged: flick.ensureVisible(cursorRectangle)
+                        onTextChanged: {
+                            if (!readOnly)
+                                form.edit(ta.f.id, text)
+                            else
+                                cursorPosition = 0   // anteprima: dall'inizio
+                        }
+                        Component.onCompleted: if (readOnly) cursorPosition = 0
+                        Text {
+                            visible: !area.text.length && !area.activeFocus
+                            width: parent.width
+                            text: ta.f.placeholder || ""
+                            color: Theme.muted
+                            font.pixelSize: 12
+                            font.italic: true
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Component {
         id: pathRow
         Item {
@@ -589,6 +656,7 @@ Rectangle {
                             case "color": return colorRow
                             case "choice": return choiceRow
                             case "text": return textRow
+                            case "textarea": return textAreaRow
                             case "path": return pathRow
                             case "note": return noteRow
                             case "list": return listRow

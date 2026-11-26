@@ -12,6 +12,7 @@
 #include <QImage>
 #include <QJsonValue>
 #include <QMainWindow>
+#include <QUrl>
 #include <QPointer>
 #include <QSet>
 #include <QMap>
@@ -149,6 +150,14 @@ private:
     // Informazioni su CartesioCAD: versione, licenza, nessuna garanzia, componenti e sorgenti.
     void showAbout();
     static QString aboutText(bool html);
+    // Segnala un problema: pagina "nuova segnalazione" di GitHub già compilata (MainWindowReport.cpp).
+    void showReportDialog();
+    static QString anonymizeForReport(QString text);
+    QString reportTechnical(bool withHistory) const;
+    QString reportBody(const QString& what, const QString& steps, bool technical, bool withHistory) const;
+    QUrl reportUrl(const QString& kind, const QString& title, const QString& what, const QString& steps, bool technical,
+                   bool withHistory, QString* overflow) const;
+    bool writeReportForTest(const QString& path, const QString& what);
 
     // --- layout, stampa, script (MainWindowLayouts.cpp)
     void buildLayoutTabs();
@@ -510,6 +519,7 @@ private:
     bool scriptRunning_ = false;
     bool textInPlaceInScripts_ = false;   // diagnosi: TEXT/MTEXT scrivono nel disegno anche negli script
     bool discardOnClose_ = false;
+    bool previousCrash_ = false;   // la sessione precedente non si è chiusa regolarmente
     class MainView* mainView_ = nullptr;   // interfaccia tutta in QML (nullptr con CARTESIO_UI=widgets)
     QString dialogGrab_;   // diagnosi: il prossimo dialogo XRIF si salva come immagine invece di aspettare   // QUIT da script: chiude senza chiedere di salvare
     QMap<QString, QString> extraVariables_;   // FILEDIA, CMDECHO, ATTREQ...

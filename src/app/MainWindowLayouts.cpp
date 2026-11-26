@@ -1704,6 +1704,13 @@ bool MainWindow::runScript(const QString& path)
                 QCoreApplication::processEvents();
                 continue;
             }
+            if (word == QLatin1String("-SEGNALA")) {   // testo e indirizzo della segnalazione in un file (prove)
+                const QString path = resolve(nextToken());
+                const QString what = nextToken();
+                print(writeReportForTest(path, what) ? tr("Segnalazione di prova scritta in %1").arg(QDir::toNativeSeparators(path))
+                                                     : tr("Impossibile scrivere %1").arg(QDir::toNativeSeparators(path)));
+                continue;
+            }
             if (word == QLatin1String("-INFORMAZIONI")) {   // testo della finestra Informazioni (prove)
                 for (const QString& line : aboutText(false).split(u'\n'))
                     print(line);
@@ -1916,6 +1923,10 @@ bool MainWindow::runScript(const QString& path)
                 else if (which == QLatin1String("ASSISTENTE")) {
                     FormDialog::grabNext(target);
                     showClaudeDialog();
+                    continue;
+                } else if (which == QLatin1String("SEGNALA")) {
+                    FormDialog::grabNext(target);
+                    showReportDialog();
                     continue;
                 } else if (which == QLatin1String("MOTIVI")) {
                     FormDialog::grabNext(target);

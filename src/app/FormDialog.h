@@ -7,6 +7,7 @@
 
 #include <QColor>
 #include <QDialog>
+#include <QMap>
 #include <QVariant>
 
 #include <functional>
@@ -44,6 +45,10 @@ public:
     int choice(const QString& label, const QList<QPair<QString, QVariant>>& items, const QVariant& current,
                std::function<void(const QVariant&)> set);
     int text(const QString& label, QString& value, const QString& placeholder = {});
+    // Testo su più righe (`lines` righe visibili, poi si scorre). Senza `set` è in sola lettura (anteprime); il testo
+    // si cambia con setFieldValue.
+    int textArea(const QString& label, const QString& value, std::function<void(const QString&)> set, int lines = 5,
+                 const QString& placeholder = {});
     int text(const QString& label, const QString& value, std::function<void(const QString&)> set,
              const QString& placeholder = {});
     int path(const QString& label, QString& value, PathMode mode, const QString& placeholder = {},
@@ -71,6 +76,8 @@ public:
     void setFieldValue(int field, const QVariant& value);
     // Larghezza e altezza della finestra in pixel.
     void setSize(int width, int height);
+    // Testo di un pulsante al posto di quello normale (es. "Apri su GitHub" invece di "OK").
+    void setButtonText(Button button, const QString& text);
 
     // Diagnosi senza schermo: il prossimo dialogo che si apre si salva come immagine in `path` e si chiude.
     static void grabNext(const QString& path);
@@ -114,6 +121,7 @@ private:
         int enabledBy = -1;
     };
     int add(QVariantMap data, std::function<void(const QVariant&)> set);
+    QMap<int, QString> buttonTexts_;
     void changed(int field);
 
     QStringList pageTitles_;
