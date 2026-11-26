@@ -71,6 +71,14 @@ jobs:
           if grep -E "of null|corrupted|double free|free\(\)" uscita.log; then echo "errori alla chiusura"; exit 1; fi
           test "$rc" -eq 0
 
+      - name: Connettore dell'Assistente IA (come lo avvia Claude Code, senza schermo)
+        run: |
+          # Cartella di sessione dell'utente come su un desktop (sul runner non c'è): lì Flatpak mette la cartella
+          # dell'applicazione condivisa fra CartesioCAD e il connettore.
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          sudo mkdir -p "$XDG_RUNTIME_DIR" && sudo chown "$(id -u):$(id -g)" "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
+          timeout 400 python3 tests/linux/prova_connettore_flatpak.py "$PWD/prova-assistente"
+
       - name: Scheda CanaloCAD con Qt WebEngine senza schermo (sezione -> pagina -> tavola e progetto nel disegno)
         run: |
           cd prova
