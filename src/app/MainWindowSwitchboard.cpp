@@ -280,6 +280,7 @@ void MainWindow::showSwitchboardFront()
     int reserve = s.value(QStringLiteral("FronteQuadro/reserve"), 25).toInt();
     bool terminals = s.value(QStringLiteral("FronteQuadro/terminals"), true).toBool();
     int risers = s.value(QStringLiteral("FronteQuadro/risers"), 0).toInt();
+    int riserWidth = s.value(QStringLiteral("FronteQuadro/riserWidth"), 0).toInt();
     bool busbars = s.value(QStringLiteral("FronteQuadro/busbars"), true).toBool();
     r.devices = s.value(QStringLiteral("FronteQuadro/devices")).toString();
     // Primo uso: i cataloghi nelle cartelle consigliate dei Documenti, se ci sono (sempre modificabili).
@@ -327,6 +328,9 @@ void MainWindow::showSwitchboardFront()
                   {{tr("Automatica (un vano cavi ogni due colonne quando basta)"), 0}, {tr("Nessuna"), 1},
                    {tr("Un vano cavi per ogni colonna"), 2}, {tr("Una sola colonna cavi"), 3}},
                   risers, [&risers](const QVariant& v) { risers = v.toInt(); });
+    dialog.choice(tr("Larghezza vano cavi:"),
+                  {{tr("Calcolata dai cavi"), 0}, {tr("300 mm"), 300}, {tr("400 mm"), 400}}, riserWidth,
+                  [&riserWidth](const QVariant& v) { riserWidth = v.toInt(); });
     dialog.check(tr("Colonna sbarre verticali con la portata (forme 2a e oltre)"), busbars);
     dialog.path(tr("Catalogo carpenterie (CSV, facoltativo):"), r.catalog, FormDialog::OpenFile,
                 tr("vuoto = tipi generici"), tr("CSV (*.csv)"));
@@ -357,6 +361,7 @@ void MainWindow::showSwitchboardFront()
     s.setValue(QStringLiteral("FronteQuadro/reserve"), reserve);
     s.setValue(QStringLiteral("FronteQuadro/terminals"), terminals);
     s.setValue(QStringLiteral("FronteQuadro/risers"), risers);
+    s.setValue(QStringLiteral("FronteQuadro/riserWidth"), riserWidth);
     s.setValue(QStringLiteral("FronteQuadro/busbars"), busbars);
     s.setValue(QStringLiteral("FronteQuadro/devices"), r.devices);
     s.setValue(QStringLiteral("FronteQuadro/newDrawing"), newDrawing);
@@ -370,6 +375,7 @@ void MainWindow::showSwitchboardFront()
     r.options.reserve = reserve / 100.0;
     r.options.terminals = terminals;
     r.options.risers = static_cast<RiserMode>(std::clamp(risers, 0, 3));
+    r.options.riserWidth = std::clamp(riserWidth, 0, 1200);
     r.options.busbars = busbars;
     r.newDrawing = newDrawing;
     const QFileInfo info(r.pdf);

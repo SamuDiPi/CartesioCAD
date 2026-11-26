@@ -6903,6 +6903,10 @@ Insert: the layers keep their name and merge with those of the drawing with the 
         <translation>, %1 columns</translation>
     </message>
     <message>
+        <source>   famiglia di blocchi: %1</source>
+        <translation>   block family: %1</translation>
+    </message>
+    <message>
         <source>   attenzione: %1</source>
         <translation>   warning: %1</translation>
     </message>
@@ -7025,6 +7029,22 @@ Insert: the layers keep their name and merge with those of the drawing with the 
     <message>
         <source>Nessuna</source>
         <translation>None</translation>
+    </message>
+    <message>
+        <source>Larghezza vano cavi:</source>
+        <translation>Cable compartment width:</translation>
+    </message>
+    <message>
+        <source>Calcolata dai cavi</source>
+        <translation>Calculated from the cables</translation>
+    </message>
+    <message>
+        <source>300 mm</source>
+        <translation>300 mm</translation>
+    </message>
+    <message>
+        <source>400 mm</source>
+        <translation>400 mm</translation>
     </message>
     <message>
         <source>Gli apparecchi si riconoscono dall&apos;esecuzione, dai poli e dalla corrente scritti nello schema; gli ingombri sono valori tipici e la carpenteria va confermata sul catalogo prima dell&apos;ordine. Il catalogo delle carpenterie ha le colonne codice;tipo;larghezza;altezza;profondita;ip;moduli_per_fila;riferimento;fonte;blocco;nome_blocco, quello degli apparecchi codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte (blocchi DWG o DXF in mm, accanto al CSV).</source>

@@ -1148,6 +1148,17 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         c.cableArea = a;
         c.cableSection = s;
         const double minimum = s > 185.0 ? 600.0 : s > 95.0 ? 400.0 : 300.0;
+        if (options.riserWidth > 0.0) {
+            // Larghezza scelta dall'utente: si avvisa se i cavi non ci stanno o non hanno il raggio di curvatura.
+            c.required = options.riserWidth;
+            if (a > c.required * riserDepth * kRiserFill + 1e-6)
+                L.warnings.push_back("vano cavi da " + number(c.required) + " mm riempito oltre il 35% ("
+                                     + number(a / (c.required * riserDepth) * 100.0) + "%): allargarlo o dividere i cavi");
+            if (minimum > c.required + 1e-6)
+                L.warnings.push_back("vano cavi da " + number(c.required) + " mm stretto per il cavo da " + number(s)
+                                     + " mm² (raggio di curvatura): consigliati " + number(minimum) + " mm");
+            return c;
+        }
         c.required = -1.0;
         for (const double w : {300.0, 400.0, 600.0, 800.0, 1000.0, 1200.0})
             if (w + 1e-6 >= minimum && a <= w * riserDepth * kRiserFill + 1e-6) {
@@ -1172,7 +1183,8 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         risers = RiserMode::None;
 
     // Composizione: [sbarre][apparecchi][cavi]; in automatico due colonne apparecchi vicine condividono il vano cavi
-    // in mezzo ([sbarre][apparecchi][cavi][apparecchi][sbarre]) quando i loro cavi stanno in 600 mm.
+    // in mezzo ([sbarre][apparecchi][cavi][apparecchi][sbarre]) quando i loro cavi stanno in 600 mm (o nella
+    // larghezza scelta dall'utente).
     const auto addBus = [&](std::size_t i) {
         if (bus[i].kind == BoardColumn::Kind::Busbar)
             L.columns.push_back(bus[i]);
@@ -1186,11 +1198,13 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
         const bool pairable = risers == RiserMode::Auto && i + 1 < devices.size() && !isAir(devices[i + 1]);
         if (pairable) {
             const double a = area[i] + area[i + 1], s = std::max(section[i], section[i + 1]);
-            BoardColumn shared = cableColumn(a, s);
-            if (a > 0.0 && shared.required <= 600.0 + 1e-6) {
+            // Prova senza effetti: ci stanno nel vano scelto dall'utente, o in uno fino a 600 mm?
+            const double limit = options.riserWidth > 0.0 ? options.riserWidth : 600.0;
+            const bool bend = options.riserWidth > 0.0 || s <= 185.0;
+            if (a > 0.0 && bend && a <= limit * riserDepth * kRiserFill + 1e-6) {
                 addBus(i);
                 L.columns.push_back(devices[i]);
-                L.columns.push_back(shared);
+                L.columns.push_back(cableColumn(a, s));
                 L.columns.push_back(devices[i + 1]);
                 addBus(i + 1);
                 ++i;

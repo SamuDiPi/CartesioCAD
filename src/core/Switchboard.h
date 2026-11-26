@@ -70,6 +70,7 @@ struct BoardOptions {
     double reserve = 0.25;          // spazio di riserva (0.25 = 25 %)
     bool terminals = true;          // morsettiera nelle file in basso
     RiserMode risers = RiserMode::Auto;  // risalita dei cavi (quadri a pavimento)
+    double riserWidth = 0.0;        // larghezza del vano cavi scelta dall'utente (300, 400...); 0 = calcolata
     bool busbars = true;            // colonna delle sbarre verticali accanto agli apparecchi (forme 2a e oltre)
     BoardEnvironment environment = BoardEnvironment::TechnicalRoom;
     BoardMounting mounting = BoardMounting::Auto;

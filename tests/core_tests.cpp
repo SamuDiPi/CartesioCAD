@@ -2999,6 +2999,19 @@ void testSwitchboard()
     }
     CHECK(busCols > 0 && cableCols > 0);
     CHECK(big.mainBusbar.ok() && big.mainBusbar.rating >= big.incomer);
+    // Larghezza del vano cavi scelta dall'utente: tutti i vani di quella larghezza (con l'avviso se troppo pieni).
+    for (const double w : {300.0, 400.0}) {
+        BoardOptions fixed = o;
+        fixed.riserWidth = w;
+        const BoardLayout fl = layoutBoard(boards[1], fixed, builtinEnclosures());
+        int cables = 0;
+        for (const BoardColumn& c : fl.columns)
+            if (c.kind == BoardColumn::Kind::Cable) {
+                ++cables;
+                CHECK(c.width == w);
+            }
+        CHECK(cables > 0);
+    }
     BoardOptions col = o;
     col.risers = RiserMode::Column;
     const BoardLayout dedicated = layoutBoard(boards[1], col, builtinEnclosures());
