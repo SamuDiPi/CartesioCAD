@@ -1,8 +1,8 @@
-// cartesio-mcp: connettore MCP (Model Context Protocol) di CartesioCAD per Claude Desktop.
+// cartesio-mcp: connettore MCP (Model Context Protocol) di CartesioCAD per Claude Desktop e Claude Code.
 //
-// Claude Desktop lo avvia e gli parla su stdin/stdout (JSON-RPC 2.0, un messaggio per riga). Il connettore dichiara
+// Claude lo avvia e gli parla su stdin/stdout (JSON-RPC 2.0, un messaggio per riga). Il connettore dichiara
 // gli strumenti che Claude può usare e inoltra ogni chiamata a CartesioCAD, già aperto, sul canale locale
-// dell'utente (named pipe, vedi app/ClaudeLink.h). Non si collega a Internet, non legge né scrive file: tutto quello
+// dell'utente (named pipe su Windows, file del canale su Linux: vedi app/ClaudeChannel.h). Non si collega a Internet, non legge né scrive file: tutto quello
 // che succede al disegno lo decide e lo mostra CartesioCAD, e le modifiche si applicano solo dopo la conferma
 // dell'utente nel programma.
 
@@ -324,7 +324,7 @@ const char* const kTools = R"JSON(
  },
  {
   "name": "canalo_scheda",
-  "description": "CanaloCAD nella scheda di CartesioCAD (solo Windows): apri = mostra la scheda CanaloCAD; invia_selezione = apre gli oggetti selezionati nel disegno (una sezione di canalina disegnata) in una scheda canalina nuova di CanaloCAD; leggi = cavi e risultati della scheda canalina attiva nella pagina (quella su cui sta lavorando l'utente). La tavola torna nel disegno solo quando l'utente usa Esporta > Inserisci nel disegno.",
+  "description": "CanaloCAD nella scheda di CartesioCAD: apri = mostra la scheda CanaloCAD; invia_selezione = apre gli oggetti selezionati nel disegno (una sezione di canalina disegnata) in una scheda canalina nuova di CanaloCAD; leggi = cavi e risultati della scheda canalina attiva nella pagina (quella su cui sta lavorando l'utente). La tavola torna nel disegno solo quando l'utente usa Esporta > Inserisci nel disegno.",
   "inputSchema": {
    "type": "object",
    "properties": {

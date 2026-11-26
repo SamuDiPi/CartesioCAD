@@ -260,6 +260,7 @@ private:
     // Strumenti canalo_* (CanaloCAD): true se "tool" è uno di questi (la risposta la dà lui).
     bool handleCanaloTool(const QString& tool, const QJsonObject& args, DrawingWidget* d, ClaudeLink::Reply& reply);
     QString configureClaudeDesktop();
+    static QString claudeCodeCommand();
     void showClaudeDialog();
     // Plugin CanaloCAD (MainWindowCanalo.cpp).
     void setupCanalo(Ribbon* ribbon);

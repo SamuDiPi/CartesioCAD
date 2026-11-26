@@ -13,6 +13,9 @@
 
 #ifdef Q_OS_WIN
 #include <windows.h>
+#elif defined(Q_OS_LINUX)
+#include <sys/socket.h>
+#include <unistd.h>
 #endif
 
 namespace cartesio {
@@ -22,12 +25,17 @@ namespace {
 constexpr qsizetype kMaxRequest = 8 * 1024 * 1024;
 
 // Il motivo del rifiuto va a Claude (e quindi fuori dal computer): la cartella del profilo, che contiene il nome
-// dell'utente di Windows, diventa %USERPROFILE%.
+// dell'utente, diventa %USERPROFILE% (Windows) o ~ (Linux).
 QString withoutProfile(QString path)
 {
     const QString home = QDir::toNativeSeparators(QDir::homePath());
+#ifdef Q_OS_WIN
     if (!home.isEmpty() && path.startsWith(home, Qt::CaseInsensitive))
         path.replace(0, home.size(), QStringLiteral("%USERPROFILE%"));
+#else
+    if (!home.isEmpty() && home != QLatin1String("/") && (path == home || path.startsWith(home + QLatin1Char('/'))))
+        path.replace(0, home.size(), QStringLiteral("~"));
+#endif
     return path;
 }
 }
@@ -40,14 +48,29 @@ QString ClaudeLink::channelName() { return claudeChannelName(); }
 
 bool ClaudeLink::start(QString* error)
 {
-#ifndef Q_OS_WIN
-    // Il controllo di chi si collega (trustedClient) esiste solo per Windows: altrove il canale non si apre.
+#if !defined(Q_OS_WIN) && !defined(Q_OS_LINUX)
+    // Il controllo di chi si collega (trustedClient) esiste solo per Windows e Linux: altrove il canale non si apre.
     if (error)
-        *error = tr("L'Assistente IA è disponibile solo nella versione per Windows.");
+        *error = tr("L'Assistente IA è disponibile solo nelle versioni per Windows e Linux.");
     return false;
 #else
     if (running())
         return true;
+#ifndef Q_OS_WIN
+    // Su Linux il canale è un file: dopo una chiusura imprevista resta lì e va tolto, ma solo se nessuno risponde
+    // (altrimenti è il connettore di un altro CartesioCAD aperto).
+    {
+        QLocalSocket probe;
+        probe.connectToServer(channelName());
+        if (probe.waitForConnected(300)) {
+            probe.abort();
+            if (error)
+                *error = tr("il connettore è già attivo in un altro CartesioCAD aperto.");
+            return false;
+        }
+        QLocalServer::removeServer(channelName());
+    }
+#endif
     server_ = new QLocalServer(this);
     // Solo l'utente collegato può aprire il canale (le altre utenze del PC no).
     server_->setSocketOptions(QLocalServer::UserAccessOption);
@@ -75,8 +98,8 @@ void ClaudeLink::stop()
 
 bool ClaudeLink::running() const { return server_ && server_->isListening(); }
 
-// Chi si collega deve essere cartesio-mcp.exe della cartella del programma, sullo stesso computer: il canale è già
-// riservato all'utente di Windows, così non lo usa nemmeno un altro programma dell'utente.
+// Chi si collega deve essere cartesio-mcp della cartella del programma, sullo stesso computer: il canale è già
+// riservato all'utente, così non lo usa nemmeno un altro programma dell'utente.
 bool ClaudeLink::trustedClient(QLocalSocket* socket, QString* who)
 {
 #ifdef Q_OS_WIN
@@ -111,10 +134,38 @@ bool ClaudeLink::trustedClient(QLocalSocket* socket, QString* who)
         return false;
     }
     return true;
+#elif defined(Q_OS_LINUX)
+    // Il sistema dice quale utente e quale processo c'è dall'altra parte del canale (SO_PEERCRED).
+    ucred cred{};
+    socklen_t length = sizeof cred;
+    const auto fd = static_cast<int>(socket->socketDescriptor());
+    if (fd < 0 || getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &cred, &length) != 0) {
+        *who = tr("un programma sconosciuto");
+        return false;
+    }
+    if (cred.uid != getuid()) {
+        *who = tr("un altro utente (uid %1)").arg(cred.uid);
+        return false;
+    }
+    // Il connettore avviato da "flatpak run" vive in un'altra istanza della sandbox, i cui processi da qui non si
+    // vedono (pid 0): basta lo stesso utente, perché il canale sta nella cartella dell'applicazione riservata a lui.
+    if (cred.pid <= 0)
+        return true;
+    const QString client = QFileInfo(QStringLiteral("/proc/%1/exe").arg(cred.pid)).canonicalFilePath();
+    const QString expected = QFileInfo(QCoreApplication::applicationDirPath() + QStringLiteral("/cartesio-mcp")).canonicalFilePath();
+    if (client.isEmpty()) {
+        *who = tr("il processo %1").arg(cred.pid);
+        return false;
+    }
+    if (expected.isEmpty() || client != expected) {
+        *who = client;
+        return false;
+    }
+    return true;
 #else
     Q_UNUSED(socket);
-    Q_UNUSED(who);
-    return true;
+    *who = tr("un programma sconosciuto");
+    return false;
 #endif
 }
 
@@ -126,9 +177,10 @@ void ClaudeLink::onConnection()
             emit rejected(who);
             // Il motivo va anche al connettore, che lo riferisce a Claude (altrimenti sembra solo che non risponda).
             const QString reason =
-                tr("CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude Desktop (%1) non è quello "
+                tr("CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude (%1) non è quello "
                    "della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, "
-                   "oppure ricollegare Claude Desktop dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop.")
+                   "oppure ricollegare Claude dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop o "
+                   "Claude Code.")
                     .arg(withoutProfile(who), withoutProfile(QDir::toNativeSeparators(QCoreApplication::applicationDirPath())));
             socket->write(QJsonDocument(QJsonObject{{QStringLiteral("rifiutato"), reason}}).toJson(QJsonDocument::Compact) + '\n');
             socket->flush();

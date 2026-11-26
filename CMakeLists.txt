@@ -265,7 +265,7 @@ if(CARTESIO_BUILD_APP)
     set_source_files_properties(src/app/MainWindowAbout.cpp PROPERTIES
         COMPILE_DEFINITIONS "CARTESIO_COMMIT=\"${CARTESIO_COMMIT}\"")
 
-    # Connettore per Claude Desktop (MCP su stdin/stdout): programma da console che inoltra le richieste a
+    # Connettore per Claude Desktop e Claude Code (MCP su stdin/stdout): programma da console che inoltra le richieste a
     # CartesioCAD sul canale locale dell'utente. Usa solo QtCore e QtNetwork, già distribuite.
     add_executable(cartesio-mcp src/mcp/main.cpp src/app/ClaudeChannel.h)
     target_include_directories(cartesio-mcp PRIVATE src)
@@ -379,7 +379,8 @@ if(CARTESIO_BUILD_APP)
         # Linux (pacchetto Flatpak, packaging/flatpak): il programma con i suoi file in lib/cartesiocad e un
         # collegamento in bin; voce di menu, icona e scheda del programma nelle cartelle standard.
         set(CARTESIO_APP_ID "io.github.samudipi.CartesioCAD")
-        install(TARGETS CartesioCAD RUNTIME DESTINATION ${CARTESIO_APP_DEST})
+        # Con il connettore cartesio-mcp, che Claude Code avvia con: flatpak run --command=cartesio-mcp <id>
+        install(TARGETS CartesioCAD cartesio-mcp RUNTIME DESTINATION ${CARTESIO_APP_DEST})
         install(FILES LICENSE DESTINATION ${CARTESIO_APP_DEST} RENAME LICENSE.txt)
         install(FILES packaging/linux/LICENZE-TERZE-PARTI.txt DESTINATION ${CARTESIO_APP_DEST})
         install(FILES packaging/linux/licenze/Apache-2.0.txt packaging/linux/licenze/MIT.txt
@@ -390,7 +391,9 @@ if(CARTESIO_BUILD_APP)
                 RENAME ${CARTESIO_APP_ID}.png)
         install(CODE "file(MAKE_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin\")
             execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink ../${CARTESIO_APP_DEST}/CartesioCAD
-                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cartesiocad\" COMMAND_ERROR_IS_FATAL ANY)")
+                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cartesiocad\" COMMAND_ERROR_IS_FATAL ANY)
+            execute_process(COMMAND \"${CMAKE_COMMAND}\" -E create_symlink ../${CARTESIO_APP_DEST}/cartesio-mcp
+                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/cartesio-mcp\" COMMAND_ERROR_IS_FATAL ANY)")
     endif()
 endif()
 

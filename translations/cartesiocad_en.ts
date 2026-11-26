@@ -1517,8 +1517,12 @@ Double-click: list of the circuits</translation>
 <context>
     <name>ClaudeLink</name>
     <message>
-        <source>L&apos;Assistente IA è disponibile solo nella versione per Windows.</source>
-        <translation>The AI Assistant is available only in the Windows version.</translation>
+        <source>L&apos;Assistente IA è disponibile solo nelle versioni per Windows e Linux.</source>
+        <translation>The AI Assistant is available only in the Windows and Linux versions.</translation>
+    </message>
+    <message>
+        <source>il connettore è già attivo in un altro CartesioCAD aperto.</source>
+        <translation>the connector is already active in another open CartesioCAD.</translation>
     </message>
     <message>
         <source>un altro computer (%1)</source>
@@ -1533,8 +1537,12 @@ Double-click: list of the circuits</translation>
         <translation>process %1</translation>
     </message>
     <message>
-        <source>CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude Desktop (%1) non è quello della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, oppure ricollegare Claude Desktop dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop.</source>
-        <translation>CartesioCAD refused the connection: the connector started by Claude Desktop (%1) is not the one in the folder of the open CartesioCAD (%2). Open CartesioCAD from the same folder as the connector, or reconnect Claude Desktop from the open CartesioCAD (ASSISTENTE command) and restart Claude Desktop.</translation>
+        <source>un altro utente (uid %1)</source>
+        <translation>another user (uid %1)</translation>
+    </message>
+    <message>
+        <source>CartesioCAD ha rifiutato il collegamento: il connettore avviato da Claude (%1) non è quello della cartella del CartesioCAD aperto (%2). Aprire CartesioCAD dalla stessa cartella del connettore, oppure ricollegare Claude dal CartesioCAD aperto (comando ASSISTENTE) e riavviare Claude Desktop o Claude Code.</source>
+        <translation>CartesioCAD refused the connection: the connector started by Claude (%1) is not the one in the folder of the open CartesioCAD (%2). Open CartesioCAD from the same folder as the connector, or reconnect Claude from the open CartesioCAD (ASSISTENTE command) and restart Claude Desktop or Claude Code.</translation>
     </message>
     <message>
         <source>Richiesta non valida.</source>
@@ -3991,8 +3999,8 @@ Command: VERIFICAIMPIANTO</translation>
         <translation>-CANALOSCHEDA: CanaloCAD tab not available in this version</translation>
     </message>
     <message>
-        <source>Assistente IA: collegamento rifiutato da %1 (è ammesso solo cartesio-mcp.exe della cartella di CartesioCAD).</source>
-        <translation>AI Assistant: connection refused from %1 (only cartesio-mcp.exe from the CartesioCAD folder is allowed).</translation>
+        <source>Assistente IA: collegamento rifiutato da %1 (è ammesso solo il connettore cartesio-mcp della cartella di CartesioCAD).</source>
+        <translation>AI Assistant: connection refused from %1 (only the cartesio-mcp connector in the CartesioCAD folder is allowed).</translation>
     </message>
     <message>
         <source>Assistente IA: connettore non attivo: %1 (forse è già aperto un altro CartesioCAD).</source>
@@ -4335,20 +4343,20 @@ Now open Claude Desktop (if it was open, close it completely, also from the icon
         <translation>AI Assistant</translation>
     </message>
     <message>
-        <source>L&apos;Assistente IA è disponibile solo nella versione per Windows.</source>
-        <translation>The AI Assistant is available only in the Windows version.</translation>
+        <source>Connettore per Claude</source>
+        <translation>Connector for Claude</translation>
     </message>
     <message>
-        <source>Connettore per Claude Desktop</source>
-        <translation>Connector for Claude Desktop</translation>
+        <source>Con il connettore si chiede a Claude, nell&apos;app Claude Desktop o in Claude Code con il proprio account, di leggere e modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le mostra e le applica solo dopo la conferma; il salvataggio crea sempre una nuova versione accanto al file originale.</source>
+        <translation>With the connector you ask Claude, in the Claude Desktop app or in Claude Code with your own account, to read and modify the open drawing. Claude proposes the changes, CartesioCAD shows them and applies them only after confirmation; saving always creates a new version next to the original file.</translation>
     </message>
     <message>
-        <source>Con il connettore si chiede a Claude, nell&apos;app Claude Desktop con il proprio account, di leggere e modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le mostra e le applica solo dopo la conferma; il salvataggio crea sempre una nuova versione accanto al file originale.</source>
-        <translation>With the connector you ask Claude, in the Claude Desktop app with your own account, to read and edit the open drawing. Claude proposes the changes, CartesioCAD shows them and applies them only after confirmation; saving always creates a new version next to the original file.</translation>
+        <source>Con il connettore si chiede a Claude, in Claude Code con il proprio account, di leggere e modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le mostra e le applica solo dopo la conferma; il salvataggio crea sempre una nuova versione accanto al file originale.</source>
+        <translation>With the connector you ask Claude, in Claude Code with your own account, to read and modify the open drawing. Claude proposes the changes, CartesioCAD shows them and applies them only after confirmation; saving always creates a new version next to the original file.</translation>
     </message>
     <message>
-        <source>Privacy: CartesioCAD non si collega a Internet. Il connettore è un canale locale, solo per questo utente di Windows; quello che Claude legge (di default la selezione) passa a Claude Desktop e da lì ad Anthropic, secondo le condizioni dell&apos;account Claude. Con i disegni di clienti verificare di poterli condividere; con gli account personali controllare l&apos;impostazione sull&apos;uso delle conversazioni per migliorare i modelli.</source>
-        <translation>Privacy: CartesioCAD does not connect to the Internet. The connector is a local channel, only for this Windows user; what Claude reads (by default the selection) goes to Claude Desktop and from there to Anthropic, according to the terms of the Claude account. With clients&apos; drawings check that you may share them; with personal accounts check the setting on using conversations to improve the models.</translation>
+        <source>Privacy: CartesioCAD non si collega a Internet. Il connettore è un canale locale, solo per questo utente del computer; quello che Claude legge (di default la selezione) passa a Claude Desktop o Claude Code e da lì ad Anthropic, secondo le condizioni dell&apos;account Claude. Con i disegni di clienti verificare di poterli condividere; con gli account personali controllare l&apos;impostazione sull&apos;uso delle conversazioni per migliorare i modelli.</source>
+        <translation>Privacy: CartesioCAD does not connect to the Internet. The connector is a local channel, only for this user of the computer; what Claude reads (by default the selection) goes to Claude Desktop or Claude Code and from there to Anthropic, under the terms of the Claude account. With client drawings check that you may share them; with personal accounts check the setting on using conversations to improve the models.</translation>
     </message>
     <message>
         <source>Stato: connettore attivo.</source>
@@ -4367,12 +4375,36 @@ Now open Claude Desktop (if it was open, close it completely, also from the icon
         <translation>Cannot turn on the connector: %1</translation>
     </message>
     <message>
+        <source>Claude Desktop</source>
+        <translation>Claude Desktop</translation>
+    </message>
+    <message>
         <source>Prima di premere Configura chiudere Claude Desktop (anche dall&apos;icona vicino all&apos;orologio).</source>
         <translation>Before pressing Configure close Claude Desktop (also from the icon near the clock).</translation>
     </message>
     <message>
         <source>Configura Claude Desktop</source>
         <translation>Configure Claude Desktop</translation>
+    </message>
+    <message>
+        <source>Claude Code</source>
+        <translation>Claude Code</translation>
+    </message>
+    <message>
+        <source>Una volta sola: eseguire questo comando in un terminale (dove si usa Claude Code), poi aprire una nuova sessione di Claude Code. Con CartesioCAD aperto e il connettore attivo, il comando /mcp di Claude Code mostra &quot;cartesiocad&quot; collegato.</source>
+        <translation>Once only: run this command in a terminal (where Claude Code is used), then open a new Claude Code session. With CartesioCAD open and the connector active, the Claude Code /mcp command shows &quot;cartesiocad&quot; connected.</translation>
+    </message>
+    <message>
+        <source>Comando</source>
+        <translation>Command</translation>
+    </message>
+    <message>
+        <source>Copia il comando</source>
+        <translation>Copy the command</translation>
+    </message>
+    <message>
+        <source>Assistente IA: comando per Claude Code copiato negli appunti.</source>
+        <translation>AI Assistant: Claude Code command copied to the clipboard.</translation>
     </message>
     <message>
         <source>Claude è un marchio di Anthropic. CartesioCAD è un progetto indipendente, non collegato ad Anthropic.</source>

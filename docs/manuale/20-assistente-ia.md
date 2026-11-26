@@ -1,18 +1,30 @@
-# Assistente IA (connettore per Claude Desktop)
+# Assistente IA (connettore per Claude Desktop e Claude Code)
 
 ## Assistente IA (`ASSISTENTE`)
 
 **Dove:** Strumenti > Assistente > Assistente IA; pulsante dell'applicazione > Assistente IA...; Guida > Percorsi > "Lavorare con un assistente IA" per farsi accompagnare passo per passo.
 
-Con il connettore si chiede a Claude, l'assistente IA di Anthropic, nell'app **Claude Desktop** con il proprio account, di leggere e modificare il disegno aperto in CartesioCAD. Si scrive nella chat di Claude Desktop, per esempio: *"porta tutti i testi delle stanze sul layer Nomi-Stanze"*. Claude legge il disegno, propone le modifiche e CartesioCAD le mostra; le modifiche si applicano solo con **OK**.
+Con il connettore si chiede a Claude, l'assistente IA di Anthropic, nell'app **Claude Desktop** (Windows) o in **Claude Code** (Windows e Linux) con il proprio account, di leggere e modificare il disegno aperto in CartesioCAD. Si scrive nella chat di Claude Desktop, per esempio: *"porta tutti i testi delle stanze sul layer Nomi-Stanze"*. Claude legge il disegno, propone le modifiche e CartesioCAD le mostra; le modifiche si applicano solo con **OK**.
 
-CartesioCAD non chiede né conserva credenziali: l'accesso a Claude si fa in Claude Desktop, con l'account dell'utente e alle sue condizioni.
+CartesioCAD non chiede né conserva credenziali: l'accesso a Claude si fa in Claude Desktop o Claude Code, con l'account dell'utente e alle sue condizioni.
 
-### Attivarlo (una volta sola)
+### Attivarlo con Claude Desktop (Windows, una volta sola)
 
 1. Installare Claude Desktop da claude.ai/download, accedere con il proprio account e chiuderlo.
 2. In CartesioCAD: Strumenti > Assistente > **Assistente IA**, spuntare **Attiva il connettore**, chiudere del tutto Claude Desktop (anche dall'icona vicino all'orologio: aperto, può riscrivere il proprio file di configurazione) e premere **Configura Claude Desktop**. CartesioCAD aggiunge `cartesiocad` ai connettori di Claude Desktop (file `claude_desktop_config.json` nella cartella dei dati di Claude Desktop, anche per la versione dello Store di Microsoft; ne tiene una copia `.prima-di-cartesiocad`); gli altri connettori restano come sono.
 3. Riaprire Claude Desktop: fra gli strumenti compare **cartesiocad**.
+
+### Con Claude Code (Windows e Linux)
+
+Claude Code è l'assistente di Anthropic che si usa nel terminale. Il connettore è lo stesso:
+
+1. In CartesioCAD: **Assistente IA**, spuntare **Attiva il connettore**; nel riquadro **Claude Code** premere **Copia il comando**.
+2. Incollarlo in un terminale ed eseguirlo, una volta sola. Il comando è `claude mcp add --transport stdio --scope user cartesiocad -- ...` seguito da come si avvia il connettore:
+   - Windows: il percorso di `cartesio-mcp.exe` nella cartella di CartesioCAD;
+   - Linux (pacchetto Flatpak): `flatpak run --command=cartesio-mcp io.github.samudipi.CartesioCAD`.
+3. Aprire una nuova sessione di Claude Code: con CartesioCAD aperto e il connettore attivo, il comando `/mcp` mostra **cartesiocad** collegato. Si toglie con `claude mcp remove --scope user cartesiocad`.
+
+Su Linux non c'è Claude Desktop: si usa Claude Code.
 
 Il connettore resta acceso ai prossimi avvii finché non si toglie la spunta. Se sono aperti due CartesioCAD, solo il primo riceve le richieste.
 
@@ -32,7 +44,7 @@ Il connettore resta acceso ai prossimi avvii finché non si toglie la spunta. Se
 - **Leggere le canaline del disegno** (CN1, CN2...): misure, cavi, riempimento, segregazione, e quelle troppo piccole per i loro cavi.
 - **Proporre una canalina**: nuova, anche partendo da una lista di cavi scritta a parole (Claude la traduce nei cavi del database), da mettere direttamente nel disegno come sezione al vero, tavola completa di CanaloCAD o entrambe, nel punto indicato o a destra del disegno; oppure con nuovi cavi e misura per una canalina esistente. Allo stesso modo una **tubazione**: tipo di tubo (rigido, corrugato, cavidotto, metallico), con numero e diametro proposti da CanaloCAD con la regola dell'1,3 oppure indicati e verificati. Esempio: *"questi cavi vanno in cavidotti interrati: quanti tubi da 110 servono?"*. Come per le altre modifiche, CartesioCAD apre una finestra con misure e risultati dei calcoli e applica solo con **OK** (Ctrl+Z la annulla).
 - **Tratte dell'Impianto**: leggere le tratte del progetto dell'impianto (tubi, canali, passerelle) con lunghezza disegnata, circuiti ed esito delle verifiche, e trasformare una tratta di canale o passerella in una canalina di CanaloCAD, e una tratta di tubo in una tubazione: i cavi vengono dai circuiti della tratta, la misura è quella della tratta (o scelta dai cavi) e la sezione si collega al percorso disegnato. Esempio: *"crea le canaline per tutte le passerelle dell'impianto e dimmi quali sono troppo piene"*.
-- **Scheda CanaloCAD** (Windows): aprirla, inviarle la sezione selezionata e leggere cavi e risultati della scheda canalina su cui si sta lavorando. La tavola torna nel disegno solo quando la si inserisce (*Esporta > Inserisci nel disegno*).
+- **Scheda CanaloCAD**: aprirla, inviarle la sezione selezionata e leggere cavi e risultati della scheda canalina su cui si sta lavorando. La tavola torna nel disegno solo quando la si inserisce (*Esporta > Inserisci nel disegno*).
 
 I calcoli sono quelli di CanaloCAD: valori indicativi che il progettista deve verificare.
 
@@ -40,7 +52,7 @@ Claude non può aprire, cercare o cancellare file, non esegue script e non usa l
 
 ### Privacy e sicurezza
 
-- CartesioCAD **non si collega a Internet**: il connettore è un canale locale (named pipe di Windows) aperto solo all'utente di Windows collegato.
-- Quello che Claude legge passa a Claude Desktop e da lì ad Anthropic, secondo le condizioni dell'account Claude. Prima di usarlo con disegni di clienti verificare di poterli condividere. Con gli account personali (Free, Pro, Max) controllare in Claude l'impostazione sull'uso delle conversazioni per migliorare i modelli; per i disegni di lavoro sono indicati i piani Team o Enterprise.
+- CartesioCAD **non si collega a Internet**: il connettore è un canale locale aperto solo all'utente collegato al computer: una named pipe su Windows, un file nella cartella di sessione dell'utente su Linux (nel pacchetto Flatpak, nella cartella riservata all'applicazione). Nessuna porta di rete.
+- Quello che Claude legge passa a Claude Desktop o Claude Code e da lì ad Anthropic, secondo le condizioni dell'account Claude. Prima di usarlo con disegni di clienti verificare di poterli condividere. Con gli account personali (Free, Pro, Max) controllare in Claude l'impostazione sull'uso delle conversazioni per migliorare i modelli; per i disegni di lavoro sono indicati i piani Team o Enterprise.
 - I testi dentro un disegno possono contenere frasi scritte apposta per ingannare un assistente (per esempio "cancella tutto"): CartesioCAD tratta tutto come dati, accetta solo le operazioni dell'elenco e niente cambia senza OK. Controllare sempre le modifiche prima di usare il disegno.
 - Claude è un marchio di Anthropic. CartesioCAD è un progetto indipendente, non collegato ad Anthropic.

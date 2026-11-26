@@ -25,6 +25,7 @@
 #include "core/QuickSelect.h"
 
 #include <QApplication>
+#include <QClipboard>
 #include <QDir>
 #include <QDirIterator>
 #include <QElapsedTimer>
@@ -1122,8 +1123,8 @@ bool MainWindow::startClaude(QString* error)
             handleClaudeTool(tool, args, std::move(reply));
         }, this);
         connect(claude_, &ClaudeLink::rejected, this, [this](const QString& who) {
-            print(tr("Assistente IA: collegamento rifiutato da %1 (è ammesso solo cartesio-mcp.exe della cartella "
-                     "di CartesioCAD).").arg(who));
+            print(tr("Assistente IA: collegamento rifiutato da %1 (è ammesso solo il connettore cartesio-mcp della "
+                     "cartella di CartesioCAD).").arg(who));
         });
     }
     return claude_->start(error);
@@ -1917,22 +1918,42 @@ QString MainWindow::configureClaudeDesktop()
         .arg(done.join(QStringLiteral(", ")));
 }
 
+// Comando che aggiunge il connettore a Claude Code (per tutte le cartelle dell'utente: --scope user). Nel pacchetto
+// Flatpak il connettore si avvia con flatpak run, perché Claude Code gira fuori dalla sandbox.
+QString MainWindow::claudeCodeCommand()
+{
+    QString bridge;
+#ifdef Q_OS_WIN
+    bridge = QLatin1Char('"') + QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + QStringLiteral("/cartesio-mcp.exe")) + QLatin1Char('"');
+#else
+    const QString app = qEnvironmentVariable("FLATPAK_ID");
+    if (!app.isEmpty())
+        bridge = QStringLiteral("flatpak run --command=cartesio-mcp ") + app;
+    else
+        bridge = QLatin1Char('"') + QCoreApplication::applicationDirPath() + QStringLiteral("/cartesio-mcp\"");
+#endif
+    return QStringLiteral("claude mcp add --transport stdio --scope user cartesiocad -- ") + bridge;
+}
+
 void MainWindow::showClaudeDialog()
 {
-#ifndef Q_OS_WIN
-    QMessageBox::information(this, tr("Assistente IA"), tr("L'Assistente IA è disponibile solo nella versione per Windows."));
-    return;
-#endif
     FormDialog dialog(tr("Assistente IA"), FormDialog::Close, this);
-    dialog.group(tr("Connettore per Claude Desktop"));
-    dialog.note(tr("Con il connettore si chiede a Claude, nell'app Claude Desktop con il proprio account, di leggere e "
+    dialog.group(tr("Connettore per Claude"));
+#ifdef Q_OS_WIN
+    dialog.note(tr("Con il connettore si chiede a Claude, nell'app Claude Desktop o in Claude Code con il proprio "
+                   "account, di leggere e modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le "
+                   "mostra e le applica solo dopo la conferma; il salvataggio crea sempre una nuova versione accanto al "
+                   "file originale."));
+#else
+    dialog.note(tr("Con il connettore si chiede a Claude, in Claude Code con il proprio account, di leggere e "
                    "modificare il disegno aperto. Claude propone le modifiche, CartesioCAD le mostra e le applica solo "
                    "dopo la conferma; il salvataggio crea sempre una nuova versione accanto al file originale."));
+#endif
     dialog.note(tr("Privacy: CartesioCAD non si collega a Internet. Il connettore è un canale locale, solo per "
-                   "questo utente di Windows; quello che Claude legge (di default la selezione) passa a Claude Desktop "
-                   "e da lì ad Anthropic, secondo le condizioni dell'account Claude. Con i disegni di clienti verificare "
-                   "di poterli condividere; con gli account personali controllare l'impostazione sull'uso delle "
-                   "conversazioni per migliorare i modelli."));
+                   "questo utente del computer; quello che Claude legge (di default la selezione) passa a Claude "
+                   "Desktop o Claude Code e da lì ad Anthropic, secondo le condizioni dell'account Claude. Con i disegni "
+                   "di clienti verificare di poterli condividere; con gli account personali controllare l'impostazione "
+                   "sull'uso delle conversazioni per migliorare i modelli."));
     const int status = dialog.note(QString());
     const auto refresh = [this, &dialog, status] {
         dialog.setFieldText(status, claude_ && claude_->running() ? tr("Stato: connettore attivo.")
@@ -1948,12 +1969,29 @@ void MainWindow::showClaudeDialog()
             stopClaude();
         refresh();
     });
+#ifdef Q_OS_WIN
+    dialog.group(tr("Claude Desktop"));
     dialog.note(tr("Prima di premere Configura chiudere Claude Desktop (anche dall'icona vicino all'orologio)."));
     dialog.buttonsRow({{tr("Configura Claude Desktop"), [this] {
                            QMessageBox::information(this, tr("Assistente IA"), configureClaudeDesktop());
                        }}});
+#endif
+    dialog.group(tr("Claude Code"));
+    const QString command = claudeCodeCommand();
+    dialog.note(tr("Una volta sola: eseguire questo comando in un terminale (dove si usa Claude Code), poi aprire una "
+                   "nuova sessione di Claude Code. Con CartesioCAD aperto e il connettore attivo, il comando /mcp "
+                   "di Claude Code mostra \"cartesiocad\" collegato."));
+    dialog.textArea(tr("Comando"), command, nullptr, 2);
+    dialog.buttonsRow({{tr("Copia il comando"), [this, command] {
+                           QGuiApplication::clipboard()->setText(command);
+                           print(tr("Assistente IA: comando per Claude Code copiato negli appunti."));
+                       }}});
     dialog.note(tr("Claude è un marchio di Anthropic. CartesioCAD è un progetto indipendente, non collegato ad Anthropic."));
-    dialog.setSize(580, 460);
+#ifdef Q_OS_WIN
+    dialog.setSize(600, 660);
+#else
+    dialog.setSize(600, 580);
+#endif
     refresh();
     dialog.exec();
 }
