@@ -1,5 +1,6 @@
 #include "app/CanaloEngine.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QFont>
 #include <QJSEngine>
@@ -116,10 +117,24 @@ QString readResource(const QString& path, QString* error)
 
 } // namespace
 
+namespace {
+CanaloEngine* gEngine = nullptr;
+}
+
 CanaloEngine& CanaloEngine::instance()
 {
-    static CanaloEngine engine;
-    return engine;
+    // Il motore JavaScript (QJSEngine) va distrutto mentre l'applicazione Qt esiste ancora: un oggetto statico lo
+    // sarebbe dopo, a programma già chiuso (memoria corrotta alla chiusura, visibile su Linux). qAddPostRoutine lo
+    // distrugge dentro la chiusura di QCoreApplication; senza applicazione (strumenti di prova) resta fino alla fine.
+    if (!gEngine) {
+        gEngine = new CanaloEngine;
+        if (QCoreApplication::instance())
+            qAddPostRoutine([] {
+                delete gEngine;
+                gEngine = nullptr;
+            });
+    }
+    return *gEngine;
 }
 
 CanaloEngine::CanaloEngine()

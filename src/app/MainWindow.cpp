@@ -166,6 +166,15 @@ const QStringList kUiCommands = {
 
 } // namespace
 
+MainWindow::~MainWindow()
+{
+    // Prima la scena QML, poi i modelli che mostra (barra, schede, riga di comando, pannelli). Qt distrugge i figli
+    // nell'ordine in cui sono stati creati: la scena, creata dopo i modelli, resterebbe viva su oggetti già distrutti
+    // (errori "of null" e memoria corrotta alla chiusura, visibili su Linux).
+    delete mainView_;
+    mainView_ = nullptr;
+}
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
 {

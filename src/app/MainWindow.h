@@ -66,6 +66,7 @@ class MainWindow : public QMainWindow {
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override;
 
     // Conversione in serie (DWGCONVERT).
     enum ConvertFormat { ConvertDxf2000 = 0, ConvertDxfR12 = 1, ConvertDwg = 2, ConvertPdf = 3 };
