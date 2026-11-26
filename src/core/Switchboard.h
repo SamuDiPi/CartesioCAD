@@ -37,6 +37,7 @@ struct BoardDevice {
     std::string model;         // modello scritto nello schema (per il catalogo degli apparecchi)
     bool plate = false;        // il blocco comprende la piastra di colonna: la fila è alta quanto la piastra
     std::string family;        // famiglia di blocchi riconosciuta nello schema (assignFamilies)
+    std::string accessoryBlock; // scatolati: blocco dell'accessorio su guida DIN (relè differenziale...), dal catalogo
 };
 
 const char* boardDeviceKindName(BoardDevice::Kind kind);
@@ -120,14 +121,18 @@ struct DeviceType {
     // Piastre: Device = il blocco dell'apparecchio comprende la sua piastra di colonna; Din e Blank = piastre senza
     // apparecchio (file DIN e riserve), scelte da applyPlates per altezza e larghezza della colonna; Busbar = sistema
     // di sbarre verticali, scelto per la corrente della colonna sbarre (in_min..in_max).
-    enum class Plate { None, Device, Din, Blank, Busbar };
+    // Accessory = accessorio su guida DIN di uno scatolato (relè differenziale, contatti...).
+    // Terminal = morsettiera modulare, ripetuta lungo le file dei morsetti.
+    enum class Plate { None, Device, Din, Blank, Busbar, Accessory, Terminal };
     Plate plate = Plate::None;
     std::string family;               // famiglia di blocchi (vuota = valida per tutte)
 };
 // CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello[;piastra
 //      [;famiglia]]]
 // tipo = modulare | differenziale | sezionatore | fusibile | spd | strumento | scatolato | scatolato-differenziale |
-//        sezionatore-scatolato | aperto | alimentatore | piastra-modulare | piastra-cieca | sbarre-verticali;
+//        sezionatore-scatolato | aperto | alimentatore | piastra-modulare | piastra-cieca | sbarre-verticali |
+//        accessorio | rele-differenziale (accessori su guida degli scatolati, il secondo per quelli con differenziale) |
+//        morsettiera (ripetuta lungo le file dei morsetti);
 // poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente; piastra = "si" quando il blocco
 // dell'apparecchio comprende la piastra (la fila prende l'altezza del blocco, senza margini).
 std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped = nullptr);
@@ -217,6 +222,7 @@ struct BoardLayout {
     int ip = 0;
     std::string form;
     std::string family;                  // famiglia di blocchi del quadro (per le piastre)
+    std::string terminalBlock;           // blocco della morsettiera (da applyPlates), ripetuto lungo le file
     double incomer = 0.0;
     BusbarSpec mainBusbar;               // sbarre principali orizzontali (a pavimento), sulla corrente di arrivo
     double modules = 0.0;                // moduli DIN occupati

@@ -3144,6 +3144,32 @@ void testSwitchboard()
         CHECK(assignFamilies(none, fams) == "FA" && none[0].family == "FA");   // nessun riscontro: la predefinita
         CHECK(assignFamilies(none, {}).empty());
     }
+    // Accessori su guida degli scatolati: relè differenziale per quelli con differenziale, accessorio per gli altri.
+    {
+        auto acc = parseDeviceCatalog("codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco\n"
+                                      "RD;rele-differenziale;;;;4;;;rd.dxf\n"
+                                      "AX;accessorio;;;;1;;;ax.dxf\n");
+        CHECK(acc.size() == 2 && acc[0].plate == DeviceType::Plate::Accessory && acc[0].residual && !acc[1].residual);
+        acc[0].block = "B_RD";
+        acc[1].block = "B_AX";
+        std::vector<BoardDevice> md(2);
+        for (BoardDevice& d : md) {
+            d.kind = BoardDevice::Kind::MouldedCase;
+            d.poles = 4;
+            d.rated = 250.0;
+            d.width = 140.0;
+            d.height = 200.0;
+            d.modules = 2.0;   // accessorio su guida
+        }
+        md[0].residual = true;
+        applyDeviceCatalog(md, acc);
+        CHECK(md[0].accessoryBlock == "B_RD" && md[0].modules == 4.0);
+        CHECK(md[1].accessoryBlock == "B_AX" && md[1].modules == 1.0);
+        BoardLayout al;
+        al.devices = md;
+        const auto names = boardBlocks(al);
+        CHECK(std::find(names.begin(), names.end(), "B_RD") != names.end());
+    }
     // Piastre: lo scatolato con la sua piastra fa una fila alta quanto la piastra; le file DIN prendono la piastra
     // modulare alta 150 mm più larga che sta nella colonna, le riserve quella cieca della stessa altezza.
     {

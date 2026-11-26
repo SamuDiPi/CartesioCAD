@@ -547,6 +547,12 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
             t.plate = DeviceType::Plate::Blank;
         else if (kind == "sbarre-verticali")
             t.plate = DeviceType::Plate::Busbar;
+        else if (kind == "morsettiera")
+            t.plate = DeviceType::Plate::Terminal;
+        else if (kind == "accessorio" || kind == "rele-differenziale" || kind == "relè-differenziale") {
+            t.plate = DeviceType::Plate::Accessory;
+            t.residual = kind != "accessorio";
+        }
         else if (kind == "aperto")
             t.kind = K::AirCircuit;
         else
@@ -573,7 +579,8 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
             if (t.plate == DeviceType::Plate::None)
                 t.plate = DeviceType::Plate::Device;
         if ((t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
-             || t.plate == DeviceType::Plate::Busbar)
+             || t.plate == DeviceType::Plate::Busbar || t.plate == DeviceType::Plate::Accessory
+             || t.plate == DeviceType::Plate::Terminal)
             && !t.blockFile.empty()) {
             out.push_back(t);   // piastra: basta il blocco
             continue;
@@ -661,6 +668,20 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
     int found = 0;
     for (BoardDevice& d : devices) {
         const bool frameDevice = d.width > 0.0;   // scatolato, sezionatore scatolato o aperto
+        // Accessorio su guida DIN di uno scatolato: il blocco dell'accessorio (prima della famiglia, prima con o senza
+        // differenziale come l'apparecchio), con i suoi moduli.
+        if (frameDevice && d.modules > 0.0) {
+            const DeviceType* acc = nullptr;
+            const auto score = [&d](const DeviceType& t) { return (t.residual == d.residual ? 0 : 2) + (t.family == d.family ? 0 : 1); };
+            for (const DeviceType& t : catalog)
+                if (t.plate == DeviceType::Plate::Accessory && !t.block.empty() && (!acc || score(t) < score(*acc)))
+                    acc = &t;
+            if (acc) {
+                d.accessoryBlock = acc->block;
+                if (acc->modules > 0.0)
+                    d.modules = acc->modules;
+            }
+        }
         const DeviceType* best = nullptr;
         double bestGap = 0.0;
         bool approx = false;
@@ -675,7 +696,8 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
         for (int pass = 0; pass < 4 && !best; ++pass)
         for (const DeviceType& t : catalog) {
             if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
-                || t.plate == DeviceType::Plate::Busbar)
+                || t.plate == DeviceType::Plate::Busbar || t.plate == DeviceType::Plate::Accessory
+                || t.plate == DeviceType::Plate::Terminal)
                 continue;
             if ((pass == 0 || pass == 2) && !t.family.empty() && !d.family.empty() && t.family != d.family)
                 continue;
@@ -1308,6 +1330,14 @@ BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, co
 int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
 {
     int done = 0;
+    // Morsettiera: prima quella della famiglia del quadro, poi qualsiasi.
+    for (int pass = 0; pass < 2 && L.terminalBlock.empty(); ++pass)
+        for (const DeviceType& t : catalog)
+            if (t.plate == DeviceType::Plate::Terminal && !t.block.empty()
+                && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family)) {
+                L.terminalBlock = t.block;
+                break;
+            }
     // Voci di un tipo di piastra alte come la fila, che stanno nella colonna (prima quelle della famiglia del quadro).
     const auto candidates = [&](DeviceType::Plate want, double height, double room) {
         std::vector<const DeviceType*> out;
@@ -1506,9 +1536,14 @@ bool blockExtent(const Document& doc, const std::string& name, BBox* box)
 std::vector<std::string> boardBlocks(const BoardLayout& L)
 {
     std::set<std::string> names;
-    for (const BoardDevice& d : L.devices)
+    for (const BoardDevice& d : L.devices) {
         if (!d.block.empty())
             names.insert(d.block);
+        if (!d.accessoryBlock.empty())
+            names.insert(d.accessoryBlock);
+    }
+    if (!L.terminalBlock.empty())
+        names.insert(L.terminalBlock);
     for (const BoardColumn& c : L.columns)
         if (c.enclosureFound && !c.enclosure.block.empty())
             names.insert(c.enclosure.block);
@@ -1644,15 +1679,28 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
                     p.line(p.frame, {railLeft, mid}, {railLeft + s.capacity * kModule, mid});
                 if (s.kind == BoardSection::Kind::Terminals) {
                     const double w = s.usedModules * kModule;
-                    p.rect(p.devices, railLeft, mid - 30.0, w, 60.0);
-                    p.text(p.texts, {railLeft + w / 2.0, mid}, 14.0, "morsettiera", 0.0, true);
+                    // Morsettiera del catalogo ripetuta lungo la larghezza dei morsetti; altrimenti il riquadro.
+                    BBox tb;
+                    if (blockExtent(doc, L.terminalBlock, &tb) && tb.max.x - tb.min.x > 1.0) {
+                        // Quante ne servono per la larghezza dei morsetti, ma senza uscire dalla guida.
+                        const double bw = tb.max.x - tb.min.x;
+                        const int fit = std::max(1, static_cast<int>(std::floor(s.capacity * kModule / bw + 1e-6)));
+                        const int n = std::clamp(static_cast<int>(std::ceil(w / bw - 0.05)), 1, fit);
+                        for (int k = 0; k < n; ++k)
+                            insertBlock(L.terminalBlock, railLeft + k * bw, mid - 45.0, bw, 90.0, false);
+                        p.text(p.texts, {railLeft + n * bw / 2.0, bottom + 12.0}, 10.0, "morsettiera", 0.0, true);
+                    } else {
+                        p.rect(p.devices, railLeft, mid - 30.0, w, 60.0);
+                        p.text(p.texts, {railLeft + w / 2.0, mid}, 14.0, "morsettiera", 0.0, true);
+                    }
                 } else {
                     double x = railLeft;
                     for (const int i : s.devices) {
                         const BoardDevice& d = L.devices[static_cast<std::size_t>(i)];
                         const double w = d.modules * kModule;
                         // Il blocco è quello dell'apparecchio: per uno scatolato qui c'è solo l'accessorio su guida.
-                        if (d.width <= 0.0 && insertBlock(d.block, x, mid - 45.0, w, 90.0, false))
+                        if ((d.width <= 0.0 && insertBlock(d.block, x, mid - 45.0, w, 90.0, false))
+                            || (d.width > 0.0 && insertBlock(d.accessoryBlock, x, mid - 45.0, w, 90.0, false)))
                             p.text(p.texts, {x + w / 2.0, bottom + 12.0}, std::min(7.0, w * 0.3), shortCode(d.circuit),
                                    kPi / 2.0, true);
                         else {
