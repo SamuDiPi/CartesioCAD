@@ -158,7 +158,8 @@ Due colonne facoltative in fondo, `blocco;nome_blocco`, indicano il disegno del 
 Per disegnare il fronte con i **blocchi veri** degli apparecchi (le viste frontali 2D che i costruttori pubblicano nei loro siti) si indica un CSV, una riga per tipo di apparecchio:
 
 ```
-codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra
+codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra;famiglia
+LIB1;famiglia;;;;;;;;;;;parola1|parola2;;
 SC630-4P;scatolato;4;251;630;;;;costruttore/scatolato630-4p-piastra.dxf;;Serie e codice;sito del costruttore;;si
 MOD-1P;modulare;1;0;63;1;;;costruttore/modulare-1p-fronte.dxf;;Serie e codice;sito del costruttore;;
 PM-3;piastra-modulare;;;;;;;costruttore/piastra-modulare-3-moduli.dxf;;;;;
@@ -173,6 +174,8 @@ PC-3;piastra-cieca;;;;;;;costruttore/piastra-cieca-3-moduli.dxf;;;;;
 - `piastra` (facoltativo): `si` quando il blocco dell'apparecchio comprende la sua **piastra di colonna** (il fronte com'è nel quadro, piastra e apparecchio): la fila è alta quanto la piastra, a passo di 50 mm, una piastra per fila, senza margini; le riserve sono piastre della stessa altezza.
 
 Le voci `piastra-modulare` e `piastra-cieca` sono piastre senza apparecchio: alle file DIN e alle morsettiere va la piastra modulare alta come la fila (150 mm), alle riserve quella cieca della stessa altezza, scegliendo la più larga che sta nella colonna (larghezza − 100 mm). Così il fronte è fatto di piastre impilate come nel quadro vero.
+
+**Famiglie di blocchi.** Con più librerie (una per costruttore) ogni libreria è una famiglia: si dichiara con una riga di tipo `famiglia` (codice = nome della famiglia, colonna `modello` = parole che la riconoscono nello schema, separate da `|`) e ogni voce indica la sua nella colonna `famiglia`. Ogni apparecchio prende la prima famiglia le cui parole compaiono nel suo modello o nella descrizione; gli altri apparecchi del quadro prendono la famiglia più frequente del quadro, e se lo schema non ne nomina nessuna vale la **prima dichiarata** (la predefinita). Si usano prima le voci della famiglia dell'apparecchio (o senza famiglia), poi, se mancano, quelle delle altre; anche le piastre seguono la famiglia del quadro. La famiglia di ogni quadro compare nei messaggi. Nomi e parole stanno solo nel catalogo dell'utente.
 
 Una voce il cui file del blocco **non c'è** viene saltata (vale la voce successiva) e il programma dice quante sono: si può quindi tenere nel catalogo anche ciò che si scaricherà più avanti.
 

@@ -3097,6 +3097,40 @@ void testSwitchboard()
         CHECK(md[0].block.empty() && md[1].height == 300.0);   // i blocchi non sono caricati: misure sì
         CHECK(md[0].height == 200.0);
     }
+    // Famiglie di blocchi: riconosciute dalle parole nel modello o nella descrizione; gli altri apparecchi prendono la
+    // famiglia più frequente del quadro; le voci della famiglia vincono, poi si ripiega sulle altre.
+    {
+        const std::string csv = "codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte;modello;piastra;famiglia\n"
+                                "FA;famiglia;;;;;;;;;;;alfa|serie-a;;\n"
+                                "FB;famiglia;;;;;;;;;;;beta;;\n"
+                                "MA;modulare;1-4;0;63;2;;;;;Rif A;;;;FA\n"
+                                "MB;modulare;1-4;0;63;3;;;;;Rif B;;;;FB\n"
+                                "SA;scatolato;1-4;0;630;;150;200;;;Rif SA;;;;FA\n";
+        const auto fams = parseDeviceFamilies(csv);
+        CHECK(fams.size() == 2 && fams[0].name == "FA" && fams[0].keywords.size() == 2 && fams[1].keywords[0] == "beta");
+        const auto cat = parseDeviceCatalog(csv);
+        CHECK(cat.size() == 3 && cat[1].family == "FB");
+        std::vector<BoardDevice> fd(3);
+        for (BoardDevice& d : fd) {
+            d.poles = 2;
+            d.rated = 16.0;
+            d.modules = 2.0;
+        }
+        fd[0].model = "BETA 2P";
+        fd[1].description = "Interruttore BETA";
+        fd[2].kind = BoardDevice::Kind::MouldedCase;
+        fd[2].width = 100.0;
+        fd[2].height = 150.0;
+        fd[2].rated = 250.0;
+        CHECK(assignFamilies(fd, fams) == "FB");
+        CHECK(fd[0].family == "FB" && fd[1].family == "FB" && fd[2].family == "FB");
+        applyDeviceCatalog(fd, cat);
+        CHECK(fd[0].reference == "Rif B" && fd[2].reference == "Rif SA");   // scatolato: ripiega sulla famiglia FA
+        std::vector<BoardDevice> none(1);
+        none[0].poles = 1;
+        CHECK(assignFamilies(none, fams) == "FA" && none[0].family == "FA");   // nessun riscontro: la predefinita
+        CHECK(assignFamilies(none, {}).empty());
+    }
     // Piastre: lo scatolato con la sua piastra fa una fila alta quanto la piastra; le file DIN prendono la piastra
     // modulare alta 150 mm più larga che sta nella colonna, le riserve quella cieca della stessa altezza.
     {
