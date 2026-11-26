@@ -3187,7 +3187,9 @@ void testSwitchboard()
                 if (s.kind == BoardSection::Kind::Modular)
                     din = din || s.plate == (c.width >= 765.0 ? "B_DIN6" : "B_DIN5");
                 if (s.kind == BoardSection::Kind::Reserve)
-                    blank = blank || s.plate == "B_C3";
+                    blank = blank || s.plate == "B_C3"
+                            || (s.plateStack.size() == 1 && s.plateStack[0].first == "B_C3"
+                                && s.plateStack[0].second == 150.0);
             }
         CHECK(din && blank);
         const auto names = boardBlocks(pl);

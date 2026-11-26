@@ -114,15 +114,16 @@ struct DeviceType {
     std::string model;                // testo da cercare nel modello dello schema (vuoto = qualsiasi)
     std::string block;                // nome del blocco nel documento (lo assegna chi carica i file)
     // Piastre: Device = il blocco dell'apparecchio comprende la sua piastra di colonna; Din e Blank = piastre senza
-    // apparecchio (file DIN e riserve), scelte da applyPlates per altezza e larghezza della colonna.
-    enum class Plate { None, Device, Din, Blank };
+    // apparecchio (file DIN e riserve), scelte da applyPlates per altezza e larghezza della colonna; Busbar = sistema
+    // di sbarre verticali, scelto per la corrente della colonna sbarre (in_min..in_max).
+    enum class Plate { None, Device, Din, Blank, Busbar };
     Plate plate = Plate::None;
     std::string family;               // famiglia di blocchi (vuota = valida per tutte)
 };
 // CSV: codice;tipo;poli;in_min;in_max;moduli;larghezza;altezza;blocco;nome_blocco;riferimento;fonte[;modello[;piastra
 //      [;famiglia]]]
 // tipo = modulare | differenziale | sezionatore | fusibile | spd | strumento | scatolato | scatolato-differenziale |
-//        sezionatore-scatolato | aperto | piastra-modulare | piastra-cieca;
+//        sezionatore-scatolato | aperto | piastra-modulare | piastra-cieca | sbarre-verticali;
 // poli = "4", "3-4" o vuoto (tutti); in_min/in_max vuoti = qualsiasi corrente; piastra = "si" quando il blocco
 // dell'apparecchio comprende la piastra (la fila prende l'altezza del blocco, senza margini).
 std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped = nullptr);
@@ -152,6 +153,8 @@ struct BoardSection {
     double usedModules = 0.0;            // file DIN: moduli occupati
     double capacity = 0.0;               // file DIN: moduli disponibili
     std::string plate;                   // blocco della piastra (file DIN e riserve, da applyPlates)
+    // Riserve riempite con più piastre cieche della stessa larghezza: (blocco, altezza) dall'alto in basso.
+    std::vector<std::pair<std::string, double>> plateStack;
 };
 
 // Sbarre in rame nudo di un sistema 3F+N (neutro pieno) con la barra PE. Portata dalla tabella DIN 43671
@@ -188,6 +191,7 @@ struct BoardColumn {
     double cableSection = 0.0;           // Cable: sezione del cavo più grande (raggio di curvatura)
     double cableFill = 0.0;              // Cable: riempimento della sezione utile (0..1)
     BusbarSpec busbar;                   // Busbar: sbarre verticali della colonna apparecchi accanto
+    std::string busbarBlock;             // Busbar: blocco del sistema sbarre (da applyPlates)
     std::vector<BoardSection> sections;
     EnclosureType enclosure;             // carpenteria della colonna (quadri a pavimento)
     bool enclosureFound = false;
@@ -216,9 +220,10 @@ struct BoardLayout {
 
 BoardLayout layoutBoard(const BoardInput& input, const BoardOptions& options, const std::vector<EnclosureType>& catalog);
 
-// Piastre del catalogo (piastra-modulare, piastra-cieca) per le file DIN, le morsettiere e le riserve delle colonne
-// apparecchi: quella alta come la fila (tolleranza 1 mm) e più larga fra quelle che stanno nella colonna (larghezza
-// - 100 mm). Solo voci con il blocco caricato. Restituisce le file con la piastra.
+// Piastre del catalogo per le colonne apparecchi: alle file DIN e alle morsettiere la piastra modulare alta come la
+// fila (tolleranza 1 mm) più stretta che contiene la guida, alle riserve la cieca della stessa altezza e della
+// larghezza delle altre piastre della colonna; alle colonne sbarre il sistema sbarre-verticali con la corrente della
+// colonna nel suo intervallo (il più stretto). Solo voci con il blocco caricato. Restituisce i blocchi assegnati.
 int applyPlates(BoardLayout& layout, const std::vector<DeviceType>& catalog);
 
 // Disegno del fronte nel documento, con l'angolo in basso a sinistra in `origin` (mm, scala 1:1): carpenteria,

@@ -542,6 +542,8 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
             t.plate = DeviceType::Plate::Din;
         else if (kind == "piastra-cieca")
             t.plate = DeviceType::Plate::Blank;
+        else if (kind == "sbarre-verticali")
+            t.plate = DeviceType::Plate::Busbar;
         else if (kind == "aperto")
             t.kind = K::AirCircuit;
         else
@@ -567,7 +569,9 @@ std::vector<DeviceType> parseDeviceCatalog(const std::string& csv, int* skipped)
         if (const std::string p = lower(cell(13)); p == "si" || p == "sì" || p == "1" || p == "x")
             if (t.plate == DeviceType::Plate::None)
                 t.plate = DeviceType::Plate::Device;
-        if ((t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank) && !t.blockFile.empty()) {
+        if ((t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
+             || t.plate == DeviceType::Plate::Busbar)
+            && !t.blockFile.empty()) {
             out.push_back(t);   // piastra: basta il blocco
             continue;
         }
@@ -658,7 +662,8 @@ int applyDeviceCatalog(std::vector<BoardDevice>& devices, const std::vector<Devi
         // Prima le voci della famiglia dell'apparecchio (o senza famiglia), poi tutte.
         for (int pass = 0; pass < 2 && !best; ++pass)
         for (const DeviceType& t : catalog) {
-            if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank)
+            if (t.plate == DeviceType::Plate::Din || t.plate == DeviceType::Plate::Blank
+                || t.plate == DeviceType::Plate::Busbar)
                 continue;
             if (pass == 0 && !t.family.empty() && !d.family.empty() && t.family != d.family)
                 continue;
@@ -822,23 +827,34 @@ double sectionsHeight(const std::vector<BoardSection>& s)
 const EnclosureType* chooseEnclosure(const std::vector<EnclosureType>& catalog, BoardMounting m, double w, double h,
                                      double d, int ip)
 {
-    const EnclosureType* best = nullptr;
-    for (const EnclosureType& e : catalog) {
-        if (e.mounting != m || e.ip < ip || e.width + 1e-6 < w || e.height + 1e-6 < h || e.depth + 1e-6 < d)
-            continue;
-        if (!best) {
-            best = &e;
-            continue;
+    // La più piccola che contiene tutto (poi la meno profonda, l'IP più basso, quella del catalogo dell'utente).
+    const auto pick = [&](bool userOnly) {
+        const EnclosureType* best = nullptr;
+        for (const EnclosureType& e : catalog) {
+            if (e.mounting != m || e.ip < ip || e.width + 1e-6 < w || e.height + 1e-6 < h || e.depth + 1e-6 < d
+                || (userOnly && e.reference.empty()))
+                continue;
+            if (!best) {
+                best = &e;
+                continue;
+            }
+            const double a = e.width * e.height, b = best->width * best->height;
+            if (a < b - 1e-6 || (std::abs(a - b) < 1e-6 && (e.depth < best->depth - 1e-6
+                                                             || (std::abs(e.depth - best->depth) < 1e-6
+                                                                 && (e.ip < best->ip
+                                                                     || (e.ip == best->ip && !e.reference.empty()
+                                                                         && best->reference.empty()))))))
+                best = &e;
         }
-        const double a = e.width * e.height, b = best->width * best->height;
-        if (a < b - 1e-6 || (std::abs(a - b) < 1e-6 && (e.depth < best->depth - 1e-6
-                                                         || (std::abs(e.depth - best->depth) < 1e-6
-                                                             && (e.ip < best->ip
-                                                                 || (e.ip == best->ip && !e.reference.empty()
-                                                                     && best->reference.empty()))))))
-            best = &e;
-    }
-    return best;
+        return best;
+    };
+    // Quella del catalogo dell'utente vince se è al più 100 mm più larga e alta come la più piccola (650 invece
+    // di 600 sì, 800 invece di 300 no).
+    const EnclosureType* any = pick(false);
+    const EnclosureType* user = pick(true);
+    if (any && user && user->width <= any->width + 100.0 + 1e-6 && user->height <= any->height + 100.0 + 1e-6)
+        return user;
+    return any;
 }
 
 // DIN 43671, rame nudo, corrente alternata, aria 35 °C, sbarra 65 °C: portata in A per 1, 2 e 3 barre per fase
@@ -1248,6 +1264,20 @@ int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
         return out;
     };
     for (BoardColumn& c : L.columns) {
+        if (c.kind == BoardColumn::Kind::Busbar && c.busbar.current > 0.0) {
+            const DeviceType* best = nullptr;
+            for (int pass = 0; pass < 2 && !best; ++pass)
+                for (const DeviceType& t : catalog)
+                    if (t.plate == DeviceType::Plate::Busbar && !t.block.empty() && t.width <= c.width + 1e-6
+                        && c.busbar.current >= t.ratedMin - 1e-6 && c.busbar.current <= t.ratedMax + 1e-6
+                        && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family)
+                        && (!best || t.ratedMax - t.ratedMin < best->ratedMax - best->ratedMin))
+                        best = &t;
+            if (best) {
+                c.busbarBlock = best->block;
+                ++done;
+            }
+        }
         if (c.kind != BoardColumn::Kind::Devices)
             continue;
         const double room = c.width - 2.0 * kSideMargin;
@@ -1269,10 +1299,40 @@ int applyPlates(BoardLayout& L, const std::vector<DeviceType>& catalog)
                 if (L.devices[static_cast<std::size_t>(i)].plate)
                     reference = std::max(reference, L.devices[static_cast<std::size_t>(i)].width);
         }
-        // Riserve: la piastra cieca della stessa larghezza delle altre (la più vicina), altrimenti la più larga.
+        // Riserve: piastre cieche della larghezza delle altre piastre della colonna (o la più larga che sta),
+        // impilate fino all'altezza della riserva, dalle più alte; se non si riesce, la cieca singola più vicina.
+        std::vector<const DeviceType*> blanks;
+        for (int pass = 0; pass < 2 && blanks.empty(); ++pass)
+            for (const DeviceType& t : catalog)
+                if (t.plate == DeviceType::Plate::Blank && !t.block.empty() && t.width <= room + 1e-6 && t.height > 0.0
+                    && (pass == 1 || t.family.empty() || L.family.empty() || t.family == L.family))
+                    blanks.push_back(&t);
+        double stackWidth = 0.0;
+        for (const DeviceType* t : blanks)
+            if (reference > 0.0 ? std::abs(t->width - reference) < std::abs(stackWidth - reference) - 1e-6
+                                : t->width > stackWidth + 1e-6)
+                stackWidth = t->width;
+        std::vector<const DeviceType*> sameWidth;
+        for (const DeviceType* t : blanks)
+            if (std::abs(t->width - stackWidth) <= 1.0)
+                sameWidth.push_back(t);
+        std::sort(sameWidth.begin(), sameWidth.end(),
+                  [](const DeviceType* a, const DeviceType* b) { return a->height > b->height; });
         for (BoardSection& s : c.sections) {
             if (s.kind != BoardSection::Kind::Reserve)
                 continue;
+            double left = s.height;
+            std::vector<std::pair<std::string, double>> stack;
+            for (const DeviceType* t : sameWidth)
+                while (t->height <= left + 1.0) {
+                    stack.push_back({t->block, t->height});
+                    left -= t->height;
+                }
+            if (!stack.empty() && std::abs(left) <= 1.0) {
+                s.plateStack = std::move(stack);
+                ++done;
+                continue;
+            }
             const DeviceType* best = nullptr;
             for (const DeviceType* t : candidates(DeviceType::Plate::Blank, s.height, room)) {
                 const auto worse = [&](const DeviceType* a, const DeviceType* b) {   // a peggio di b?
@@ -1397,10 +1457,16 @@ std::vector<std::string> boardBlocks(const BoardLayout& L)
     for (const BoardColumn& c : L.columns)
         if (c.enclosureFound && !c.enclosure.block.empty())
             names.insert(c.enclosure.block);
-    for (const BoardColumn& c : L.columns)
-        for (const BoardSection& s : c.sections)
+    for (const BoardColumn& c : L.columns) {
+        if (!c.busbarBlock.empty())
+            names.insert(c.busbarBlock);
+        for (const BoardSection& s : c.sections) {
             if (!s.plate.empty())
                 names.insert(s.plate);
+            for (const auto& [name, h] : s.plateStack)
+                names.insert(name);
+        }
+    }
     return {names.begin(), names.end()};
 }
 
@@ -1443,7 +1509,13 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
     double cx = x0;
     for (const BoardColumn& c : L.columns) {
         // Carpenteria del costruttore (blocco del fronte), dall'angolo in basso a sinistra (zoccolo compreso).
-        const bool frameBlock = c.enclosureFound && insertBlock(c.enclosure.block, cx, origin.y, c.total(), height + plinth, true);
+        // Il blocco comprende lo zoccolo se è alto quanto colonna e zoccolo, altrimenti si appoggia sullo zoccolo.
+        BBox frameBox;
+        const bool withPlinth = blockExtent(doc, c.enclosure.block, &frameBox)
+                                && frameBox.max.y - frameBox.min.y >= height + plinth - 10.0;
+        const bool frameBlock = c.enclosureFound
+                                && insertBlock(c.enclosure.block, cx, withPlinth ? origin.y : y0, c.total(),
+                                               height + plinth, true);
         if (!frameBlock)
             p.rect(p.frame, cx, y0, c.total(), height);
         if (c.kind == BoardColumn::Kind::Cable) {
@@ -1465,11 +1537,13 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
             const double pack = std::max(10.0, b.bars * b.barThickness * 2.0);
             const double top = y0 + height - 150.0, bottom = y0 + 150.0;
             const char* poles[] = {"L1", "L2", "L3", "N"};
-            for (int k = 0; k < 4; ++k) {
-                const double px = cx + 50.0 + inner * (k + 0.5) / 4.0 - pack / 2.0;
-                p.rect(bars, px, bottom + 60.0, pack, top - bottom - 60.0);
-                p.text(p.texts, {px + pack / 2.0, top + 30.0}, 18.0, poles[k], 0.0, true);
-            }
+            // Sistema sbarre del catalogo, centrato; altrimenti i poli schematici.
+            if (!insertBlock(c.busbarBlock, cx, bottom + 60.0, c.width, top - bottom - 60.0, false))
+                for (int k = 0; k < 4; ++k) {
+                    const double px = cx + 50.0 + inner * (k + 0.5) / 4.0 - pack / 2.0;
+                    p.rect(bars, px, bottom + 60.0, pack, top - bottom - 60.0);
+                    p.text(p.texts, {px + pack / 2.0, top + 30.0}, 18.0, poles[k], 0.0, true);
+                }
             p.rect(bars, cx + 50.0, bottom, inner, 25.0);
             p.text(p.texts, {cx + c.width / 2.0, bottom - 30.0}, 18.0, "PE", 0.0, true);
             const double tx = cx + c.width / 2.0;
@@ -1488,7 +1562,14 @@ std::vector<std::unique_ptr<Entity>> drawBoardFront(Document& doc, const BoardLa
             // Piastra del costruttore (file DIN e riserve) o apparecchio che ha già la sua piastra: niente riquadro.
             const bool platedDevice = s.devices.size() == 1 && L.devices[static_cast<std::size_t>(s.devices[0])].plate
                                       && doc.findBlock(L.devices[static_cast<std::size_t>(s.devices[0])].block) != nullptr;
-            const bool plate = !s.plate.empty() && insertBlock(s.plate, left, bottom, inner, s.height, false);
+            bool plate = !s.plate.empty() && insertBlock(s.plate, left, bottom, inner, s.height, false);
+            if (!s.plateStack.empty()) {
+                double py = top;
+                for (const auto& [name, h] : s.plateStack) {
+                    plate = insertBlock(name, left, py - h, inner, h, false) || plate;
+                    py -= h;
+                }
+            }
             if (!plate && !platedDevice)
                 p.rect(p.frame, left, bottom, inner, s.height);
             const double mid = (top + bottom) / 2.0;

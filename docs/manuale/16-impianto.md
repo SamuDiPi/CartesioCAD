@@ -153,6 +153,8 @@ Due colonne facoltative in fondo, `blocco;nome_blocco`, indicano il disegno del 
 
 `tipo` vale `parete`, `pavimento` o `cassetta`; misure in mm; `moduli_per_fila` vuoto o 0 = 24 fino a 600 mm di larghezza, 36 da 800 mm. Il separatore può essere `;` o `,`; le righe non valide si saltano e se ne indica il numero. Fra quelle adatte si sceglie la carpenteria più piccola con grado IP almeno pari a quello richiesto.
 
+Fra le carpenterie che vanno bene, quella del **catalogo dell'utente** vince su quella interna se è al più 100 mm più larga (650 invece di 600 sì, 800 invece di 300 no). Il blocco del fronte della carpenteria si inserisce dall'angolo in basso a sinistra: sull'appoggio a terra se comprende lo zoccolo (alto quanto colonna e zoccolo), altrimenti sopra lo zoccolo.
+
 ### Catalogo degli apparecchi e blocchi dei costruttori
 
 Per disegnare il fronte con i **blocchi veri** degli apparecchi (le viste frontali 2D che i costruttori pubblicano nei loro siti) si indica un CSV, una riga per tipo di apparecchio:
@@ -166,14 +168,14 @@ PM-3;piastra-modulare;;;;;;;costruttore/piastra-modulare-3-moduli.dxf;;;;;
 PC-3;piastra-cieca;;;;;;;costruttore/piastra-cieca-3-moduli.dxf;;;;;
 ```
 
-- `tipo`: `modulare`, `differenziale` (modulare con il differenziale, moduli compresi), `sezionatore`, `fusibile`, `spd`, `strumento`, `scatolato`, `scatolato-differenziale` (solo per gli scatolati con differenziale), `sezionatore-scatolato`, `aperto`; inoltre `piastra-modulare` e `piastra-cieca` (vedi sotto);
+- `tipo`: `modulare`, `differenziale` (modulare con il differenziale, moduli compresi), `sezionatore`, `fusibile`, `spd`, `strumento`, `scatolato`, `scatolato-differenziale` (solo per gli scatolati con differenziale), `sezionatore-scatolato`, `aperto`; inoltre `piastra-modulare`, `piastra-cieca` e `sbarre-verticali` (vedi sotto);
 - `poli`: `4`, un intervallo come `3-4`, o vuoto per tutti; `in_min` e `in_max` in A (vuoti = qualsiasi corrente);
 - `moduli`, `larghezza`, `altezza`: vuoti = presi dall'ingombro del blocco (in mm; i moduli dalla larghezza a passo di 18 mm);
 - `blocco`: file DWG o DXF del fronte, relativo alla cartella del CSV; `nome_blocco` se il file contiene più blocchi.
 - `modello` (facoltativo): testo cercato, senza distinguere maiuscole, nel modello scritto nello schema (per esempio la sigla della serie): la voce che lo trova vince su quelle senza modello.
 - `piastra` (facoltativo): `si` quando il blocco dell'apparecchio comprende la sua **piastra di colonna** (il fronte com'è nel quadro, piastra e apparecchio): la fila è alta quanto la piastra, a passo di 50 mm, una piastra per fila, senza margini; le riserve sono piastre della stessa altezza.
 
-Le voci `piastra-modulare` e `piastra-cieca` sono piastre senza apparecchio: alle file DIN e alle morsettiere va la piastra modulare alta come la fila (150 mm), alle riserve quella cieca della stessa altezza, scegliendo la più larga che sta nella colonna (larghezza − 100 mm). Così il fronte è fatto di piastre impilate come nel quadro vero.
+Le voci `piastra-modulare` e `piastra-cieca` sono piastre senza apparecchio. Alle file DIN e alle morsettiere va la piastra modulare alta come la fila (150 mm) più stretta che contiene la guida; le riserve si riempiono con piastre cieche impilate, della stessa larghezza delle altre piastre della colonna (se non si riesce, la cieca singola della stessa altezza). Così il fronte è fatto di piastre come nel quadro vero. Le voci `sbarre-verticali` sono i disegni dei sistemi di sbarre: alla colonna sbarre va quello con la corrente della colonna fra `in_min` e `in_max` (l'intervallo più stretto), inserito al centro al posto dei poli schematici; configurazione e portata restano scritte accanto.
 
 **Famiglie di blocchi.** Con più librerie (una per costruttore) ogni libreria è una famiglia: si dichiara con una riga di tipo `famiglia` (codice = nome della famiglia, colonna `modello` = parole che la riconoscono nello schema, separate da `|`) e ogni voce indica la sua nella colonna `famiglia`. Ogni apparecchio prende la prima famiglia le cui parole compaiono nel suo modello o nella descrizione; gli altri apparecchi del quadro prendono la famiglia più frequente del quadro, e se lo schema non ne nomina nessuna vale la **prima dichiarata** (la predefinita). Si usano prima le voci della famiglia dell'apparecchio (o senza famiglia), poi, se mancano, quelle delle altre; anche le piastre seguono la famiglia del quadro. La famiglia di ogni quadro compare nei messaggi. Nomi e parole stanno solo nel catalogo dell'utente.
 
