@@ -88,11 +88,11 @@ try:
     print("      ", text[:300])
     check(not err, "proposta applicata (conferma automatica della prova)")
     err, text = b.tool("disegno_info")
-    check("Prova-Linux" in text, "il layer nuovo c'è")
+    check('"layer":3' in text.replace(" ", ""), "il layer nuovo c'è (3 layer)")
     b.close()
 
     # 2. Dentro la stessa istanza (processo visibile): passa solo cartesio-mcp della cartella del programma.
-    ps = subprocess.run(["flatpak", "ps", "--columns=instance,application"], capture_output=True, text=True).stdout
+    ps = subprocess.run(["flatpak", "ps", "--columns=child-pid,application"], capture_output=True, text=True).stdout
     instance = next((line.split()[0] for line in ps.splitlines() if APP in line), None)
     probe = subprocess.run(["flatpak", "enter", instance or "?", "true"], capture_output=True, text=True) if instance else None
     if not probe or probe.returncode != 0:
